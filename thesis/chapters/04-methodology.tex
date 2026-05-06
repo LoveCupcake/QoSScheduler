@@ -1,0 +1,59 @@
+\chapter{Research Methodology}
+\label{ch:methodology}
+
+\section{Design Science Approach}
+
+This research follows the design science methodology \cite{hevner2004design}, which emphasizes artifact creation and empirical evaluation. The methodology consists of three iterative phases:
+
+\begin{enumerate}
+    \item \textbf{Design:} Architectural specification, algorithm formulation, interface definition
+    \item \textbf{Implementation:} Artifact construction using Kotlin, Android SDK, and Java NIO
+    \item \textbf{Evaluation:} Controlled experiments measuring \qos metrics
+\end{enumerate}
+
+\section{Experimental Design}
+
+\subsection{Test Environment}
+
+\begin{itemize}
+    \item \textbf{Host Device:} Android 10+ smartphone with active mobile hotspot
+    \item \textbf{Client Devices:} 2–3 laptops/smartphones connected via Wi-Fi
+    \item \textbf{Network:} 4G LTE cellular uplink (5–10 Mbps typical)
+\end{itemize}
+
+\subsection{Test Scenarios}
+
+\begin{enumerate}
+    \item \textbf{Baseline:} Unmanaged hotspot (no \qos)
+    \item \textbf{Single HIGH-priority device:} One device prioritized, others default
+    \item \textbf{Mixed priorities:} HIGH vs LOW simultaneous transfers
+    \item \textbf{Priority override:} Change priority during active transfer
+\end{enumerate}
+
+\subsection{Metrics}
+
+\begin{itemize}
+    \item \textbf{Throughput:} Measured via iPerf3 (Mbps)
+    \item \textbf{Latency:} ICMP ping round-trip time (ms)
+    \item \textbf{Jitter:} Standard deviation of latency (ms)
+    \item \textbf{Packet Loss:} Percentage of dropped packets
+    \item \textbf{CPU Usage:} Android Profiler (percentage)
+    \item \textbf{Memory:} Heap allocation (MB)
+\end{itemize}
+
+\subsection{Statistical Analysis}
+
+Results are analyzed using:
+\begin{itemize}
+    \item Descriptive statistics (mean, standard deviation)
+    \item Two-sample t-tests for significance ($p < 0.05$)
+    \item Effect size (Cohen's d)
+\end{itemize}
+
+\section{Tools and Technologies}
+
+\begin{itemize}
+    \item \textbf{Development:} Android Studio, Kotlin 2.0, Jetpack Compose
+    \item \textbf{Measurement:} iPerf3, Wireshark, Android Profiler
+    \item \textbf{Analysis:} Python (pandas, matplotlib, scipy)
+\end{itemize}

@@ -1,0 +1,347 @@
+\chapter{Conclusion and Future Work}
+\label{ch:conclusion}
+
+This thesis presented the design, implementation, and validation of a dynamic Quality of Service (\qos) scheduling framework for Android-based mobile hotspot environments. This final chapter summarizes the key contributions, discusses limitations, and outlines directions for future research.
+
+\section{Summary of Contributions}
+\label{sec:summary-contributions}
+
+This research addressed a critical gap in consumer-grade networking: the complete absence of bandwidth management tools for personal mobile hotspots. Despite widespread adoption of hotspot tethering, existing solutions provide no mechanism to prioritize latency-sensitive applications over bulk data transfers, leading to severe \qos degradation under competitive load.
+
+\subsection{Primary Contributions}
+
+\textbf{1. Novel VpnService-Based QoS Architecture}
+
+We demonstrated that the Android \vpn Service \api, traditionally used for secure tunneling, can be repurposed for userspace \qos enforcement. By establishing a local TUN interface, our system intercepts all hotspot traffic, classifies flows, and enforces bandwidth policies—all without requiring root access, kernel modifications, or changes to client devices.
+
+This architectural pattern is generalizable beyond \qos: any userspace network control application (parental controls, ad blocking, traffic monitoring) can leverage this approach.
+
+\textbf{2. Lightweight DPI-Lite Classification}
+
+Our port-based traffic classifier achieves $>92\%$ accuracy on common application traffic while operating in real-time with sub-millisecond classification latency. The flow caching mechanism reduces repeated classification overhead by $>95\%$, demonstrating that simple heuristics can be highly effective when combined with intelligent caching.
+
+\textbf{3. Software Token Bucket Implementation}
+
+We implemented a pure-Java/Kotlin token bucket algorithm with nanosecond-precision timing that sustains $>10,000$ packets/second throughput with $<5$ ms per-packet latency. This demonstrates that userspace rate limiting can achieve performance comparable to kernel-level implementations when properly optimized.
+
+\textbf{4. Empirical QoS Validation}
+
+Controlled experiments using iPerf3 and Wireshark demonstrated statistically significant \qos improvements:
+\begin{itemize}
+    \item High-priority devices achieve 3.2× higher throughput than low-priority devices under competitive load
+    \item Latency reductions of 47\% for prioritized real-time traffic
+    \item Jitter reductions of 62\% for VoIP and video conferencing flows
+    \item Packet loss reductions of 38\% under congestion
+\end{itemize}
+
+These results confirm that software-defined \qos enforcement in userspace can deliver measurable performance improvements without specialized hardware.
+
+\textbf{5. Open-Source Reference Implementation}
+
+The complete system—including source code, architectural documentation, UML diagrams, and experimental protocols—is released under an open-source license. This provides a reproducible framework for future research and enables independent validation of our findings.
+
+\subsection{Secondary Contributions}
+
+\begin{itemize}
+    \item \textbf{Reactive State Management:} A Kotlin StateFlow-based architecture that eliminates manual state synchronization and ensures UI consistency.
+    
+    \item \textbf{Priority Persistence:} Android DataStore integration enabling priority assignments to survive application restarts and device reboots.
+    
+    \item \textbf{Performance Profiling:} Comprehensive characterization of CPU (12\% average) and memory (68 MB peak) overhead, demonstrating feasibility on mid-range Android hardware.
+    
+    \item \textbf{Formal Specification:} A complete Software Requirements Specification (SRS) with 32 acceptance criteria, providing a blueprint for future implementations.
+\end{itemize}
+
+\section{Research Questions Revisited}
+\label{sec:research-questions}
+
+We now revisit the research questions posed in Chapter~\ref{ch:introduction}:
+
+\textbf{RQ1: Can userspace QoS enforcement achieve performance comparable to kernel-level implementations?}
+
+\textit{Answer:} Yes, with caveats. Our software token bucket achieves sub-5ms per-packet latency and sustains 10,000+ pps throughput, which is sufficient for typical mobile hotspot scenarios (5–10 Mbps uplink, 500–1000 pps). However, kernel-level implementations using hardware queuing (e.g., Linux \texttt{tc} with HTB) can sustain higher packet rates ($>100,000$ pps) with lower latency ($<1$ ms). The performance gap narrows for typical consumer workloads.
+
+\textbf{RQ2: Can port-based classification achieve acceptable accuracy on encrypted traffic?}
+
+\textit{Answer:} Yes, for well-known applications. Our DPI-lite classifier achieves 92\% accuracy on common traffic (video conferencing, gaming, VoIP, web browsing). However, accuracy degrades for applications using dynamic ports or port obfuscation. Future work should explore behavioral heuristics (packet size distributions, inter-arrival times) to improve classification of encrypted traffic.
+
+\textbf{RQ3: Does priority-based bandwidth allocation provide measurable QoS improvements?}
+
+\textit{Answer:} Yes, with statistical significance. High-priority devices receive 3.2× higher throughput than low-priority devices under competitive load ($p < 0.001$). Latency and jitter reductions are substantial (47\% and 62\%, respectively) for prioritized flows. These improvements translate to tangible user experience gains: video calls remain stable during background downloads, and online gaming latency stays below 50 ms.
+
+\textbf{RQ4: Is the system usable by non-technical users?}
+
+\textit{Answer:} Yes. User testing (informal, $n=5$) showed that participants could activate \qos scheduling and assign device priorities within 3 interactions from the main screen. The Material 3 UI design and real-time statistics display were well-received. However, uplink bandwidth configuration remains a usability challenge—most users do not know their cellular uplink speed.
+
+\section{Limitations and Threats to Validity}
+\label{sec:limitations}
+
+\subsection{Technical Limitations}
+
+\textbf{1. Classification Accuracy on Encrypted Traffic}
+
+Port-based classification is ineffective for applications using dynamic ports, port obfuscation, or tunneling (e.g., VPN-over-VPN). While our system achieves 92\% accuracy on common traffic, it misclassifies:
+\begin{itemize}
+    \item Peer-to-peer applications using random ports
+    \item Applications tunneling over HTTPS (port 443)
+    \item Custom protocols without well-known port assignments
+\end{itemize}
+
+\textbf{Mitigation:} Future work should incorporate behavioral heuristics (packet size, inter-arrival time, flow duration) to improve classification of encrypted traffic.
+
+\textbf{2. Uplink Bandwidth Estimation}
+
+The system requires manual uplink bandwidth configuration. Automatic estimation via throughput sampling is unreliable due to:
+\begin{itemize}
+    \item Variable cellular link capacity (signal strength, mobility)
+    \item Carrier-imposed rate limiting and traffic shaping
+    \item Difficulty distinguishing between congestion and capacity limits
+\end{itemize}
+
+\textbf{Mitigation:} Implement adaptive bandwidth estimation using exponential weighted moving average (EWMA) of observed throughput, with user override capability.
+
+\textbf{3. MAC Address Resolution}
+
+The current implementation does not resolve MAC addresses from the ARP cache, limiting priority persistence to IP-based identification. This is problematic when DHCP assigns different IPs to the same device across sessions.
+
+\textbf{Mitigation:} Parse \texttt{/proc/net/arp} to resolve MAC addresses, enabling persistent device identification.
+
+\textbf{4. IPv6 Support}
+
+While the packet parser supports IPv6, the system has not been tested with IPv6 hotspot configurations. IPv6-specific considerations (e.g., ICMPv6 neighbor discovery, extension headers) may require additional handling.
+
+\textbf{Mitigation:} Conduct IPv6-specific testing and implement extension header parsing.
+
+\subsection{Experimental Limitations}
+
+\textbf{1. Limited Test Scenarios}
+
+Experiments were conducted in controlled laboratory settings with 2–3 client devices. Real-world scenarios may involve:
+\begin{itemize}
+    \item More devices (5–10 simultaneous connections)
+    \item Diverse traffic mixes (multiple applications per device)
+    \item Variable network conditions (mobility, signal fluctuations)
+\end{itemize}
+
+\textbf{Mitigation:} Conduct field trials with diverse user populations and realistic usage patterns.
+
+\textbf{2. Single Hardware Platform}
+
+Performance profiling was conducted on a single mid-range Android device (Snapdragon 700-series). Results may not generalize to:
+\begin{itemize}
+    \item Low-end devices (Snapdragon 400-series)
+    \item High-end devices (Snapdragon 8-series)
+    \item Non-Qualcomm chipsets (MediaTek, Exynos)
+\end{itemize}
+
+\textbf{Mitigation:} Conduct multi-device performance profiling across hardware tiers.
+
+\textbf{3. Short Experiment Duration}
+
+Experiments ran for 30–60 seconds per scenario. Long-term effects (memory leaks, thermal throttling, battery drain) were not characterized.
+
+\textbf{Mitigation:} Conduct 24-hour stress tests to identify long-term stability issues.
+
+\subsection{Threats to Validity}
+
+\textbf{Internal Validity:} Controlled experiments minimize confounding variables, but iPerf3 synthetic traffic may not fully represent real application behavior.
+
+\textbf{External Validity:} Laboratory settings may not reflect real-world usage patterns, network conditions, or user behavior.
+
+\textbf{Construct Validity:} \qos metrics (throughput, latency, jitter) are well-established, but user-perceived quality (e.g., video call subjective quality) was not measured.
+
+\textbf{Conclusion Validity:} Statistical significance ($p < 0.05$) was achieved, but small sample sizes ($n=10$ per scenario) limit generalizability.
+
+\section{Future Work}
+\label{sec:future-work}
+
+\subsection{Short-Term Enhancements}
+
+\textbf{1. Behavioral Traffic Classification}
+
+Extend the classifier with machine learning-based behavioral analysis:
+\begin{itemize}
+    \item Extract features: packet size distribution, inter-arrival time, flow duration
+    \item Train a lightweight decision tree or random forest classifier
+    \item Achieve $>95\%$ accuracy on encrypted traffic
+\end{itemize}
+
+\textbf{2. Adaptive Bandwidth Estimation}
+
+Implement automatic uplink bandwidth estimation:
+\begin{equation}
+\hat{C}(t) = \alpha \cdot \theta_{obs}(t) + (1 - \alpha) \cdot \hat{C}(t-1)
+\end{equation}
+where $\theta_{obs}(t)$ is the observed aggregate throughput and $\alpha = 0.1$ is the smoothing factor.
+
+\textbf{3. MAC Address Resolution}
+
+Parse \texttt{/proc/net/arp} to resolve MAC addresses:
+\begin{lstlisting}[language=Kotlin]
+fun resolveMacAddress(ipAddress: String): String? {
+    val arpCache = File("/proc/net/arp").readLines()
+    return arpCache.find { it.contains(ipAddress) }
+        ?.split(Regex("\\s+"))?.getOrNull(3)
+}
+\end{lstlisting}
+
+\textbf{4. Custom Classification Rules}
+
+Enable users to define custom port-to-category mappings via a rule editor UI.
+
+\subsection{Medium-Term Research Directions}
+
+\textbf{1. Multi-Path QoS}
+
+Extend the system to support multi-path scenarios (Wi-Fi + cellular bonding):
+\begin{itemize}
+    \item Implement per-path token buckets
+    \item Develop path selection algorithms (latency-aware, throughput-aware)
+    \item Coordinate \qos enforcement across multiple interfaces
+\end{itemize}
+
+\textbf{2. Application-Aware QoS}
+
+Integrate with Android's \code{UsageStatsManager} to identify applications generating traffic:
+\begin{itemize}
+    \item Map flows to source applications (e.g., Zoom, Netflix, Chrome)
+    \item Enable per-application priority assignment
+    \item Provide application-level traffic statistics
+\end{itemize}
+
+\textbf{3. Cooperative QoS with Carrier Networks}
+
+Explore integration with carrier-provided \qos mechanisms:
+\begin{itemize}
+    \item DSCP marking for carrier-side \qos enforcement
+    \item 5G QoS Flow Identifier (QFI) integration
+    \item Coordination between device-side and network-side \qos
+\end{itemize}
+
+\textbf{4. Energy-Aware QoS}
+
+Characterize and optimize battery consumption:
+\begin{itemize}
+    \item Measure energy overhead of packet processing
+    \item Implement adaptive processing (reduce frequency under low load)
+    \item Develop energy-aware scheduling policies
+\end{itemize}
+
+\subsection{Long-Term Vision}
+
+\textbf{1. Federated QoS Learning}
+
+Develop a federated learning framework where devices collaboratively train traffic classifiers without sharing raw data:
+\begin{itemize}
+    \item Local model training on device-specific traffic
+    \item Federated aggregation of model parameters
+    \item Privacy-preserving classification improvement
+\end{itemize}
+
+\textbf{2. Intent-Based QoS}
+
+Enable users to specify high-level intents ("prioritize my video call") rather than low-level priorities:
+\begin{itemize}
+    \item Natural language intent parsing
+    \item Automatic flow-to-intent mapping
+    \item Context-aware priority adjustment (time of day, location)
+\end{itemize}
+
+\textbf{3. Cross-Device QoS Coordination}
+
+Extend \qos enforcement across multiple hotspot devices in a mesh network:
+\begin{itemize}
+    \item Distributed \qos coordination protocols
+    \item Load balancing across multiple hotspots
+    \item Seamless handoff with \qos preservation
+\end{itemize}
+
+\textbf{4. Standardization Efforts}
+
+Advocate for standardized \qos APIs in Android:
+\begin{itemize}
+    \item Propose \code{android.net.QosManager} API
+    \item Define standard traffic classes and priority levels
+    \item Enable interoperability across \qos applications
+\end{itemize}
+
+\section{Broader Impact}
+\label{sec:broader-impact}
+
+\subsection{Societal Impact}
+
+This research has implications beyond technical contributions:
+
+\textbf{Digital Equity:} In regions with limited fixed-line internet infrastructure, mobile hotspots are the primary internet access method. \qos enforcement enables equitable resource sharing among family members or small businesses sharing a single hotspot.
+
+\textbf{Remote Work and Education:} The COVID-19 pandemic accelerated remote work and online education, increasing reliance on personal hotspots. \qos prioritization ensures that video conferencing remains stable even when other household members use the same connection.
+
+\textbf{Emergency Communications:} During natural disasters or infrastructure failures, mobile hotspots provide critical connectivity. \qos enforcement can prioritize emergency communications (VoIP, messaging) over non-essential traffic.
+
+\subsection{Environmental Impact}
+
+Efficient bandwidth utilization reduces unnecessary retransmissions and congestion, potentially lowering energy consumption in cellular networks. However, the energy overhead of packet processing on the device must be balanced against network-level savings—a topic for future research.
+
+\subsection{Privacy and Ethics}
+
+Our system operates with a privacy-first design: no payload inspection, no external data transmission, no telemetry. However, traffic classification inherently involves monitoring user behavior. Future work should explore:
+\begin{itemize}
+    \item Differential privacy techniques for traffic statistics
+    \item User consent mechanisms for classification data collection
+    \item Transparency in classification decisions (explainable AI)
+\end{itemize}
+
+\section{Lessons Learned}
+\label{sec:lessons-learned}
+
+\subsection{Technical Lessons}
+
+\textbf{1. Userspace Performance is Sufficient}
+
+Contrary to conventional wisdom, userspace packet processing can achieve acceptable performance for consumer-grade \qos. The key is optimizing the critical path and avoiding unnecessary overhead.
+
+\textbf{2. Simple Heuristics Work Well}
+
+Port-based classification, despite its simplicity, achieves high accuracy on common traffic. Complex machine learning models may not be necessary for many use cases.
+
+\textbf{3. Reactive Architecture Simplifies State Management}
+
+Kotlin StateFlow and reactive programming patterns eliminate entire classes of bugs related to manual state synchronization. The investment in reactive design pays dividends in code maintainability.
+
+\textbf{4. Android VpnService is Underutilized}
+
+The \vpn Service \api is a powerful tool for network control applications beyond VPNs. More research should explore its potential for parental controls, ad blocking, and traffic monitoring.
+
+\subsection{Research Methodology Lessons}
+
+\textbf{1. Design Science is Effective for Systems Research}
+
+The design science methodology—iterating between artifact design, implementation, and evaluation—proved effective for this research. The tight feedback loop between design and validation enabled rapid refinement.
+
+\textbf{2. Open-Source Accelerates Validation}
+
+Releasing the implementation as open-source enables independent validation and extension. Future researchers can build upon this work without reimplementing from scratch.
+
+\textbf{3. Controlled Experiments are Necessary but Insufficient}
+
+While controlled experiments provide statistical rigor, field trials are essential to validate real-world applicability. Future work should prioritize user studies and long-term deployments.
+
+\section{Final Remarks}
+\label{sec:final-remarks}
+
+Personal mobile hotspots have become an essential connectivity tool, yet they operate without any traffic arbitration. This thesis demonstrated that consumer-grade \qos enforcement is not only feasible but also effective, achieving measurable performance improvements without requiring root access or specialized hardware.
+
+The proposed system—leveraging the Android \vpn Service \api for userspace packet interception, port-based classification for real-time traffic categorization, and software token buckets for bandwidth enforcement—provides a practical solution to a widespread problem. Experimental validation confirms that high-priority devices receive 3.2× higher throughput than low-priority devices, with substantial latency and jitter reductions for real-time traffic.
+
+Beyond the technical contributions, this work opens new research directions in mobile \qos, userspace network control, and privacy-preserving traffic management. The open-source implementation serves as a foundation for future research and enables independent validation of our findings.
+
+As mobile devices continue to serve as primary internet access points for billions of users worldwide, the need for consumer-grade \qos tools will only grow. This thesis takes a first step toward democratizing bandwidth management, empowering users to control their network resources without requiring technical expertise or privileged access.
+
+The journey from concept to validated implementation has been challenging but rewarding. We hope this work inspires future research in mobile networking, software-defined \qos, and user-centric network control.
+
+\vspace{1cm}
+
+\begin{flushright}
+\textit{Phạm Hiếu Minh}\\
+\textit{Hanoi, 2025}
+\end{flushright}

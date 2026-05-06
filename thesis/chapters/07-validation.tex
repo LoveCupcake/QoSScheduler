@@ -1,0 +1,120 @@
+\chapter{Experimental Validation}
+\label{ch:validation}
+
+\section{Experimental Setup}
+
+\subsection{Hardware Configuration}
+
+\begin{table}[htbp]
+\centering
+\caption{Experimental Hardware}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Device} & \textbf{Role} & \textbf{Specifications} \\
+\midrule
+Smartphone A & Hotspot Host & Android 12, Snapdragon 750G, 6GB RAM \\
+Laptop B & Client 1 & Ubuntu 22.04, Intel i5, 8GB RAM \\
+Laptop C & Client 2 & Windows 11, Intel i7, 16GB RAM \\
+Smartphone D & Client 3 & Android 13, Snapdragon 888, 8GB RAM \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Network Configuration}
+
+\begin{itemize}
+    \item \textbf{Cellular Network:} 4G LTE (Carrier: Viettel)
+    \item \textbf{Uplink Capacity:} 8 Mbps (measured via speedtest)
+    \item \textbf{Downlink Capacity:} 45 Mbps
+    \item \textbf{Hotspot Subnet:} 192.168.43.0/24
+\end{itemize}
+
+\section{Test Scenarios}
+
+\subsection{Scenario 1: Baseline (No QoS)}
+
+\textbf{Objective:} Establish baseline performance without \qos enforcement.
+
+\textbf{Procedure:}
+\begin{enumerate}
+    \item Disable \qos scheduler
+    \item Run iPerf3 from Client 1 and Client 2 simultaneously
+    \item Measure throughput, latency, jitter for 60 seconds
+\end{enumerate}
+
+\subsection{Scenario 2: Single HIGH-Priority Device}
+
+\textbf{Objective:} Measure throughput advantage of HIGH-priority device.
+
+\textbf{Procedure:}
+\begin{enumerate}
+    \item Enable \qos scheduler
+    \item Assign Client 1: HIGH, Client 2: LOW
+    \item Run iPerf3 from both clients simultaneously
+    \item Measure throughput ratio (HIGH/LOW)
+\end{enumerate}
+
+\subsection{Scenario 3: Mixed Priorities Under Congestion}
+
+\textbf{Objective:} Validate \qos enforcement under competitive load.
+
+\textbf{Procedure:}
+\begin{enumerate}
+    \item Enable \qos scheduler
+    \item Assign Client 1: HIGH, Client 2: MEDIUM, Client 3: LOW
+    \item Run iPerf3 from all clients simultaneously
+    \item Measure throughput distribution
+\end{enumerate}
+
+\subsection{Scenario 4: Priority Override During Transfer}
+
+\textbf{Objective:} Test dynamic priority changes.
+
+\textbf{Procedure:}
+\begin{enumerate}
+    \item Start iPerf3 transfer from Client 1 (MEDIUM priority)
+    \item After 30 seconds, change Client 1 to HIGH priority
+    \item Observe throughput change
+\end{enumerate}
+
+\section{Measurement Procedures}
+
+\subsection{Throughput Measurement}
+
+iPerf3 command:
+\begin{verbatim}
+iperf3 -c <server_ip> -t 60 -i 1 -J > results.json
+\end{verbatim}
+
+\subsection{Latency and Jitter Measurement}
+
+Continuous ping:
+\begin{verbatim}
+ping -i 0.1 -c 600 8.8.8.8 > latency.txt
+\end{verbatim}
+
+\subsection{Packet Loss Measurement}
+
+iPerf3 UDP test:
+\begin{verbatim}
+iperf3 -c <server_ip> -u -b 5M -t 60 > udp_results.txt
+\end{verbatim}
+
+\subsection{Performance Profiling}
+
+Android Profiler captures:
+\begin{itemize}
+    \item CPU usage (percentage)
+    \item Memory allocation (MB)
+    \item Network I/O (bytes/second)
+\end{itemize}
+
+\section{Data Collection}
+
+Each scenario is repeated 10 times to ensure statistical significance. Raw data includes:
+\begin{itemize}
+    \item iPerf3 JSON output (throughput per second)
+    \item Ping logs (RTT per packet)
+    \item Android Profiler traces (CPU, memory)
+    \item Wireshark packet captures (classification verification)
+\end{itemize}

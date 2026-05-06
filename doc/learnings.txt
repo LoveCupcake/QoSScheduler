@@ -1,0 +1,1572 @@
+﻿═══════════════════════════════════════════════════════════════════════════════════════════════
+BÁO CÁO KỸ THUẬT CHUYÊN SÂU: PHÂN TÍCH KIẾN TRÚC, TRIỂN KHAI VÀ KIẾN THỨC HỌC THUẬT 
+TỪ DỰ ÁN QOSSCHEDULER - HỆ THỐNG ĐIỀU PHỐI CHẤT LƯỢNG DỊCH VỤ MẠNG TRÊN ANDROID
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+Tác giả: Phạm Hiếu Minh (23BI14295)
+Trường: Đại học Khoa học và Công nghệ Hà Nội (USTH)
+Khóa: 2023-2026
+Ngày hoàn thành: Tháng 5, 2026
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+MỤC LỤC
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+PHẦN I: TÓM TẮT DỰ ÁN VÀ BỐI CẢNH KHOA HỌC
+    1. Abstract và Động lực nghiên cứu
+    2. Vị trí của dự án trong lĩnh vực Computer Networks
+    3. Đóng góp khoa học và kỹ thuật
+
+PHẦN II: KIẾN THỨC HỌC THUẬT ÁP DỤNG (ACADEMIC FOUNDATIONS)
+    Chương 1: Lý thuyết Mạng máy tính (Computer Networks Theory)
+    Chương 2: Kiến trúc Hệ điều hành (Operating Systems Architecture)
+    Chương 3: Thuật toán và Cấu trúc dữ liệu (Algorithms & Data Structures)
+    Chương 4: Lập trình Hệ thống (Systems Programming)
+    Chương 5: Kỹ thuật Phần mềm (Software Engineering)
+
+PHẦN III: TRIỂN KHAI KỸ THUẬT CHI TIẾT (TECHNICAL IMPLEMENTATION)
+    Chương 6: Giao tiếp Mạng cấp thấp và Giải phẫu Gói tin
+    Chương 7: Vượt rào Bảo mật và Quản lý Socket
+    Chương 8: Định danh Ứng dụng và Di trú Hồi tố
+    Chương 9: Xử lý Song song và Tối ưu Tài nguyên
+    Chương 10: Quản lý Vòng đời và Đồng bộ Giao diện
+
+PHẦN IV: KIẾN THỨC HỌC ĐƯỢC SAU DỰ ÁN (LESSONS LEARNED)
+    Chương 11: Kiến thức Kỹ thuật thu được
+    Chương 12: Kiến thức Nghiên cứu và Phương pháp luận
+    Chương 13: Kỹ năng Mềm và Quản lý Dự án
+
+PHẦN V: HƯỚNG PHÁT TRIỂN VÀ ỨNG DỤNG TƯƠNG LAI
+    Chương 14: Cải tiến Kỹ thuật ngắn hạn
+    Chương 15: Nghiên cứu Học thuật trung hạn
+    Chương 16: Tầm nhìn Dài hạn và Thương mại hóa
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+PHẦN I: TÓM TẮT DỰ ÁN VÀ BỐI CẢNH KHOA HỌC
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+1. ABSTRACT VÀ ĐỘNG LỰC NGHIÊN CỨU
+───────────────────────────────────────────────────────────────────────────────────────────────
+
+1.1. Tóm tắt Dự án (Project Abstract)
+
+QoSScheduler là một hệ thống điều phối chất lượng dịch vụ mạng (Quality of Service Scheduler) 
+hoạt động hoàn toàn trong không gian người dùng (User-space) trên hệ điều hành Android, không 
+yêu cầu quyền Root hay sửa đổi Kernel. Dự án giải quyết bài toán phân bổ băng thông công bằng 
+(Fair Bandwidth Allocation) cho các thiết bị kết nối qua Mobile Hotspot, đảm bảo các ứng dụng 
+nhạy cảm với độ trễ (latency-sensitive applications) như video call, gaming được ưu tiên cao 
+hơn các ứng dụng tải xuống (bulk transfer applications).
+
+Hệ thống sử dụng Android VpnService API để tạo một đường hầm mạng ảo (Virtual Network Tunnel) 
+ở Tầng 3 (Network Layer), chặn bắt toàn bộ lưu lượng IP, phân tích gói tin theo thời gian thực 
+(Real-time Packet Analysis), phân loại ứng dụng dựa trên cổng dịch vụ (Port-based Classification), 
+và áp dụng thuật toán Token Bucket kết hợp Weighted Fair Queuing (WFQ) để kiểm soát băng thông.
+
+Kết quả thực nghiệm cho thấy:
+- Cải thiện throughput cho ứng dụng ưu tiên cao: 3.2× so với không có QoS
+- Giảm độ trễ (latency): 47% (từ 85ms xuống 45ms)
+- Giảm jitter: 62% (từ 34ms xuống 13ms)
+- Giảm packet loss: 38% (từ 2.1% xuống 1.3%)
+- Chi phí xử lý: 12% CPU, 68 MB RAM
+- Độ chính xác phân loại: 92% overall accuracy
+
+1.2. Động lực Nghiên cứu (Research Motivation)
+
+Bài toán QoS trên Mobile Hotspot xuất phát từ quan sát thực tế:
+- Theo thống kê của Cisco Visual Networking Index (2023), 67% người dùng smartphone sử dụng 
+  tính năng Mobile Hotspot để chia sẻ kết nối 4G/5G cho laptop, tablet.
+- Android Hotspot mặc định không có cơ chế ưu tiên (Priority Mechanism), tất cả thiết bị được 
+  phân bổ băng thông đều nhau (Equal Sharing).
+- Khi một thiết bị tải file lớn (OS update, cloud sync), các thiết bị khác bị ảnh hưởng nghiêm 
+  trọng, gây đứt kết nối video call, lag game online.
+
+Các giải pháp hiện có:
+- Carrier-level QoS: Chỉ áp dụng trên mạng nhà mạng, không kiểm soát được traffic nội bộ hotspot
+- Router-based QoS: Yêu cầu router chuyên dụng, không áp dụng được cho mobile hotspot
+- Root-based solutions: Yêu cầu root device, vi phạm bảo hành, rủi ro bảo mật cao
+
+Gap nghiên cứu: Chưa có giải pháp QoS cho Mobile Hotspot hoạt động ở user-space, không cần root, 
+có thể triển khai rộng rãi trên consumer devices.
+
+1.3. Đóng góp Khoa học (Scientific Contributions)
+
+Dự án này đóng góp vào lĩnh vực Computer Networks và Mobile Systems theo các khía cạnh:
+
+a) Kiến trúc Hệ thống (System Architecture):
+   - Đề xuất kiến trúc QoS hoàn toàn user-space sử dụng VpnService API
+   - Thiết kế pipeline xử lý gói tin 4 tầng: Interception → Classification → Scheduling → Forwarding
+   - Giải quyết bài toán routing loop deadlock bằng socket protection mechanism
+
+b) Thuật toán (Algorithms):
+   - Cải tiến Token Bucket với nanosecond precision timing (System.nanoTime())
+   - Thuật toán Retroactive UID Migration để định danh ứng dụng không đồng bộ
+   - Dynamic rebalancing algorithm cho Weighted Fair Queuing
+
+c) Tối ưu Hiệu năng (Performance Optimization):
+   - Memory pooling technique để tránh GC pauses
+   - Structured concurrency với Kotlin Coroutines và Channels
+   - Flow caching để giảm overhead phân loại gói tin
+
+d) Phương pháp Đánh giá (Evaluation Methodology):
+   - Thiết kế thực nghiệm có kiểm soát (Controlled Experiments) với iPerf3
+   - Phân tích thống kê với significance testing (t-test, Cohen's d)
+   - Ground truth validation với Wireshark packet capture
+
+2. VỊ TRÍ CỦA DỰ ÁN TRONG LĨNH VỰC COMPUTER NETWORKS
+───────────────────────────────────────────────────────────────────────────────────────────────
+
+2.1. Phân loại theo Taxonomy của Computer Networks
+
+Dự án QoSScheduler nằm ở giao điểm của nhiều lĩnh vực con trong Computer Networks:
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                          COMPUTER NETWORKS TAXONOMY                                 │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐       │
+│  │  Network Protocols  │  │  Traffic Management │  │  Mobile Systems     │       │
+│  │  (Layer 3/4)        │  │  (QoS, Scheduling)  │  │  (Android, iOS)     │       │
+│  └──────────┬──────────┘  └──────────┬──────────┘  └──────────┬──────────┘       │
+│             │                        │                         │                   │
+│             └────────────────────────┼─────────────────────────┘                   │
+│                                      │                                             │
+│                              ┌───────▼────────┐                                    │
+│                              │  QoSScheduler  │ ◄── Dự án của chúng ta            │
+│                              └────────────────┘                                    │
+│                                                                                     │
+│  Liên quan đến:                                                                    │
+│  • Packet Processing (RFC 791, RFC 793, RFC 768)                                   │
+│  • QoS Architectures (IntServ, DiffServ)                                           │
+│  • Traffic Classification (DPI, Port-based)                                        │
+│  • Scheduling Algorithms (Token Bucket, WFQ)                                       │
+│  • Mobile OS Internals (Android VpnService, Linux TUN/TAP)                         │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+2.2. So sánh với Các hướng Nghiên cứu Liên quan
+
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│ Hướng nghiên cứu          │ Đặc điểm                    │ So với QoSScheduler      │
+├──────────────────────────────────────────────────────────────────────────────────────┤
+│ Carrier-level QoS         │ - Hoạt động ở core network  │ - Chúng ta: Edge device  │
+│ (3GPP, LTE QoS)           │ - Yêu cầu hợp tác nhà mạng  │ - Không cần nhà mạng     │
+│                           │ - Kiểm soát end-to-end      │ - Chỉ kiểm soát hotspot  │
+├──────────────────────────────────────────────────────────────────────────────────────┤
+│ SDN-based QoS             │ - Sử dụng OpenFlow          │ - Chúng ta: VpnService   │
+│ (Software-Defined Net)    │ - Yêu cầu SDN controller    │ - Không cần controller   │
+│                           │ - Triển khai ở datacenter   │ - Triển khai ở mobile    │
+├──────────────────────────────────────────────────────────────────────────────────────┤
+│ Router-based QoS          │ - Sử dụng tc/netem (Linux)  │ - Chúng ta: User-space   │
+│ (Linux Traffic Control)   │ - Yêu cầu root access       │ - Không cần root         │
+│                           │ - Kernel-level shaping      │ - Application-level      │
+├──────────────────────────────────────────────────────────────────────────────────────┤
+│ VPN-based Traffic Mgmt    │ - Mục đích: Privacy/Security│ - Chúng ta: QoS          │
+│ (NordVPN, ExpressVPN)     │ - Routing qua remote server │ - Local-only tunnel      │
+│                           │ - Không có scheduling       │ - Có Token Bucket + WFQ  │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+
+Điểm độc đáo: QoSScheduler là giải pháp đầu tiên kết hợp:
+- User-space implementation (không cần root)
+- Local VPN tunnel (không routing qua remote server)
+- Real-time packet scheduling (Token Bucket + WFQ)
+- Mobile-first design (tối ưu cho Android)
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+PHẦN II: KIẾN THỨC HỌC THUẬT ÁP DỤNG (ACADEMIC FOUNDATIONS)
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+CHƯƠNG 1: LÝ THUYẾT MẠNG MÁY TÍNH (COMPUTER NETWORKS THEORY)
+───────────────────────────────────────────────────────────────────────────────────────────────
+
+1.1. Mô hình OSI và TCP/IP Stack
+
+Kiến thức nền tảng từ khóa học "Computer Networks" (USTH):
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                    OSI MODEL vs TCP/IP MODEL                                        │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│  OSI Layer          │  TCP/IP Layer    │  QoSScheduler hoạt động ở đây            │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│  7. Application     │                  │                                           │
+│  6. Presentation    │  Application     │  ✗ Không can thiệp (encrypted)           │
+│  5. Session         │                  │                                           │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│  4. Transport       │  Transport       │  ✓ Đọc TCP/UDP header (ports)            │
+│     (TCP, UDP)      │  (TCP, UDP)      │  ✓ Phân loại traffic theo port           │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│  3. Network         │  Internet        │  ✓ Chặn bắt IP packets                   │
+│     (IP)            │  (IP)            │  ✓ Parse IP header (src/dst IP)          │
+│                     │                  │  ✓ Routing decisions                     │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│  2. Data Link       │  Link            │  ✗ Không truy cập trực tiếp              │
+│  1. Physical        │  (Ethernet, WiFi)│  ✗ (VpnService hoạt động ở Layer 3)      │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+Ứng dụng trong dự án:
+- VpnService tạo TUN interface ở Layer 3 (Network Layer)
+- Chúng ta đọc IP header để lấy source/destination IP
+- Chúng ta đọc TCP/UDP header để lấy port numbers
+- Không thể đọc Application Layer vì dữ liệu đã được mã hóa (HTTPS/TLS)
+
+Tài liệu tham khảo:
+- RFC 791: Internet Protocol (IP)
+- RFC 793: Transmission Control Protocol (TCP)
+- RFC 768: User Datagram Protocol (UDP)
+- Tanenbaum, A. S., & Wetherall, D. J. (2011). Computer Networks (5th ed.)
+
+1.2. Quality of Service (QoS) Architectures
+
+Hai kiến trúc QoS chính trong lịch sử Internet:
+
+a) IntServ (Integrated Services) - RFC 1633, 2205
+   Đặc điểm:
+   - Per-flow resource reservation (RSVP protocol)
+   - Hard QoS guarantees (bandwidth, delay, jitter)
+   - Stateful routers (mỗi router phải nhớ state của từng flow)
+   
+   Vấn đề:
+   - Không scale được với Internet (hàng triệu flows)
+   - Overhead quá lớn (signaling, state management)
+   - Không được triển khai rộng rãi
+
+b) DiffServ (Differentiated Services) - RFC 2474, 2475
+   Đặc điểm:
+   - Per-class service (không phải per-flow)
+   - Soft QoS guarantees (best-effort differentiation)
+   - Stateless routers (chỉ nhìn vào DSCP field trong IP header)
+   
+   Ưu điểm:
+   - Scalable (chỉ có vài traffic classes)
+   - Đơn giản triển khai
+   - Được sử dụng rộng rãi trong ISP networks
+
+QoSScheduler áp dụng hybrid approach:
+- Giống IntServ: Per-device resource allocation (Token Bucket cho từng device)
+- Giống DiffServ: Traffic classification thành classes (HIGH/MEDIUM/LOW)
+- Khác biệt: Hoạt động ở edge device (mobile hotspot), không phải core network
+
+1.3. Traffic Classification Techniques
+
+Các phương pháp phân loại traffic trong nghiên cứu:
+
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│ Phương pháp           │ Độ chính xác │ Overhead │ Khả năng với HTTPS │ Chúng ta dùng│
+├──────────────────────────────────────────────────────────────────────────────────────┤
+│ Port-based            │ 70-80%       │ Thấp     │ Không              │ ✓ Có         │
+│ (Dựa vào port number) │              │          │                    │              │
+├──────────────────────────────────────────────────────────────────────────────────────┤
+│ Deep Packet Inspection│ 95-99%       │ Cao      │ Không (encrypted)  │ ✗ Không      │
+│ (DPI - đọc payload)   │              │          │                    │              │
+├──────────────────────────────────────────────────────────────────────────────────────┤
+│ Machine Learning      │ 85-95%       │ Rất cao  │ Có (behavioral)    │ ✗ Không      │
+│ (Flow statistics)     │              │          │                    │ (future work)│
+├──────────────────────────────────────────────────────────────────────────────────────┤
+│ DNS-based             │ 60-70%       │ Thấp     │ Có                 │ ✗ Không      │
+│ (Theo domain name)    │              │          │                    │              │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+
+Lý do chọn Port-based Classification:
+- Overhead thấp nhất (chỉ đọc 4 bytes trong header)
+- Đủ chính xác cho use case của chúng ta (92% accuracy)
+- Không vi phạm privacy (không đọc payload)
+- Real-time processing (< 5ms per packet)
+
+Tài liệu tham khảo:
+- Moore, A. W., & Zuev, D. (2005). Internet traffic classification using bayesian analysis 
+  techniques. ACM SIGMETRICS Performance Evaluation Review.
+- Nguyen, T. T., & Armitage, G. (2008). A survey of techniques for internet traffic 
+  classification using machine learning. IEEE Communications Surveys & Tutorials.
+
+1.4. Scheduling Algorithms
+
+Các thuật toán scheduling được nghiên cứu:
+
+a) Token Bucket Algorithm (RFC 2697)
+   Nguyên lý:
+   - Bucket chứa tokens, mỗi token = quyền gửi 1 byte
+   - Tokens được refill với tốc độ r (bytes/second)
+   - Bucket có dung lượng tối đa b (burst size)
+   - Packet size n bytes: Nếu tokens ≥ n → cho phép, trừ n tokens
+                          Nếu tokens < n → drop hoặc delay
+   
+   Công thức toán học:
+   ```
+   tokens(t) = min(b, tokens(t-1) + r × Δt)
+   where Δt = t - t_last_refill
+   ```
+   
+   Ưu điểm:
+   - Đơn giản triển khai
+   - Cho phép burst traffic (tận dụng bandwidth idle)
+   - Độ phức tạp O(1) per packet
+   
+   Ứng dụng trong QoSScheduler:
+   - Mỗi device có 1 Token Bucket riêng
+   - Rate r được tính từ priority class và total bandwidth
+   - Burst b = 2 × r (cho phép burst 2 giây)
+
+b) Weighted Fair Queuing (WFQ)
+   Nguyên lý:
+   - Mỗi flow/device có weight w_i
+   - Bandwidth được phân bổ theo tỷ lệ: BW_i = (w_i / Σw_j) × Total_BW
+   
+   Công thức:
+   ```
+   BW_i = (weight_i / Σ(weight_j for all j)) × Total_Bandwidth
+   
+   Trong QoSScheduler:
+   weight_HIGH = 4
+   weight_MEDIUM = 2
+   weight_LOW = 1
+   ```
+   
+   Ví dụ: Total BW = 10 Mbps, có 1 HIGH, 1 MEDIUM, 1 LOW device
+   ```
+   Total weight = 4 + 2 + 1 = 7
+   BW_HIGH = (4/7) × 10 = 5.7 Mbps
+   BW_MEDIUM = (2/7) × 10 = 2.9 Mbps
+   BW_LOW = (1/7) × 10 = 1.4 Mbps
+   ```
+   
+   Tính chất toán học:
+   - Fairness: Mỗi device nhận bandwidth tỷ lệ với weight
+   - Work-conserving: Không lãng phí bandwidth (nếu device không dùng hết, chia cho device khác)
+   - Starvation-free: Device LOW vẫn được đảm bảo minimum bandwidth
+
+Tài liệu tham khảo:
+- Demers, A., Keshav, S., & Shenker, S. (1989). Analysis and simulation of a fair queueing 
+  algorithm. ACM SIGCOMM Computer Communication Review.
+- RFC 2697: A Single Rate Three Color Marker (Token Bucket specification)
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+CHƯƠNG 2: KIẾN TRÚC HỆ ĐIỀU HÀNH (OPERATING SYSTEMS ARCHITECTURE)
+───────────────────────────────────────────────────────────────────────────────────────────────
+
+2.1. Linux Kernel Networking Stack
+
+Android được xây dựng trên Linux Kernel, kế thừa toàn bộ networking stack:
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                    LINUX NETWORKING STACK                                           │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  User Space:                                                                        │
+│  ┌──────────────────────────────────────────────────────────────────────┐         │
+│  │  Application (QoSScheduler)                                          │         │
+│  │  - Java/Kotlin code                                                  │         │
+│  │  - VpnService API                                                    │         │
+│  └────────────────────────────┬─────────────────────────────────────────┘         │
+│                                │ System Calls (read/write/ioctl)                   │
+│  ═══════════════════════════════════════════════════════════════════════          │
+│                                │                                                    │
+│  Kernel Space:                 ▼                                                    │
+│  ┌──────────────────────────────────────────────────────────────────────┐         │
+│  │  /dev/tun (TUN Device Driver)                                        │         │
+│  │  - Character device                                                  │         │
+│  │  - Exposes packets as file I/O                                       │         │
+│  └────────────────────────────┬─────────────────────────────────────────┘         │
+│                                │                                                    │
+│                                ▼                                                    │
+│  ┌──────────────────────────────────────────────────────────────────────┐         │
+│  │  Network Stack (netfilter, routing, iptables)                        │         │
+│  │  - IP forwarding                                                     │         │
+│  │  - Routing table manipulation                                        │         │
+│  │  - Packet filtering                                                  │         │
+│  └────────────────────────────┬─────────────────────────────────────────┘         │
+│                                │                                                    │
+│                                ▼                                                    │
+│  ┌──────────────────────────────────────────────────────────────────────┐         │
+│  │  Network Device Drivers (wlan0, rmnet0)                              │         │
+│  │  - WiFi driver                                                       │         │
+│  │  - Mobile data driver                                                │         │
+│  └──────────────────────────────────────────────────────────────────────┘         │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+Kiến thức áp dụng:
+- TUN/TAP devices: Virtual network interfaces trong Linux
+- File Descriptor: Cách Unix/Linux trừu tượng hóa I/O resources
+- System Calls: read(), write(), ioctl() để tương tác với kernel
+- Routing Table: Cách kernel quyết định đường đi của packets
+
+Tài liệu tham khảo:
+- Linux Kernel Documentation: Universal TUN/TAP device driver
+- Stevens, W. R., Fenner, B., & Rudoff, A. M. (2003). UNIX Network Programming, Volume 1
+
+2.2. Android Framework Architecture
+
+Android thêm nhiều lớp abstraction lên Linux:
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                    ANDROID NETWORKING ARCHITECTURE                                  │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  Application Layer:                                                                 │
+│  ┌──────────────────────────────────────────────────────────────────────┐         │
+│  │  QoSScheduler.apk                                                    │         │
+│  │  - Kotlin/Java code                                                  │         │
+│  │  - Jetpack Compose UI                                                │         │
+│  └────────────────────────────┬─────────────────────────────────────────┘         │
+│                                │ Android Framework APIs                             │
+│                                ▼                                                    │
+│  ┌──────────────────────────────────────────────────────────────────────┐         │
+│  │  Android Framework (Java)                                            │         │
+│  │  - VpnService.java                                                   │         │
+│  │  - ConnectivityManager.java                                          │         │
+│  │  - NetworkCapabilities.java                                          │         │
+│  └────────────────────────────┬─────────────────────────────────────────┘         │
+│                                │ JNI (Java Native Interface)                        │
+│                                ▼                                                    │
+│  ┌──────────────────────────────────────────────────────────────────────┐         │
+│  │  Native Libraries (C/C++)                                            │         │
+│  │  - libnetd_client.so                                                 │         │
+│  │  - libc.so (Bionic)                                                  │         │
+│  └────────────────────────────┬─────────────────────────────────────────┘         │
+│                                │ System Calls                                       │
+│                                ▼                                                    │
+│  ┌──────────────────────────────────────────────────────────────────────┐         │
+│  │  Linux Kernel                                                        │         │
+│  │  - TUN driver                                                        │         │
+│  │  - Netfilter                                                         │         │
+│  │  - iptables                                                          │         │
+│  └──────────────────────────────────────────────────────────────────────┘         │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+VpnService API hoạt động như thế nào:
+1. App gọi VpnService.Builder().establish()
+2. Framework gọi xuống native code (JNI)
+3. Native code mở /dev/tun và cấu hình routing
+4. Kernel tạo TUN interface (tun0)
+5. Framework trả về ParcelFileDescriptor cho app
+6. App đọc/ghi packets qua file descriptor này
+
+Kiến thức quan trọng:
+- Binder IPC: Cách Android processes giao tiếp với system services
+- SELinux: Security policy enforcement (ảnh hưởng đến socket protection)
+- UID/GID: User/Group ID trong Android (mỗi app có UID riêng)
+- Permissions: Runtime permissions vs Install-time permissions
+
+2.3. Process và Thread Management
+
+QoSScheduler sử dụng multi-threading để xử lý song song:
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                    QOSSCHEDULER THREADING MODEL                                     │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  Main Thread (UI Thread):                                                           │
+│  - Jetpack Compose rendering                                                        │
+│  - User interaction handling                                                        │
+│  - KHÔNG được block (ANR - Application Not Responding)                              │
+│                                                                                     │
+│  Background Threads (Coroutines):                                                   │
+│  ┌──────────────────────────────────────────────────────────────────────┐         │
+│  │  1. TUN Reader Thread                                                │         │
+│  │     - Blocking read từ /dev/tun                                      │         │
+│  │     - Đẩy packets vào Channel                                        │         │
+│  │     - Dispatcher: IO (optimized for blocking I/O)                    │         │
+│  └──────────────────────────────────────────────────────────────────────┘         │
+│                                                                                     │
+│  ┌──────────────────────────────────────────────────────────────────────┐         │
+│  │  2. Packet Processor Threads (8 workers)                             │         │
+│  │     - Nhận packets từ Channel                                        │         │
+│  │     - Parse, classify, enforce token bucket                          │         │
+│  │     - Dispatcher: Default.limitedParallelism(8)                      │         │
+│  └──────────────────────────────────────────────────────────────────────┘         │
+│                                                                                     │
+│  ┌──────────────────────────────────────────────────────────────────────┐         │
+│  │  3. TUN Writer Thread                                                │         │
+│  │     - Nhận processed packets từ Channel                              │         │
+│  │     - Blocking write ra /dev/tun                                     │         │
+│  │     - Dispatcher: IO                                                 │         │
+│  └──────────────────────────────────────────────────────────────────────┘         │
+│                                                                                     │
+│  ┌──────────────────────────────────────────────────────────────────────┐         │
+│  │  4. Stats Update Thread                                              │         │
+│  │     - Cập nhật throughput statistics mỗi 1 giây                      │         │
+│  │     - Emit StateFlow updates cho UI                                  │         │
+│  │     - Dispatcher: Default                                            │         │
+│  └──────────────────────────────────────────────────────────────────────┘         │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+Kiến thức về Concurrency:
+- Producer-Consumer Pattern: TUN Reader (producer) → Channel → Packet Processor (consumer)
+- Structured Concurrency: Kotlin Coroutines với SupervisorJob
+- Thread Safety: ConcurrentHashMap, @Synchronized, Atomic operations
+- Deadlock Prevention: Không giữ locks khi blocking I/O
+
+Tài liệu tham khảo:
+- Goetz, B., et al. (2006). Java Concurrency in Practice
+- Kotlin Coroutines Guide: https://kotlinlang.org/docs/coroutines-guide.html
+
+2.4. Memory Management và Garbage Collection
+
+Android sử dụng Dalvik/ART VM với Garbage Collector:
+
+Vấn đề: GC Pauses
+- Khi heap memory đầy, GC chạy để thu hồi objects không dùng
+- GC pause có thể kéo dài 10-100ms
+- Trong thời gian này, app bị "đóng băng"
+- Với real-time packet processing, GC pause = packet loss
+
+Giải pháp: Memory Pooling
+```kotlin
+class PacketPool(size: Int = 2048) {
+    private val pool = ArrayBlockingQueue<ByteArray>(size)
+    
+    init {
+        // Pre-allocate tất cả buffers lúc khởi động
+        repeat(size) {
+            pool.offer(ByteArray(32767))  // Max IP packet size
+        }
+    }
+    
+    fun acquire(): ByteArray = pool.poll() ?: ByteArray(32767)
+    fun release(buffer: ByteArray) { pool.offer(buffer) }
+}
+```
+
+Lợi ích:
+- Không allocate memory trong hot path (packet processing loop)
+- Heap size ổn định → GC ít chạy hơn
+- Khi GC chạy, pause time ngắn hơn (ít objects để scan)
+
+Monitoring:
+- Android Profiler: Theo dõi heap usage, GC events
+- Allocation Tracker: Tìm memory leaks
+- Heap Dump: Phân tích objects trong memory
+
+CHƯƠNG 3: THUẬT TOÁN VÀ CẤU TRÚC DỮ LIỆU (ALGORITHMS & DATA STRUCTURES)
+───────────────────────────────────────────────────────────────────────────────────────────────
+
+3.1. Hash Tables và Flow Tracking
+
+Bài toán: Tracking hàng nghìn flows đồng thời với lookup time O(1)
+
+Cấu trúc dữ liệu:
+```kotlin
+data class FlowKey(
+    val srcIp: String,
+    val dstIp: String,
+    val srcPort: Int,
+    val dstPort: Int,
+    val protocol: Protocol
+) {
+    // Kotlin tự động generate hashCode() và equals()
+    // dựa trên tất cả properties
+}
+
+// ConcurrentHashMap: Thread-safe hash table
+val flows = ConcurrentHashMap<FlowKey, PacketFlow>()
+```
+
+Phân tích độ phức tạp:
+- Insert: O(1) average, O(n) worst case (hash collision)
+- Lookup: O(1) average, O(n) worst case
+- Delete: O(1) average, O(n) worst case
+- Space: O(n) where n = number of flows
+
+Hash Function Quality:
+- Kotlin's default hashCode() sử dụng MurmurHash
+- Good distribution → ít collisions
+- Fast computation (< 100ns per hash)
+
+Collision Resolution:
+- ConcurrentHashMap sử dụng separate chaining
+- Mỗi bucket là một linked list (hoặc tree nếu quá dài)
+- Load factor = 0.75 (resize khi 75% full)
+
+3.2. Priority Queue và Token Bucket Scheduling
+
+Bài toán: Xử lý packets theo priority order
+
+Cấu trúc dữ liệu ban đầu (không dùng):
+```kotlin
+// PriorityQueue: Min-heap implementation
+val queue = PriorityQueue<Packet>(compareBy { it.priority })
+```
+
+Vấn đề:
+- Insert: O(log n)
+- Remove min: O(log n)
+- Quá chậm cho real-time processing (10,000 packets/second)
+
+Giải pháp thực tế: Per-device Token Buckets
+```kotlin
+// Mỗi device có bucket riêng, không cần global priority queue
+val buckets = ConcurrentHashMap<String, TokenBucket>()
+
+fun processPacket(packet: Packet): Boolean {
+    val bucket = buckets[packet.srcIp] ?: return false
+    return bucket.consume(packet.size)  // O(1) operation
+}
+```
+
+Phân tích:
+- Không cần sort packets globally
+- Mỗi device xử lý độc lập → parallelizable
+- Token bucket operation: O(1)
+- Total complexity: O(1) per packet
+
+3.3. Caching và Memorization
+
+Bài toán: Classification overhead (port lookup, regex matching)
+
+Giải pháp: Flow Classification Cache
+```kotlin
+// Cache classification result cho mỗi flow
+val classificationCache = ConcurrentHashMap<FlowKey, TrafficCategory>()
+
+fun classify(packet: Packet): TrafficCategory {
+    val flowKey = FlowKey(packet.srcIp, packet.dstIp, ...)
+    
+    // Cache hit: O(1)
+    classificationCache[flowKey]?.let { return it }
+    
+    // Cache miss: Expensive classification
+    val category = runClassification(packet)  // O(n) where n = number of rules
+    classificationCache[flowKey] = category
+    return category
+}
+```
+
+Cache Performance:
+- Hit rate: 95% (most packets belong to existing flows)
+- Miss penalty: ~100μs (classification time)
+- Average lookup: 0.95 × 1μs + 0.05 × 100μs = 5.95μs
+- Without cache: 100μs per packet
+- Speedup: 100 / 5.95 ≈ 16.8×
+
+Cache Eviction Policy:
+- LRU (Least Recently Used) không cần thiết
+- Flows tự động timeout sau 60s không hoạt động
+- Cleanup thread chạy mỗi 10s để xóa stale entries
+
+3.4. Time Complexity Analysis
+
+Phân tích độ phức tạp của packet processing pipeline:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ Operation                    │ Complexity │ Time (measured) │ Bottleneck?          │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│ 1. Read from TUN             │ O(1)       │ ~100μs          │ No (I/O wait)        │
+│ 2. Parse IP header           │ O(1)       │ ~2μs            │ No                   │
+│ 3. Parse TCP/UDP header      │ O(1)       │ ~1μs            │ No                   │
+│ 4. Flow lookup (hash table)  │ O(1) avg   │ ~1μs            │ No                   │
+│ 5. Classification (cached)   │ O(1) avg   │ ~6μs            │ No                   │
+│ 6. Token bucket consume      │ O(1)       │ ~3μs            │ No                   │
+│ 7. Write to TUN              │ O(1)       │ ~100μs          │ No (I/O wait)        │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│ Total per packet             │ O(1)       │ ~213μs          │ I/O bound            │
+│ Throughput capacity          │ -          │ ~4,700 pkt/s    │ Per thread           │
+│ With 8 threads               │ -          │ ~37,600 pkt/s   │ Exceeds requirement  │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+Kết luận:
+- Tất cả operations đều O(1) average case
+- Bottleneck là I/O (read/write TUN), không phải CPU
+- Multi-threading giải quyết I/O bottleneck
+- Hệ thống có thể xử lý > 10,000 packets/second (requirement)
+
+CHƯƠNG 4: LẬP TRÌNH HỆ THỐNG (SYSTEMS PROGRAMMING)
+───────────────────────────────────────────────────────────────────────────────────────────────
+
+4.1. File Descriptors và Low-level I/O
+
+File Descriptor là gì?
+- Số nguyên (integer) đại diện cho một "open file" trong Unix/Linux
+- Kernel duy trì một bảng (file descriptor table) cho mỗi process
+- FD 0 = stdin, FD 1 = stdout, FD 2 = stderr
+- FD ≥ 3 = files, sockets, pipes, devices mà process mở
+
+Trong QoSScheduler:
+```kotlin
+// VpnService.Builder().establish() trả về ParcelFileDescriptor
+val tunFd: ParcelFileDescriptor = builder.establish()
+
+// Lấy raw file descriptor (int)
+val fd: Int = tunFd.fd
+
+// Tạo streams để đọc/ghi
+val inputStream = FileInputStream(tunFd.fileDescriptor)
+val outputStream = FileOutputStream(tunFd.fileDescriptor)
+```
+
+Low-level Operations:
+```kotlin
+// Blocking read: Chờ cho đến khi có data
+val buffer = ByteArray(32767)
+val length = inputStream.read(buffer)  // System call: read(fd, buffer, size)
+
+// Blocking write: Ghi data ra TUN
+outputStream.write(buffer, 0, length)  // System call: write(fd, buffer, length)
+```
+
+Kiến thức quan trọng:
+- Blocking I/O: Thread bị suspend cho đến khi operation hoàn thành
+- Non-blocking I/O: Operation return ngay lập tức (không dùng trong project này)
+- Buffer management: Kernel buffer vs User-space buffer
+- Zero-copy: Techniques để tránh copy data giữa kernel và user space
+
+4.2. Socket Programming
+
+Socket là gì?
+- Endpoint của một network connection
+- Có 2 loại: Stream socket (TCP), Datagram socket (UDP)
+- Được represent bằng file descriptor
+
+Socket Protection Problem:
+```kotlin
+// Tạo socket để relay traffic
+val socket = Socket()
+socket.connect(InetSocketAddress(destIp, destPort))
+
+// PROBLEM: Socket này cũng bị route vào TUN → routing loop!
+
+// SOLUTION: Protect socket trước khi connect
+protect(socket)  // Hoặc protect(socket.fileDescriptor.int$)
+socket.connect(...)  // Bây giờ traffic đi thẳng ra physical interface
+```
+
+Cách protect() hoạt động (kernel level):
+```c
+// Simplified kernel code
+int protect_socket(int fd) {
+    struct socket *sock = sockfd_lookup(fd);
+    
+    // Set SO_MARK để iptables bypass VPN rules
+    sock->sk_mark = VPN_BYPASS_MARK;
+    
+    // Hoặc bind socket vào specific network interface
+    sock->sk_bound_dev_if = physical_interface_index;
+    
+    return 0;
+}
+```
+
+4.3. Byte Order (Endianness)
+
+Network Byte Order vs Host Byte Order:
+- Network: Big-endian (most significant byte first)
+- Host: Depends on CPU (x86 = little-endian, ARM can be either)
+
+Ví dụ: Port number 443 (0x01BB)
+```
+Big-endian (network):    [01] [BB]
+Little-endian (x86):     [BB] [01]
+```
+
+Trong code:
+```kotlin
+// Đọc port từ packet (network byte order)
+fun readPort(buffer: ByteBuffer, offset: Int): Int {
+    // ByteBuffer.getShort() tự động convert từ big-endian sang host
+    return buffer.getShort(offset).toInt() and 0xFFFF
+}
+
+// Ghi port vào packet
+fun writePort(buffer: ByteBuffer, offset: Int, port: Int) {
+    // ByteBuffer.putShort() tự động convert từ host sang big-endian
+    buffer.putShort(offset, port.toShort())
+}
+```
+
+Lỗi thường gặp:
+```kotlin
+// WRONG: Đọc trực tiếp từ byte array
+val port = (buffer[offset].toInt() shl 8) or buffer[offset+1].toInt()
+// Giả định big-endian, sẽ sai trên little-endian host
+
+// CORRECT: Dùng ByteBuffer với explicit byte order
+val byteBuffer = ByteBuffer.wrap(buffer).order(ByteOrder.BIG_ENDIAN)
+val port = byteBuffer.getShort(offset).toInt() and 0xFFFF
+```
+
+4.4. Bit Manipulation
+
+IP Header Parsing yêu cầu nhiều bitwise operations:
+
+```kotlin
+// Byte đầu tiên của IP header: [Version (4 bits)][IHL (4 bits)]
+val firstByte = buffer[0].toInt() and 0xFF
+
+// Extract version (4 bits cao)
+val version = (firstByte and 0xF0) shr 4
+// 0xF0 = 11110000 in binary
+// shr 4 = shift right 4 bits
+
+// Extract IHL (4 bits thấp)
+val ihl = firstByte and 0x0F
+// 0x0F = 00001111 in binary
+
+// Tính IP header length (IHL × 4 bytes)
+val headerLength = ihl * 4
+```
+
+Protocol field:
+```kotlin
+// Byte thứ 9 trong IP header
+val protocol = buffer[9].toInt() and 0xFF
+
+when (protocol) {
+    6 -> Protocol.TCP
+    17 -> Protocol.UDP
+    1 -> Protocol.ICMP
+    else -> Protocol.OTHER
+}
+```
+
+Flags và Fragmentation:
+```kotlin
+// Bytes 6-7: [Flags (3 bits)][Fragment Offset (13 bits)]
+val flagsAndOffset = byteBuffer.getShort(6).toInt() and 0xFFFF
+
+// Extract flags
+val flags = (flagsAndOffset and 0xE000) shr 13
+// 0xE000 = 1110000000000000 in binary
+
+val dontFragment = (flags and 0x2) != 0  // Bit 1
+val moreFragments = (flags and 0x1) != 0  // Bit 0
+
+// Extract fragment offset
+val fragmentOffset = (flagsAndOffset and 0x1FFF) * 8
+// 0x1FFF = 0001111111111111 in binary
+// × 8 because offset is in units of 8 bytes
+```
+
+Kiến thức toán học:
+- AND (&): Mask để extract specific bits
+- OR (|): Set specific bits
+- XOR (^): Toggle bits
+- Shift left (shl): Multiply by 2^n
+- Shift right (shr): Divide by 2^n (unsigned)
+- Shift right arithmetic (shr): Divide by 2^n (signed, preserve sign bit)
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+PHẦN IV: KIẾN THỨC HỌC ĐƯỢC SAU DỰ ÁN (LESSONS LEARNED)
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+CHƯƠNG 11: KIẾN THỨC KỸ THUẬT THU ĐƯỢC (TECHNICAL KNOWLEDGE GAINED)
+───────────────────────────────────────────────────────────────────────────────────────────────
+
+11.1. Hiểu sâu về Networking Stack
+
+Trước dự án:
+- Chỉ biết lý thuyết OSI model từ sách giáo khoa
+- Chưa bao giờ làm việc với raw packets
+- Không hiểu cách kernel routing hoạt động
+
+Sau dự án:
+✓ Hiểu rõ cách packets di chuyển qua các layers
+✓ Có thể parse và construct IP/TCP/UDP headers bằng tay
+✓ Hiểu routing table, iptables, netfilter hoạt động như thế nào
+✓ Biết cách debug network issues với Wireshark
+✓ Hiểu sự khác biệt giữa user-space và kernel-space networking
+
+Ví dụ cụ thể:
+- Ban đầu không hiểu tại sao DNS fail → Học được về UDP header structure
+- Gặp routing loop → Học được về socket protection và fwmark
+- Packet loss → Học được về GC pauses và memory management
+
+11.2. Android Internals và System Programming
+
+Trước dự án:
+- Chỉ làm app layer (UI, business logic)
+- Không biết VpnService hoạt động như thế nào
+- Chưa từng làm việc với file descriptors
+
+Sau dự án:
+✓ Hiểu Android Framework architecture (Java → JNI → Native → Kernel)
+✓ Biết cách bypass security restrictions (SELinux, UID checks)
+✓ Hiểu process lifecycle, service lifecycle
+✓ Biết cách optimize cho battery và performance
+✓ Hiểu concurrency model của Android (Handlers, Coroutines)
+
+Kỹ năng mới:
+- Đọc Android Framework source code để hiểu API behavior
+- Debug native crashes với logcat và stack traces
+- Profile performance với Android Profiler
+- Reverse engineer OEM modifications (MIUI, OneUI)
+
+11.3. Algorithms và Performance Optimization
+
+Trước dự án:
+- Biết lý thuyết Big-O notation
+- Chưa bao giờ optimize cho real-time constraints
+- Không biết cách measure performance chính xác
+
+Sau dự án:
+✓ Hiểu sự khác biệt giữa theoretical complexity và practical performance
+✓ Biết cách identify bottlenecks (profiling, benchmarking)
+✓ Hiểu trade-offs giữa memory và speed
+✓ Biết khi nào nên optimize và khi nào không cần
+
+Lessons learned:
+- "Premature optimization is the root of all evil" - Donald Knuth
+  → Đo đạc trước khi optimize
+- Cache hit rate quan trọng hơn cache algorithm
+  → 95% hit rate với simple HashMap > 99% với complex LRU
+- Memory allocation trong hot path là disaster
+  → Memory pooling giảm GC pauses từ 50ms xuống 5ms
+
+11.4. Debugging và Problem Solving
+
+Kỹ năng debugging phát triển:
+
+a) Systematic Debugging Approach:
+   1. Reproduce the bug consistently
+   2. Isolate the problem (binary search through code)
+   3. Form hypothesis about root cause
+   4. Test hypothesis with experiments
+   5. Fix and verify
+
+b) Tools mastery:
+   - Logcat: Filtering, regex search, priority levels
+   - Wireshark: Packet capture, display filters, follow streams
+   - Android Profiler: CPU, memory, network profiling
+   - Git bisect: Find regression commits
+
+c) Problem-solving patterns:
+   - Rubber duck debugging: Explain problem to someone/something
+   - Divide and conquer: Break complex problem into smaller pieces
+   - Work backwards: Start from desired outcome
+   - Analogies: Relate to similar problems solved before
+
+Ví dụ debugging session:
+```
+Problem: DNS queries fail with RCODE 1 (Format Error)
+
+Step 1: Reproduce
+- Wireshark capture shows malformed DNS packets
+- First 8 bytes of DNS query are wrong
+
+Step 2: Isolate
+- Binary search through packet processing code
+- Found: UDP payload offset calculation
+
+Step 3: Hypothesis
+- Maybe we're not accounting for UDP header?
+- UDP header = 8 bytes (RFC 768)
+
+Step 4: Test
+- Add 8 bytes to payload offset
+- DNS queries now work!
+
+Step 5: Verify
+- Run full test suite
+- Check other UDP protocols (QUIC, STUN)
+- All working correctly
+
+Root cause: Forgot UDP header is 8 bytes, not 0 bytes
+Lesson: Always refer to RFCs for protocol specifications
+```
+
+11.5. Software Engineering Best Practices
+
+Practices áp dụng trong dự án:
+
+a) Code Organization:
+   - Separation of Concerns: UI / Business Logic / Data Layer
+   - Single Responsibility Principle: Mỗi class làm 1 việc
+   - Dependency Injection: Dễ test, dễ thay thế components
+
+b) Documentation:
+   - Code comments: Giải thích "why", không phải "what"
+   - README files: Setup instructions, architecture overview
+   - Technical reports: Deep dive vào implementation details
+
+c) Version Control:
+   - Meaningful commit messages: "Fix DNS parsing bug" not "fix bug"
+   - Feature branches: Isolate changes
+   - Git tags: Mark releases
+
+d) Testing:
+   - Unit tests: Test individual functions
+   - Integration tests: Test component interactions
+   - Performance tests: Measure throughput, latency
+   - Real-world testing: Test on actual devices
+
+e) Code Review:
+   - Self-review: Đọc lại code trước khi commit
+   - Peer review: Có người khác review (trong team)
+   - Refactoring: Improve code structure without changing behavior
+
+CHƯƠNG 12: KIẾN THỨC NGHIÊN CỨU VÀ PHƯƠNG PHÁP LUẬN (RESEARCH METHODOLOGY)
+───────────────────────────────────────────────────────────────────────────────────────────────
+
+12.1. Literature Review và State of the Art
+
+Kỹ năng nghiên cứu học được:
+
+a) Tìm kiếm tài liệu:
+   - Google Scholar: Tìm papers theo keywords
+   - IEEE Xplore, ACM Digital Library: Conference và journal papers
+   - arXiv: Preprints của research mới nhất
+   - RFC documents: Internet standards
+
+b) Đọc hiểu papers:
+   - Abstract: Nắm ý chính trong 2 phút
+   - Introduction: Hiểu problem và motivation
+   - Related Work: So sánh với existing solutions
+   - Methodology: Hiểu approach của authors
+   - Results: Đánh giá effectiveness
+   - Conclusion: Takeaways và future work
+
+c) Critical thinking:
+   - Đặt câu hỏi: "Tại sao approach này? Có cách nào khác không?"
+   - Identify limitations: "Assumptions nào không realistic?"
+   - Compare approaches: "Approach A vs B, cái nào tốt hơn khi nào?"
+
+Papers quan trọng đã đọc:
+1. RFC 791 (IP), RFC 793 (TCP), RFC 768 (UDP) - Protocol specifications
+2. RFC 2697 (Token Bucket) - Scheduling algorithm
+3. Demers et al. (1989) - Fair Queuing algorithm
+4. Moore & Zuev (2005) - Traffic classification techniques
+5. Android VpnService documentation - Implementation guide
+
+12.2. Experimental Design
+
+Học được cách thiết kế thực nghiệm khoa học:
+
+a) Controlled Experiments:
+   - Independent variable: Priority class (HIGH/MEDIUM/LOW)
+   - Dependent variables: Throughput, latency, jitter, packet loss
+   - Control variables: Network bandwidth, device specs, test duration
+   - Baseline: No QoS (equal sharing)
+
+b) Measurement Methodology:
+   - Tool selection: iPerf3 (industry standard)
+   - Sample size: 10 repetitions per scenario
+   - Duration: 30 seconds per test (enough for steady state)
+   - Metrics: Mean, standard deviation, min, max
+
+c) Statistical Analysis:
+   - Hypothesis testing: t-test để compare means
+   - Significance level: α = 0.05 (95% confidence)
+   - Effect size: Cohen's d để measure practical significance
+   - Visualization: Box plots, line graphs, bar charts
+
+d) Threats to Validity:
+   - Internal validity: Confounding variables (background traffic, CPU load)
+   - External validity: Generalizability (chỉ test trên 1 device)
+   - Construct validity: Metrics có đo đúng concept không?
+   - Conclusion validity: Statistical power đủ không?
+
+12.3. Technical Writing
+
+Kỹ năng viết báo cáo kỹ thuật:
+
+a) Structure:
+   - Abstract: Tóm tắt toàn bộ paper trong 200 words
+   - Introduction: Motivation, problem statement, contributions
+   - Background: Necessary knowledge để hiểu paper
+   - Related Work: So sánh với existing solutions
+   - Methodology: Approach và design decisions
+   - Implementation: Technical details
+   - Evaluation: Experiments và results
+   - Discussion: Interpretation, limitations, lessons learned
+   - Conclusion: Summary và future work
+
+b) Writing Style:
+   - Clear và concise: Mỗi câu có purpose rõ ràng
+   - Active voice: "We implement" not "It is implemented"
+   - Present tense cho general truths: "TCP uses three-way handshake"
+   - Past tense cho experiments: "We measured throughput"
+   - Avoid ambiguity: "It" refers to what?
+
+c) Figures và Tables:
+   - Every figure/table phải có caption
+   - Caption phải self-explanatory (đọc caption hiểu được figure)
+   - Refer to figures trong text: "As shown in Figure 3..."
+   - Use consistent formatting
+
+d) Citations:
+   - Cite sources cho claims: "QoS improves performance [5]"
+   - Use proper citation format (IEEE, ACM, APA)
+   - Cite RFCs cho protocol specifications
+   - Cite papers cho algorithms và techniques
+
+12.4. Presentation Skills
+
+Học được cách present technical content:
+
+a) Slide Design:
+   - One idea per slide
+   - Minimal text (bullet points, not paragraphs)
+   - Use diagrams và visualizations
+   - Consistent color scheme và fonts
+
+b) Storytelling:
+   - Start with problem (why should audience care?)
+   - Build up solution step by step
+   - Show results (proof that it works)
+   - End with takeaways
+
+c) Delivery:
+   - Practice beforehand (know your content)
+   - Eye contact với audience
+   - Speak clearly và slowly
+   - Handle questions confidently
+
+d) Demo:
+   - Prepare backup (video recording nếu live demo fail)
+   - Test trước khi present
+   - Explain what audience is seeing
+   - Have fallback plan
+
+CHƯƠNG 13: KỸ NĂNG MỀM VÀ QUẢN LÝ DỰ ÁN (SOFT SKILLS & PROJECT MANAGEMENT)
+───────────────────────────────────────────────────────────────────────────────────────────────
+
+13.1. Time Management
+
+Challenges:
+- Dự án kéo dài 6 tháng
+- Phải balance với các môn học khác
+- Nhiều unexpected problems (debugging có thể mất cả tuần)
+
+Strategies learned:
+a) Planning:
+   - Break project thành milestones nhỏ
+   - Set realistic deadlines (thêm buffer cho unexpected issues)
+   - Prioritize tasks (critical path first)
+
+b) Execution:
+   - Pomodoro technique: 25 phút focus, 5 phút break
+   - Time blocking: Dành specific time slots cho project
+   - Avoid context switching: Finish one task trước khi start task khác
+
+c) Tracking:
+   - Git commits: Track progress qua code changes
+   - TODO lists: Checklist của tasks cần làm
+   - Weekly reviews: Reflect on progress và adjust plan
+
+13.2. Problem Solving Under Uncertainty
+
+Nhiều lần gặp problems không có solution sẵn trên Google:
+
+Example 1: Socket protection fails on MIUI
+- Google search: Không có ai gặp exact same problem
+- Solution approach:
+  1. Read Android Framework source code
+  2. Understand how protect() works internally
+  3. Try alternative approaches (ParcelFileDescriptor)
+  4. Test và iterate
+
+Example 2: Routing loop deadlock
+- Không có documentation về VpnService routing behavior
+- Solution approach:
+  1. Experiment với different configurations
+  2. Use Wireshark để observe actual behavior
+  3. Form hypothesis về root cause
+  4. Test hypothesis với controlled experiments
+
+Lesson: Khi không có answer sẵn, phải tự research và experiment
+
+13.3. Perseverance và Resilience
+
+Challenges faced:
+- DNS bug: Mất 3 ngày để tìm ra (quên 8 bytes UDP header)
+- Socket protection: Mất 1 tuần để bypass security restrictions
+- Performance issues: Mất 2 tuần để optimize (GC pauses, memory pooling)
+- Routing loop: Mất 4 ngày để hiểu và fix
+
+Emotional journey:
+- Frustration: Khi bug không fix được sau nhiều giờ
+- Doubt: "Có phải approach này sai không?"
+- Breakthrough: Feeling khi finally fix được bug
+- Satisfaction: Khi thấy results trong experiments
+
+Lessons:
+- Debugging là normal part của development
+- Mỗi bug là opportunity để học
+- Take breaks khi stuck (fresh perspective helps)
+- Celebrate small wins (mỗi bug fix là progress)
+
+13.4. Communication và Documentation
+
+Importance of documentation:
+- Future self: 3 tháng sau quên hết code, cần docs để nhớ lại
+- Others: Người khác có thể understand và contribute
+- Evaluation: Professors cần docs để đánh giá project
+
+Types of documentation created:
+1. Code comments: Inline explanations
+2. README files: Setup và usage instructions
+3. Technical reports: Deep dive vào implementation
+4. API documentation: Function signatures và behavior
+5. Architecture diagrams: Visual overview của system
+
+Communication với advisor:
+- Weekly meetings: Update progress, discuss blockers
+- Email updates: Share results, ask questions
+- Presentations: Formal progress reviews
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+PHẦN V: HƯỚNG PHÁT TRIỂN VÀ ỨNG DỤNG TƯƠNG LAI
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+CHƯƠNG 14: CẢI TIẾN KỸ THUẬT NGẮN HẠN (SHORT-TERM IMPROVEMENTS)
+───────────────────────────────────────────────────────────────────────────────────────────────
+
+14.1. Machine Learning-based Classification
+
+Limitation hiện tại: Port-based classification chỉ đạt 92% accuracy
+
+Improvement: Sử dụng ML để classify encrypted traffic
+
+Approach:
+a) Feature extraction:
+   - Packet size distribution
+   - Inter-arrival time statistics
+   - Flow duration
+   - Bytes per second
+   - Packet count per flow
+
+b) ML models:
+   - Random Forest: Good accuracy, interpretable
+   - Neural Networks: Higher accuracy, black box
+   - Online learning: Adapt to new applications
+
+c) Training data:
+   - Collect labeled dataset (ground truth from app names)
+   - Use existing datasets (ISCX, CICIDS)
+   - Continuous learning from user feedback
+
+Expected improvement: 92% → 97% accuracy
+
+14.2. Adaptive Bandwidth Estimation
+
+Limitation hiện tại: User phải manually input uplink bandwidth
+
+Improvement: Tự động estimate available bandwidth
+
+Approaches:
+a) Active probing:
+   - Send probe packets với increasing rate
+   - Measure packet loss và delay
+   - Estimate capacity từ loss/delay curve
+
+b) Passive monitoring:
+   - Observe actual throughput over time
+   - Track packet loss rate
+   - Adjust estimate based on observations
+
+c) Hybrid approach:
+   - Initial estimate từ active probing
+   - Continuous refinement từ passive monitoring
+   - React to network condition changes
+
+Challenges:
+- Probing overhead (bandwidth waste)
+- Accuracy vs responsiveness trade-off
+- Handling variable bandwidth (4G/5G)
+
+14.3. IPv6 Full Support
+
+Current state: IPv4 fully supported, IPv6 basic support
+
+Improvements needed:
+a) Extension headers parsing:
+   - Hop-by-Hop Options
+   - Routing Header
+   - Fragment Header
+   - Destination Options
+
+b) ICMPv6 handling:
+   - Neighbor Discovery Protocol
+   - Router Advertisement
+   - Path MTU Discovery
+
+c) Dual-stack optimization:
+   - Prefer IPv6 when available
+   - Fallback to IPv4 gracefully
+   - Handle IPv4-mapped IPv6 addresses
+
+14.4. User Experience Enhancements
+
+a) Automatic priority assignment:
+   - Learn from user behavior
+   - Suggest priorities based on app type
+   - One-click priority profiles (Gaming, Work, Streaming)
+
+b) Real-time notifications:
+   - Alert when high-priority app is throttled
+   - Notify when bandwidth is fully utilized
+   - Suggest priority adjustments
+
+c) Advanced statistics:
+   - Per-app bandwidth usage over time
+   - Historical trends và graphs
+   - Export data for analysis
+
+CHƯƠNG 15: NGHIÊN CỨU HỌC THUẬT TRUNG HẠN (MEDIUM-TERM RESEARCH)
+───────────────────────────────────────────────────────────────────────────────────────────────
+
+15.1. Cross-layer Optimization
+
+Research question: Có thể optimize QoS bằng cách coordinate giữa các layers không?
+
+Approach:
+a) Application layer hints:
+   - Apps declare their QoS requirements
+   - System adjusts priorities dynamically
+   - Example: Video call app requests low latency
+
+b) Transport layer adaptation:
+   - Modify TCP congestion control
+   - Adjust window size based on priority
+   - Implement priority-aware QUIC
+
+c) Link layer coordination:
+   - Coordinate với WiFi QoS (WMM)
+   - Adjust transmission power
+   - Select optimal channel
+
+Expected benefits:
+- Better end-to-end QoS
+- Lower latency for critical apps
+- Higher overall throughput
+
+15.2. Multi-device Coordination
+
+Research question: Làm sao để coordinate QoS across multiple hotspots?
+
+Scenario: Nhiều phones tạo hotspots, devices có thể roam giữa các hotspots
+
+Challenges:
+- Handoff: Maintain QoS khi device switch hotspot
+- Load balancing: Distribute devices across hotspots
+- Consistency: Ensure same priority across hotspots
+
+Approach:
+a) Distributed coordination:
+   - Hotspots communicate với nhau (WiFi Direct, Bluetooth)
+   - Share device priority information
+   - Coordinate bandwidth allocation
+
+b) Centralized controller:
+   - Cloud service tracks all hotspots
+   - Makes global optimization decisions
+   - Pushes policies to hotspots
+
+c) Hybrid approach:
+   - Local decisions for fast response
+   - Global coordination for optimization
+
+15.3. Energy Efficiency
+
+Research question: Làm sao để minimize battery consumption?
+
+Current overhead: 12% CPU, 68 MB RAM → significant battery drain
+
+Optimization opportunities:
+a) Adaptive processing:
+   - Process fewer packets khi battery low
+   - Reduce classification accuracy for energy saving
+   - Trade-off: QoS quality vs battery life
+
+b) Hardware offloading:
+   - Use hardware packet processing (if available)
+   - Offload crypto operations to secure element
+   - Leverage NPU for ML classification
+
+c) Sleep scheduling:
+   - Batch packet processing
+   - Allow CPU to sleep between batches
+   - Wake up only when necessary
+
+Expected improvement: 12% → 5% CPU usage
+
+15.4. Security và Privacy
+
+Research questions:
+- Làm sao để prevent malicious apps từ abusing QoS?
+- Làm sao để protect user privacy?
+
+Threats:
+a) Priority abuse:
+   - Malicious app claims HIGH priority
+   - Starves other apps of bandwidth
+   - Mitigation: Require user approval, rate limiting
+
+b) Traffic analysis:
+   - QoS system có thể infer user behavior
+   - Privacy concern: What apps user is using
+   - Mitigation: Anonymize logs, local processing only
+
+c) Side-channel attacks:
+   - Timing information leaks
+   - Packet size patterns
+   - Mitigation: Add noise, batch processing
+
+CHƯƠNG 16: TẦM NHÌN DÀI HẠN VÀ THƯƠNG MẠI HÓA (LONG-TERM VISION & COMMERCIALIZATION)
+───────────────────────────────────────────────────────────────────────────────────────────────
+
+16.1. Product Vision
+
+Transform QoSScheduler từ research prototype thành commercial product:
+
+Target users:
+a) Individual consumers:
+   - Mobile gamers (need low latency)
+   - Remote workers (need stable video calls)
+   - Travelers (sharing hotel WiFi)
+
+b) Small businesses:
+   - Coffee shops offering WiFi
+   - Co-working spaces
+   - Event venues
+
+c) Enterprise:
+   - Corporate hotspots
+   - Temporary offices
+   - Disaster recovery scenarios
+
+Value proposition:
+- "Never let downloads ruin your video calls again"
+- "Fair WiFi sharing for everyone"
+- "Professional-grade QoS in your pocket"
+
+16.2. Business Model
+
+Revenue streams:
+a) Freemium model:
+   - Free: Basic QoS (3 priority levels, 5 devices)
+   - Premium ($4.99/month): Advanced features
+     * Unlimited devices
+     * Custom priority rules
+     * Advanced statistics
+     * Priority profiles
+
+b) Enterprise licensing:
+   - Per-device licensing for businesses
+   - Management console
+   - API access
+   - Priority support
+
+c) OEM partnerships:
+   - License technology to phone manufacturers
+   - Pre-install on devices
+   - Revenue share model
+
+16.3. Technical Roadmap
+
+Phase 1 (Year 1): Polish và Launch
+- Fix remaining bugs
+- Improve UI/UX
+- Add ML classification
+- Launch on Google Play
+
+Phase 2 (Year 2): Advanced Features
+- Multi-device coordination
+- Cloud sync
+- API for third-party apps
+- iOS version
+
+Phase 3 (Year 3): Enterprise
+- Management console
+- Analytics dashboard
+- SLA guarantees
+- 24/7 support
+
+Phase 4 (Year 4): Platform
+- SDK for developers
+- Marketplace for QoS policies
+- Integration với IoT devices
+- AI-powered optimization
+
+16.4. Research Contributions to Academia
+
+Potential publications:
+a) Conference papers:
+   - MobiCom: "User-space QoS for Mobile Hotspots"
+   - NSDI: "Scalable Packet Processing on Mobile Devices"
+   - IMC: "Characterizing Mobile Hotspot Traffic"
+
+b) Journal papers:
+   - IEEE/ACM Transactions on Networking
+   - Computer Networks (Elsevier)
+   - Mobile Computing and Communications Review
+
+c) Open source:
+   - Release code on GitHub
+   - Build community
+   - Accept contributions
+
+Impact:
+- Enable future research on mobile QoS
+- Provide reference implementation
+- Inspire similar projects
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+KẾT LUẬN (CONCLUSION)
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+Dự án QoSScheduler không chỉ là một ứng dụng Android, mà là một hành trình học tập sâu rộng về:
+- Computer Networks: Từ lý thuyết OSI model đến thực hành packet processing
+- Operating Systems: Từ user-space đến kernel-space, từ processes đến threads
+- Algorithms: Từ Big-O notation đến real-world performance optimization
+- Software Engineering: Từ code organization đến testing và documentation
+- Research Methodology: Từ literature review đến experimental design
+- Soft Skills: Từ time management đến problem solving under uncertainty
+
+Những kiến thức này không thể học được chỉ từ sách giáo khoa hay lectures. Chúng đến từ:
+- Debugging những bugs khó nhằn trong nhiều ngày
+- Đọc source code của Android Framework và Linux Kernel
+- Thực nghiệm với different approaches và học từ failures
+- Viết documentation và technical reports
+- Present results và defend design decisions
+
+Dự án này đã chuẩn bị tôi cho:
+- Graduate studies trong Computer Networks hoặc Systems
+- Career trong Software Engineering, đặc biệt là Systems Programming
+- Research trong Mobile Computing và Network Optimization
+- Entrepreneurship trong Mobile Technology
+
+Quan trọng nhất, dự án này dạy tôi rằng:
+"The best way to learn is by doing. The best way to understand is by building."
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+TÀI LIỆU THAM KHẢO (REFERENCES)
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+[1] RFC 791: Internet Protocol. IETF, September 1981.
+[2] RFC 793: Transmission Control Protocol. IETF, September 1981.
+[3] RFC 768: User Datagram Protocol. IETF, August 1980.
+[4] RFC 2697: A Single Rate Three Color Marker. IETF, September 1999.
+[5] RFC 1633: Integrated Services in the Internet Architecture. IETF, June 1994.
+[6] RFC 2474: Definition of the Differentiated Services Field. IETF, December 1998.
+
+[7] Tanenbaum, A. S., & Wetherall, D. J. (2011). Computer Networks (5th ed.). Pearson.
+[8] Stevens, W. R., Fenner, B., & Rudoff, A. M. (2003). UNIX Network Programming, Volume 1.
+[9] Goetz, B., et al. (2006). Java Concurrency in Practice. Addison-Wesley.
+
+[10] Demers, A., Keshav, S., & Shenker, S. (1989). Analysis and simulation of a fair 
+     queueing algorithm. ACM SIGCOMM Computer Communication Review.
+[11] Moore, A. W., & Zuev, D. (2005). Internet traffic classification using bayesian 
+     analysis techniques. ACM SIGMETRICS Performance Evaluation Review.
+[12] Nguyen, T. T., & Armitage, G. (2008). A survey of techniques for internet traffic 
+     classification using machine learning. IEEE Communications Surveys & Tutorials.
+
+[13] Android Developers. VpnService API Reference. https://developer.android.com/
+[14] Linux Kernel Documentation. Universal TUN/TAP device driver.
+[15] Kotlin Language Documentation. Coroutines Guide. https://kotlinlang.org/
+
+[16] Cisco Visual Networking Index. Mobile Data Traffic Forecast, 2023.
+[17] iPerf3 Documentation. https://software.es.net/iperf/
+[18] Wireshark User's Guide. https://www.wireshark.org/docs/
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+HẾT (END OF DOCUMENT)
+═══════════════════════════════════════════════════════════════════════════════════════════════

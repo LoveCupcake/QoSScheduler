@@ -1,0 +1,178 @@
+\chapter{Implementation Details}
+\label{ch:implementation}
+
+This chapter discusses key implementation details, Android-specific considerations, and optimization techniques.
+
+\section{Packet Parsing with Java NIO}
+
+Raw packet parsing uses \code{ByteBuffer} for zero-copy efficiency:
+
+\begin{lstlisting}[language=Kotlin, caption={IPv4 Header Parsing}]
+fun parseIpv4(buffer: ByteBuffer): RawPacket? {
+    val versionIhl = buffer.get(0).toInt() and 0xFF
+    val version = versionIhl shr 4
+    if (version != 4) return null
+    
+    val ihl = (versionIhl and 0x0F) * 4
+    val protocol = Protocol.fromNumber(buffer.get(9).toInt() and 0xFF)
+    
+    val srcIp = formatIpv4(buffer, 12)
+    val dstIp = formatIpv4(buffer, 16)
+    val (srcPort, dstPort) = extractPorts(buffer, ihl, protocol)
+    
+    return RawPacket(srcIp, dstIp, srcPort, dstPort, protocol, buffer.remaining())
+}
+\end{lstlisting}
+
+\section{Token Bucket with Nanosecond Precision}
+
+Token refill uses \code{System.nanoTime()} for precise timing:
+
+\begin{lstlisting}[language=Kotlin, caption={Token Bucket Refill}]
+@Synchronized
+fun refill() {
+    val now = System.nanoTime()
+    val elapsed = (now - lastRefillTime) / 1_000_000_000.0
+    tokens = minOf(burstBytes.toDouble(), tokens + rateBps * elapsed)
+    lastRefillTime = now
+}
+\end{lstlisting}
+
+\section{Concurrency Management}
+
+\subsection{Thread-Safe Data Structures}
+
+\begin{itemize}
+    \item \code{ConcurrentHashMap} for device registry (lock-free reads)
+    \item \code{@Synchronized} for token bucket operations
+    \item \code{StateFlow} for reactive state propagation
+\end{itemize}
+
+\subsection{Coroutine-Based I/O}
+
+Packet processing runs on \code{Dispatchers.IO}:
+
+\begin{lstlisting}[language=Kotlin, caption={Packet Loop Coroutine}]
+private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+private fun startTunnel() {
+    tunInterface = Builder()
+        .setSession("QoS Scheduler")
+        .addAddress("10.0.0.1", 32)
+        .addRoute("0.0.0.0", 0)
+        .establish()
+    
+    scope.launch { runPacketLoop(tunInterface!!) }
+}
+\end{lstlisting}
+
+\section{Android-Specific Considerations}
+
+\subsection{Foreground Service}
+
+\qos service runs as a foreground service with persistent notification:
+
+\begin{lstlisting}[language=Kotlin, caption={Foreground Service Notification}]
+override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    createNotificationChannel()
+    startForeground(NOTIFICATION_ID, buildNotification())
+    return START_STICKY
+}
+\end{lstlisting}
+
+\subsection{Battery Optimization}
+
+To prevent Android from killing the service:
+\begin{itemize}
+    \item Foreground service with ongoing notification
+    \item \code{START\_STICKY} return value for automatic restart
+    \item Request battery optimization exemption (optional)
+\end{itemize}
+
+\subsection{VPN Permission}
+
+VPN permission is requested via \code{VpnService.prepare()}:
+
+\begin{lstlisting}[language=Kotlin, caption={VPN Permission Request}]
+private fun requestVpnAndStart() {
+    val intent = VpnService.prepare(this)
+    if (intent != null) {
+        vpnPermissionLauncher.launch(intent)
+    } else {
+        viewModel.startScheduler()
+    }
+}
+\end{lstlisting}
+
+\section{Performance Optimizations}
+
+\subsection{Flow Caching}
+
+Classification results are cached to avoid repeated lookups:
+
+\begin{lstlisting}[language=Kotlin, caption={Flow Cache}]
+private val flowCache = ConcurrentHashMap<FlowKey, TrafficCategory>()
+
+fun classify(packet: RawPacket): TrafficCategory {
+    val key = FlowKey(packet.srcIp, packet.dstIp, packet.srcPort, packet.dstPort, packet.protocol)
+    return flowCache.getOrPut(key) { matchRules(packet.dstPort, packet.protocol) }
+}
+\end{lstlisting}
+
+\subsection{Conditional Rebalancing}
+
+Rebalancing is triggered only when necessary:
+
+\begin{lstlisting}[language=Kotlin, caption={Conditional Rebalancing}]
+private var needsRebalance = false
+private var packetCount = 0
+
+fun onPacketProcessed() {
+    packetCount++
+    if (needsRebalance || packetCount % 1000 == 0) {
+        scheduler.rebalanceWithDevices(registry.getAll())
+        needsRebalance = false
+    }
+}
+\end{lstlisting}
+
+\section{Error Handling}
+
+All I/O operations are wrapped in \code{runCatching}:
+
+\begin{lstlisting}[language=Kotlin, caption={Safe Packet Forwarding}]
+val allowed = scheduler.processPacket(packet)
+if (allowed) {
+    runCatching { 
+        outputStream.write(packet.rawBuffer, 0, packet.length) 
+    }.onFailure { 
+        Log.e(TAG, "Failed to forward packet", it) 
+    }
+}
+\end{lstlisting}
+
+\section{Testing Strategy}
+
+\subsection{Unit Tests}
+
+\begin{itemize}
+    \item Token bucket consume/refill logic
+    \item DPI classifier rule matching
+    \item Packet parser for IPv4/IPv6
+\end{itemize}
+
+\subsection{Integration Tests}
+
+\begin{itemize}
+    \item Device registry timeout eviction
+    \item Priority persistence across restarts
+    \item Rebalancing correctness
+\end{itemize}
+
+\subsection{Performance Tests}
+
+\begin{itemize}
+    \item Packet processing latency measurement
+    \item CPU profiling under 10k pps load
+    \item Memory leak detection (24-hour run)
+\end{itemize}

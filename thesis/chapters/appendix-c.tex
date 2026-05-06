@@ -1,0 +1,178 @@
+\chapter{Source Code Excerpts}
+\label{app:code}
+
+This appendix contains key source code excerpts from the implementation.
+
+\section{Token Bucket Implementation}
+
+\begin{lstlisting}[language=Kotlin, caption={TokenBucket.kt}]
+class TokenBucket(
+    @Volatile var rateBps: Long,
+    @Volatile var burstBytes: Long
+) {
+    private var tokens: Double = burstBytes.toDouble()
+    private var lastRefillTime: Long = System.nanoTime()
+
+    @Synchronized
+    fun consume(bytes: Int): Boolean {
+        refill()
+        return if (tokens >= bytes) {
+            tokens -= bytes
+            true
+        } else {
+            false
+        }
+    }
+
+    @Synchronized
+    fun setRate(newRateBps: Long) {
+        rateBps = newRateBps
+        burstBytes = newRateBps * 2
+        tokens = minOf(tokens, burstBytes.toDouble())
+    }
+
+    private fun refill() {
+        val now = System.nanoTime()
+        val elapsed = (now - lastRefillTime) / 1_000_000_000.0
+        tokens = minOf(burstBytes.toDouble(), tokens + rateBps * elapsed)
+        lastRefillTime = now
+    }
+}
+\end{lstlisting}
+
+\section{DPI Classifier Implementation}
+
+\begin{lstlisting}[language=Kotlin, caption={DpiClassifier.kt}]
+class DpiClassifier {
+    private val flowCache = ConcurrentHashMap<FlowKey, TrafficCategory>()
+
+    fun classify(packet: RawPacket): TrafficCategory {
+        val key = FlowKey(packet.srcIp, packet.dstIp, 
+                         packet.srcPort, packet.dstPort, packet.protocol)
+        return flowCache.getOrPut(key) { 
+            matchRules(packet.dstPort, packet.protocol) 
+        }
+    }
+
+    private fun matchRules(dstPort: Int, protocol: Protocol): TrafficCategory {
+        return when {
+            // VoIP
+            protocol == Protocol.UDP && dstPort in listOf(5060, 5061) 
+                -> TrafficCategory.VOIP
+            protocol == Protocol.UDP && dstPort in 16384..32767 
+                -> TrafficCategory.VOIP
+            
+            // Video Conferencing
+            protocol == Protocol.UDP && dstPort == 3478 
+                -> TrafficCategory.VIDEO_CONFERENCING
+            protocol == Protocol.UDP && dstPort in 19302..19309 
+                -> TrafficCategory.VIDEO_CONFERENCING
+            
+            // Online Gaming
+            protocol == Protocol.UDP && dstPort in 27015..27030 
+                -> TrafficCategory.ONLINE_GAMING
+            protocol == Protocol.UDP && dstPort == 3074 
+                -> TrafficCategory.ONLINE_GAMING
+            
+            // File Transfer
+            protocol == Protocol.TCP && dstPort in listOf(20, 21, 22, 445, 2049) 
+                -> TrafficCategory.FILE_TRANSFER
+            
+            // Web Browsing
+            protocol == Protocol.TCP && dstPort in listOf(80, 443) 
+                -> TrafficCategory.WEB_BROWSING
+            
+            else -> TrafficCategory.UNKNOWN
+        }
+    }
+}
+\end{lstlisting}
+
+\section{Packet Parser Implementation}
+
+\begin{lstlisting}[language=Kotlin, caption={RawPacket.kt - IPv4 Parsing}]
+companion object {
+    fun parse(buffer: ByteArray, length: Int): RawPacket? {
+        if (length < 20) return null
+        val buf = ByteBuffer.wrap(buffer, 0, length)
+        val versionIhl = buf.get(0).toInt() and 0xFF
+        val version = versionIhl shr 4
+
+        return when (version) {
+            4 -> parseIpv4(buf, buffer, length)
+            6 -> parseIpv6(buf, buffer, length)
+            else -> null
+        }
+    }
+
+    private fun parseIpv4(buf: ByteBuffer, raw: ByteArray, length: Int): RawPacket? {
+        val ihl = (buf.get(0).toInt() and 0x0F) * 4
+        if (length < ihl + 4) return null
+
+        val protocolNum = buf.get(9).toInt() and 0xFF
+        val protocol = Protocol.fromNumber(protocolNum)
+
+        val srcIp = buildString {
+            for (i in 12..15) {
+                if (i > 12) append('.')
+                append(buf.get(i).toInt() and 0xFF)
+            }
+        }
+        val dstIp = buildString {
+            for (i in 16..19) {
+                if (i > 16) append('.')
+                append(buf.get(i).toInt() and 0xFF)
+            }
+        }
+
+        val (srcPort, dstPort) = extractPorts(buf, ihl, protocol)
+
+        return RawPacket(srcIp, dstIp, srcPort, dstPort, protocol, 
+                        length, raw.copyOf(length))
+    }
+
+    private fun extractPorts(buf: ByteBuffer, headerEnd: Int, 
+                            protocol: Protocol): Pair<Int, Int> {
+        if (protocol == Protocol.OTHER) return Pair(0, 0)
+        if (buf.capacity() < headerEnd + 4) return Pair(0, 0)
+        val src = ((buf.get(headerEnd).toInt() and 0xFF) shl 8) or 
+                  (buf.get(headerEnd + 1).toInt() and 0xFF)
+        val dst = ((buf.get(headerEnd + 2).toInt() and 0xFF) shl 8) or 
+                  (buf.get(headerEnd + 3).toInt() and 0xFF)
+        return Pair(src, dst)
+    }
+}
+\end{lstlisting}
+
+\section{Bandwidth Scheduler Implementation}
+
+\begin{lstlisting}[language=Kotlin, caption={BandwidthScheduler.kt - Rebalancing}]
+fun rebalanceWithDevices(devices: List<ConnectedDevice>) {
+    val highCount = devices.count { it.priorityClass == TrafficClass.HIGH }
+    val medCount  = devices.count { it.priorityClass == TrafficClass.MEDIUM }
+    val lowCount  = devices.count { it.priorityClass == TrafficClass.LOW }
+
+    val totalWeight = highCount * 4 + medCount * 2 + lowCount * 1
+    if (totalWeight == 0) return
+
+    devices.forEach { device ->
+        if (manualCaps.containsKey(device.ipAddress)) return@forEach
+        
+        val weight = when (device.priorityClass) {
+            TrafficClass.HIGH   -> 4
+            TrafficClass.MEDIUM -> 2
+            TrafficClass.LOW    -> 1
+        }
+        val rate = (uplinkBps * weight) / totalWeight
+        val burst = when (device.priorityClass) {
+            TrafficClass.HIGH   -> rate * 2
+            TrafficClass.MEDIUM -> rate
+            TrafficClass.LOW    -> rate / 2
+        }
+        buckets.getOrPut(device.ipAddress) { TokenBucket(rate, burst) }
+            .setRate(rate)
+    }
+}
+\end{lstlisting}
+
+\textit{(Complete source code available at: https://github.com/[repository-url])}

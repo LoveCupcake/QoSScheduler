@@ -1,0 +1,135 @@
+\chapter{Introduction}
+\label{ch:introduction}
+
+\section{Context and Motivation}
+\label{sec:context}
+
+The proliferation of mobile devices and the ubiquity of cellular data connectivity have fundamentally transformed internet access patterns. Personal mobile hotspots—wherein a smartphone shares its cellular internet connection with other devices via Wi-Fi tethering—have emerged as a critical connectivity solution in scenarios ranging from temporary office setups to emergency communications and rural internet access. According to recent industry reports, over 2.3 billion smartphones worldwide support hotspot functionality, with an estimated 40\% of users regularly employing tethering as their primary or backup internet source \cite{cisco2023}.
+
+Despite this widespread adoption, personal mobile hotspots operate as simple Layer 2 bridges with no traffic arbitration mechanisms. All connected devices share the available uplink bandwidth on a first-come, first-served basis, with no differentiation between latency-sensitive real-time applications (video conferencing, online gaming, VoIP) and delay-tolerant bulk transfers (cloud synchronization, operating system updates, file downloads). This indiscriminate resource allocation leads to severe Quality of Service (\qos) degradation: a background file upload can render a video call unusable, and an automatic OS update can introduce multi-second latencies into an online gaming session.
+
+The problem is exacerbated by the asymmetric nature of cellular uplinks, which typically provide 5–10× lower bandwidth than downlinks. A typical 4G LTE connection might offer 50 Mbps download but only 5–10 Mbps upload, creating a severe bottleneck when multiple devices compete for the constrained uplink capacity. This asymmetry makes uplink \qos enforcement critical for maintaining acceptable user experience.
+
+\subsection{The Consumer-Grade QoS Gap}
+
+Enterprise and carrier-grade networks have long employed sophisticated \qos mechanisms—DiffServ \cite{rfc2475}, IntServ \cite{rfc2205}, MPLS traffic engineering \cite{rfc3031}, and Software-Defined Networking (SDN) flow control \cite{mckeown2008openflow}. However, these solutions require dedicated hardware (routers with hardware queuing support), kernel-level modifications (Linux \texttt{tc} traffic control), or administrative privileges (root access on Android). None of these prerequisites are available or practical for consumer-grade personal hotspots.
+
+The Android operating system, which powers over 70\% of smartphones globally \cite{statcounter2024}, provides no native \qos controls for hotspot traffic. The \texttt{android.net.wifi.WifiManager} API exposes hotspot enable/disable functionality but offers no hooks for traffic inspection, classification, or shaping. Third-party applications attempting to implement \qos face fundamental architectural barriers:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{No root access:} Consumer devices are not rooted, preventing kernel-level traffic control via \texttt{iptables}, \texttt{tc}, or \texttt{netem}.
+    \item \textbf{No packet interception:} Standard Android APIs do not expose raw packet streams from the hotspot interface.
+    \item \textbf{No Layer 2 visibility:} Applications cannot access MAC addresses or Ethernet frames without privileged access.
+    \item \textbf{No bandwidth APIs:} Android provides no programmatic interface to query or enforce bandwidth limits.
+\end{itemize}
+
+This creates a critical gap: millions of users rely on personal hotspots daily, yet no consumer-accessible solution exists to prioritize their video calls over background downloads or to ensure their online gaming traffic receives preferential treatment.
+
+\subsection{Research Opportunity}
+
+The Android \vpn Service \api, introduced in Android 4.0 (API level 14) and refined through subsequent releases, presents an unexplored opportunity for userspace \qos enforcement. Originally designed for secure tunneling applications, \vpn Service creates a virtual TUN (network tunnel) interface that intercepts all IP packets destined for the internet. Crucially, this interception occurs \emph{before} packets reach the physical network interface, enabling inspection, modification, and selective forwarding—all without requiring root privileges.
+
+By establishing a local \vpn tunnel on the hotspot host device, an application can:
+
+\begin{enumerate}[leftmargin=*]
+    \item Intercept all traffic from connected hotspot clients
+    \item Parse packet headers to extract 5-tuple flow identifiers (source IP, destination IP, source port, destination port, protocol)
+    \item Classify flows based on application signatures (port numbers, protocol types, behavioral heuristics)
+    \item Enforce per-device or per-flow bandwidth policies using software-based rate limiting
+    \item Forward processed packets to the internet uplink
+\end{enumerate}
+
+This approach operates entirely in userspace, requires no kernel modifications, and is transparent to connected client devices. However, it introduces significant technical challenges: packet processing must be efficient enough to sustain multi-megabit throughput without introducing excessive latency, classification must be accurate despite operating on encrypted traffic, and scheduling algorithms must be fair while respecting priority assignments.
+
+\section{Problem Statement}
+\label{sec:problem-statement}
+
+\begin{definition}[Personal Mobile Hotspot QoS Problem]
+Given a mobile device $H$ acting as a hotspot with uplink capacity $C$ (bytes/second), a set of connected client devices $D = \{d_1, d_2, \ldots, d_n\}$, and a set of traffic flows $F = \{f_1, f_2, \ldots, f_m\}$ where each flow $f_i$ originates from device $d_j \in D$, design a system that:
+
+\begin{enumerate}
+    \item Classifies each flow $f_i$ into an application category $c_i \in C_{app}$ based solely on packet header analysis
+    \item Assigns each device $d_j$ a priority class $p_j \in \{HIGH, MEDIUM, LOW\}$
+    \item Enforces bandwidth allocation such that $\sum_{j=1}^{n} b_j \leq C$ where $b_j$ is the bandwidth allocated to device $d_j$
+    \item Ensures that under competitive load, high-priority devices receive proportionally more bandwidth than low-priority devices
+    \item Operates without root access, kernel modifications, or changes to client devices
+    \item Introduces minimal latency overhead ($< 5$ ms per packet)
+\end{enumerate}
+\end{definition}
+
+The core challenge is to implement a \qos scheduler that operates under the constraints of the Android userspace environment while achieving performance comparable to kernel-level traffic control systems.
+
+\section{Research Objectives}
+\label{sec:objectives}
+
+This thesis pursues the following specific objectives:
+
+\subsection{Primary Objectives}
+
+\begin{enumerate}[label=\textbf{O\arabic*:},leftmargin=*]
+    \item \textbf{Architectural Design:} Develop a formally specified \qos scheduling architecture that operates within the Android \vpn Service framework, defining clear interfaces between traffic classification, bandwidth scheduling, and device management components.
+    
+    \item \textbf{Traffic Classification:} Design and implement a lightweight \dpi-lite classifier capable of categorizing traffic flows into application types (video conferencing, gaming, VoIP, web browsing, streaming, file transfer, OS updates) using only transport-layer header information, achieving $>90\%$ classification accuracy on common application traffic.
+    
+    \item \textbf{Bandwidth Enforcement:} Implement a software token bucket algorithm for per-device bandwidth shaping, with configurable rate and burst parameters, capable of sustaining $>10,000$ packets/second throughput with $<5$ ms per-packet processing latency.
+    
+    \item \textbf{Priority Scheduling:} Develop a weighted fair queuing mechanism that dynamically allocates bandwidth proportional to device priority classes, ensuring high-priority devices receive at least 3× the throughput of low-priority devices under competitive load.
+    
+    \item \textbf{Empirical Validation:} Conduct controlled experiments using industry-standard tools (iPerf3, Wireshark) to measure \qos improvements in terms of throughput fairness, latency reduction, and jitter mitigation, demonstrating statistical significance ($p < 0.05$) compared to unmanaged hotspot baselines.
+\end{enumerate}
+
+\subsection{Secondary Objectives}
+
+\begin{enumerate}[label=\textbf{S\arabic*:},leftmargin=*]
+    \item \textbf{Usability:} Design an intuitive user interface enabling non-technical users to assign device priorities and monitor traffic statistics in real-time.
+    
+    \item \textbf{Persistence:} Implement priority assignment persistence across application restarts and device reboots using Android DataStore.
+    
+    \item \textbf{Performance Profiling:} Characterize CPU and memory overhead under various load conditions, ensuring resource consumption remains acceptable on mid-range Android hardware.
+    
+    \item \textbf{Reproducibility:} Provide complete source code, architectural documentation, and experimental protocols to enable independent replication and extension of this work.
+\end{enumerate}
+
+\section{Contributions}
+\label{sec:contributions}
+
+This thesis makes the following novel contributions to the field of mobile network \qos:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{First Consumer-Grade Mobile Hotspot QoS System:} To the best of our knowledge, this is the first implementation of a \qos scheduler for personal mobile hotspots that operates without root access, demonstrating the feasibility of userspace bandwidth management on Android.
+    
+    \item \textbf{VpnService-Based QoS Architecture:} A novel architectural pattern leveraging the Android \vpn Service \api for traffic interception and shaping, providing a blueprint for future userspace network control applications.
+    
+    \item \textbf{DPI-Lite Classification Framework:} A lightweight, port-based traffic classification system optimized for real-time operation in resource-constrained mobile environments, achieving high accuracy without payload inspection.
+    
+    \item \textbf{Software Token Bucket Implementation:} A pure-Java/Kotlin token bucket algorithm with nanosecond-precision timing, demonstrating that userspace rate limiting can achieve performance comparable to kernel-level implementations.
+    
+    \item \textbf{Empirical QoS Validation:} Comprehensive experimental results quantifying \qos improvements across multiple metrics (throughput, latency, jitter, packet loss) under realistic usage scenarios.
+    
+    \item \textbf{Open-Source Reference Implementation:} A complete, production-ready Android application with full source code, architectural documentation, and test protocols, released under an open-source license to facilitate future research.
+\end{enumerate}
+
+\section{Thesis Organization}
+\label{sec:organization}
+
+The remainder of this thesis is structured as follows:
+
+\textbf{Chapter~\ref{ch:background}} provides essential background on \qos concepts, Android networking architecture, traffic classification techniques, and scheduling algorithms, establishing the theoretical foundation for the proposed system.
+
+\textbf{Chapter~\ref{ch:related-work}} surveys related work in mobile \qos, SDN-based traffic management, and Android network applications, positioning this research within the broader literature.
+
+\textbf{Chapter~\ref{ch:methodology}} describes the research methodology, including the design science approach, experimental design, validation metrics, and tools employed.
+
+\textbf{Chapter~\ref{ch:system-design}} presents the detailed system architecture, including component diagrams, data flow models, and formal specifications of the classification and scheduling algorithms.
+
+\textbf{Chapter~\ref{ch:implementation}} discusses implementation details, including packet parsing, token bucket mechanics, concurrency management, and Android-specific considerations.
+
+\textbf{Chapter~\ref{ch:validation}} describes the experimental setup, test scenarios, and measurement procedures used to validate the system.
+
+\textbf{Chapter~\ref{ch:results}} presents quantitative results from controlled experiments, including throughput measurements, latency analysis, and performance profiling.
+
+\textbf{Chapter~\ref{ch:discussion}} interprets the results, discusses limitations, and analyzes the implications for consumer-grade \qos research.
+
+\textbf{Chapter~\ref{ch:conclusion}} summarizes the key findings, contributions, and directions for future work.
+
+\textbf{Appendices} provide supplementary material including complete UML diagrams, software requirements specification, source code excerpts, and experimental data tables.

@@ -1,0 +1,123 @@
+% Main thesis document
+\documentclass[12pt,a4paper,twoside]{report}
+
+% Essential packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{setspace}
+\usepackage[backend=biber,style=ieee,sorting=none]{biblatex}
+
+% Page geometry
+\geometry{
+    left=3cm,
+    right=2.5cm,
+    top=2.5cm,
+    bottom=2.5cm,
+    headheight=15pt
+}
+
+% Bibliography
+\addbibresource{references.bib}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+    citecolor=blue,
+    pdftitle={Dynamic QoS Scheduler for Mobile Hotspots},
+    pdfauthor={Pham Hieu Minh},
+}
+
+% Code listing style
+\lstdefinestyle{kotlinstyle}{
+    language=Java,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1,
+    numbersep=8pt,
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    captionpos=b,
+    tabsize=2
+}
+\lstset{style=kotlinstyle}
+
+% Theorem environments
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}{Lemma}[chapter]
+\newtheorem{proposition}{Proposition}[chapter]
+
+% Custom commands
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\qos}{\textsc{QoS}}
+\newcommand{\vpn}{\textsc{VPN}}
+\newcommand{\dpi}{\textsc{DPI}}
+\newcommand{\api}{\textsc{API}}
+
+% Header and footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\thepage}
+\fancyhead[RE]{\leftmark}
+\fancyhead[LO]{\rightmark}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Line spacing
+\onehalfspacing
+
+\begin{document}
+
+% Front matter
+\input{chapters/00-frontmatter}
+
+% Main content
+\mainmatter
+
+\input{chapters/01-introduction}
+\input{chapters/02-background}
+\input{chapters/03-related-work}
+\input{chapters/04-methodology}
+\input{chapters/05-system-design}
+\input{chapters/06-implementation}
+\input{chapters/07-validation}
+\input{chapters/08-results}
+\input{chapters/09-discussion}
+\input{chapters/10-conclusion}
+
+% Back matter
+\backmatter
+
+\printbibliography[heading=bibintoc,title={References}]
+
+\appendix
+\input{chapters/appendix-a}
+\input{chapters/appendix-b}
+\input{chapters/appendix-c}
+
+\end{document}
