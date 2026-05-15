@@ -79,6 +79,7 @@ class QosVpnService : VpnService() {
     private var socketRefreshJob: Job? = null
     private var appFlowCleanupJob: Job? = null
     private var healthMonitorJob: Job? = null
+    private val diagnosticTool by lazy { com.qos.scheduler.util.DiagnosticTool(appTraffic) }
     
     private var tcpRelayManager: TcpRelayManager? = null
     private var udpRelayManager: UdpRelayManager? = null
@@ -389,27 +390,26 @@ class QosVpnService : VpnService() {
                 delay(1000) // 1s interval for PERFECT UX
                 try {
                     val now = System.currentTimeMillis()
-                    val apps = appTraffic.values.toList()
                     
-                    apps.forEach { app ->
-                        val lastTotal = lastAppTotals[app.uid] ?: 0L
-                        val currentTotal = app.bytesIn + app.bytesOut
-                        val diff = currentTotal - lastTotal
-                        if (diff > 0) {
-                            app.currentThroughputBps = (diff * 8 / 4) // bits per second (4s interval)
-                            lastAppTotals[app.uid] = currentTotal
-                        } else {
-                            app.currentThroughputBps = 0 // Reset to 0 if no data
-                        }
+                    // Calculate real throughput (BPS) for each app
+                    appTraffic.values.forEach { app ->
+                        val prev = lastAppTotals[app.uid] ?: 0L
+                        val current = app.bytesIn + app.bytesOut
+                        val bytesDiff = if (current >= prev) (current - prev) else 0L
+                        app.currentThroughputBps = bytesDiff * 8 // Bytes/sec to Bits/sec
+                        lastAppTotals[app.uid] = current
                     }
                     
-                    // 1. Cleanup stale apps (5 minutes inactivity)
+                    // 1. Run detailed diagnostic reporting
+                    diagnosticTool.report()
+                    
+                    // 2. Cleanup stale apps (5 minutes inactivity)
                     appTraffic.entries.removeIf { (_, app) ->
                         now - app.lastSeenTimestamp > 300_000
                     }
                     lastAppTotals.entries.removeIf { !appTraffic.containsKey(it.key) }
                     
-                    // 2. Always get list and update UI (fixes the "stuck" issue)
+                    // 3. Always get list and update UI (fixes the "stuck" issue)
                     val currentApps = appTraffic.values.toList()
                     scheduler.rebalanceWithApps(currentApps)
                     QosApplication.getInstance().updateApps(currentApps)

@@ -12,6 +12,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qos.scheduler.ui.MainViewModel
 import com.qos.scheduler.ui.screens.AppDetailScreen
 import com.qos.scheduler.ui.screens.DashboardScreen
+import com.qos.scheduler.ui.screens.ServerConnectScreen
 import com.qos.scheduler.ui.screens.SettingsScreen
 import com.qos.scheduler.ui.theme.QoSSchedulerTheme
 
@@ -19,6 +20,7 @@ sealed class Screen {
     data object Dashboard : Screen()
     data class AppDetail(val app: com.qos.scheduler.model.AppTraffic) : Screen()
     data object Settings : Screen()
+    data object ServerConnect : Screen()
 }
 
 class MainActivity : ComponentActivity() {
@@ -71,7 +73,18 @@ class MainActivity : ComponentActivity() {
                             onModeChanged = { viewModel.setRuntimeMode(it) },
                             onUplinkChanged = { viewModel.setUplinkMbps(it) },
                             onResetPriorities = { viewModel.resetAllPriorities() },
+                            onServerConnectClick = { currentScreen = Screen.ServerConnect },
                             onBack = { currentScreen = Screen.Dashboard }
+                        )
+                    }
+                    Screen.ServerConnect -> {
+                        ServerConnectScreen(
+                            currentServerUrl = uiState.serverUrl,
+                            isConnected = uiState.isConnectedToServer,
+                            syncStatusMessage = uiState.syncStatusMessage,
+                            onSaveServerUrl = { viewModel.saveServerUrl(it) },
+                            onSync = { viewModel.syncFromServer() },
+                            onBack = { currentScreen = Screen.Settings }
                         )
                     }
                 }

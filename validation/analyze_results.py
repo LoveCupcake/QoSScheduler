@@ -85,14 +85,14 @@ class iPerfAnalyzer:
         
         return improvements
     
-    def generate_throughput_comparison(self, baseline_dev1, baseline_dev2, qos_high, qos_low):
+    def generate_throughput_comparison(self, baseline_appA, baseline_appB, qos_high, qos_low):
         """Generate Graph 1: Throughput Comparison Bar Chart"""
-        categories = ['Baseline\nDevice 1', 'Baseline\nDevice 2', 
+        categories = ['Baseline\nApp A', 'Baseline\nApp B', 
                       'QoS\nHIGH', 'QoS\nLOW']
         
         throughput = [
-            baseline_dev1['throughput_mbps'] if baseline_dev1 else 0,
-            baseline_dev2['throughput_mbps'] if baseline_dev2 else 0,
+            baseline_appA['throughput_mbps'] if baseline_appA else 0,
+            baseline_appB['throughput_mbps'] if baseline_appB else 0,
             qos_high['throughput_mbps'] if qos_high else 0,
             qos_low['throughput_mbps'] if qos_low else 0
         ]
@@ -115,8 +115,8 @@ class iPerfAnalyzer:
                      ha='center', va='bottom', fontsize=10, fontweight='bold')
         
         # Add improvement annotation
-        if qos_high and baseline_dev1:
-            improvement = qos_high['throughput_mbps'] / baseline_dev1['throughput_mbps']
+        if qos_high and baseline_appA:
+            improvement = qos_high['throughput_mbps'] / baseline_appA['throughput_mbps']
             plt.text(0.5, 0.95, f'Improvement: {improvement:.2f}×',
                      transform=plt.gca().transAxes,
                      fontsize=12, fontweight='bold',
@@ -253,7 +253,7 @@ class iPerfAnalyzer:
             autotext.set_fontweight('bold')
         
         total = sum(sizes)
-        plt.title(f'WFQ Bandwidth Allocation\n(3 Devices, {total:.1f} Mbps Total)', 
+        plt.title(f'WFQ Bandwidth Allocation\n(3 Local Apps, {total:.1f} Mbps Total)', 
                   fontsize=15, fontweight='bold', pad=20)
         plt.axis('equal')
         plt.tight_layout()
@@ -322,10 +322,10 @@ class iPerfAnalyzer:
             # Baseline results
             f.write("BASELINE (No QoS):\n")
             f.write("-" * 70 + "\n")
-            if results.get('baseline_dev1'):
-                f.write(f"Device 1 Throughput: {results['baseline_dev1']['throughput_mbps']:.2f} Mbps\n")
-            if results.get('baseline_dev2'):
-                f.write(f"Device 2 Throughput: {results['baseline_dev2']['throughput_mbps']:.2f} Mbps\n")
+            if results.get('baseline_appA'):
+                f.write(f"App A Throughput: {results['baseline_appA']['throughput_mbps']:.2f} Mbps\n")
+            if results.get('baseline_appB'):
+                f.write(f"App B Throughput: {results['baseline_appB']['throughput_mbps']:.2f} Mbps\n")
             f.write("\n")
             
             # QoS results
@@ -379,19 +379,19 @@ class iPerfAnalyzer:
         
         # Parse all results
         results = {}
-        results['baseline_dev1'] = self.parse_iperf3_json('baseline_device1.json')
-        results['baseline_dev2'] = self.parse_iperf3_json('baseline_device2.json')
-        results['qos_high'] = self.parse_iperf3_json('qos_high_priority.json')
-        results['qos_low'] = self.parse_iperf3_json('qos_low_priority.json')
+        results['baseline_appA'] = self.parse_iperf3_json('baseline_appA.json')
+        results['baseline_appB'] = self.parse_iperf3_json('baseline_appB.json')
+        results['qos_high'] = self.parse_iperf3_json('qos_appA_high.json')
+        results['qos_low'] = self.parse_iperf3_json('qos_appB_low.json')
         results['qos_high_udp'] = self.parse_iperf3_json('qos_high_udp.json')
         results['qos_low_udp'] = self.parse_iperf3_json('qos_low_udp.json')
-        results['qos_3dev_high'] = self.parse_iperf3_json('qos_3dev_high.json')
-        results['qos_3dev_medium'] = self.parse_iperf3_json('qos_3dev_medium.json')
-        results['qos_3dev_low'] = self.parse_iperf3_json('qos_3dev_low.json')
+        results['qos_3dev_high'] = self.parse_iperf3_json('qos_wfq_high.json')
+        results['qos_3dev_medium'] = self.parse_iperf3_json('qos_wfq_medium.json')
+        results['qos_3dev_low'] = self.parse_iperf3_json('qos_wfq_low.json')
         
         # Calculate improvements
         results['improvements'] = self.calculate_improvements(
-            results['baseline_dev1'], 
+            results['baseline_appA'], 
             results['qos_high']
         )
         
@@ -399,8 +399,8 @@ class iPerfAnalyzer:
         
         # Generate all graphs
         self.generate_throughput_comparison(
-            results['baseline_dev1'],
-            results['baseline_dev2'],
+            results['baseline_appA'],
+            results['baseline_appB'],
             results['qos_high'],
             results['qos_low']
         )
@@ -411,7 +411,7 @@ class iPerfAnalyzer:
         )
         
         self.generate_latency_jitter_comparison(
-            results['baseline_dev2'],  # Use as baseline UDP
+            results['baseline_appB'],  # Use as baseline UDP
             results['qos_high_udp']
         )
         

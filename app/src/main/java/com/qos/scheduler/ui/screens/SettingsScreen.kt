@@ -28,6 +28,7 @@ fun SettingsScreen(
     onModeChanged: (RelayRuntimeMode) -> Unit,
     onUplinkChanged: (Float) -> Unit,
     onResetPriorities: () -> Unit,
+    onServerConnectClick: () -> Unit,
     onBack: () -> Unit
 ) {
     var uplinkText by remember(currentUplinkMbps) { mutableStateOf(currentUplinkMbps.toString()) }
@@ -140,6 +141,29 @@ fun SettingsScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                     ) {
                         Text("Reset All")
+                    }
+                }
+            }
+
+            // Cloud Server connect
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("☁️ Cloud Server", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Kết nối với Web Admin Server để đồng bộ luật QoS và gửi thống kê.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Button(
+                        onClick = onServerConnectClick,
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text("Cấu hình kết nối")
                     }
                 }
             }

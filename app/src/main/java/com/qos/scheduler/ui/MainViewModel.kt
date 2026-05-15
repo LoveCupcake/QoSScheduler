@@ -10,6 +10,9 @@ import com.qos.scheduler.model.TrafficClass
 import com.qos.scheduler.service.RelayHealthSnapshot
 import com.qos.scheduler.service.RelayRuntimeMode
 import com.qos.scheduler.service.QosVpnService
+import com.qos.scheduler.sync.CloudSyncManager
+import com.qos.scheduler.sync.SyncResult
+import com.qos.scheduler.sync.TelemetryEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +31,11 @@ data class UiState(
     val relayHealth: RelayHealthSnapshot = RelayHealthSnapshot(),
     val runtimeMode: RelayRuntimeMode = RelayRuntimeMode.MONITOR,
     val isMonitorOnlyMode: Boolean = true,
-    val isTransitioning: Boolean = false
+    val isTransitioning: Boolean = false,
+    // ── Cloud Server ──
+    val serverUrl: String = "",
+    val isConnectedToServer: Boolean = false,
+    val syncStatusMessage: String = ""
 )
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
@@ -38,6 +45,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _hotspotState = MutableStateFlow(Pair(false, null as String?))
     private val _targetMode = MutableStateFlow(RelayRuntimeMode.MONITOR)
     private val _isTransitioning = MutableStateFlow(false)
+    private val _isConnectedToServer = MutableStateFlow(false)
+    private val _syncStatusMessage = MutableStateFlow("")
     
     init {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -55,6 +64,35 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 kotlinx.coroutines.delay(5000) // Increase delay to 5s for better emulator performance
             }
         }
+
+        // ── Background loop: Push Telemetry every 3 seconds ──
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            while (isActive) {
+                val url = qosApp.getServerUrl()
+                
+                // Chỉ gửi nếu đã lưu URL và server đang kết nối
+                if (url.isNotBlank() && _isConnectedToServer.value) {
+                    val deviceId = android.provider.Settings.Secure.getString(
+                        getApplication<android.app.Application>().contentResolver,
+                        android.provider.Settings.Secure.ANDROID_ID
+                    )
+                    
+                    val currentApps = qosApp.appsFlow.value
+                    if (currentApps.isNotEmpty()) {
+                        val telemetry = currentApps.map { app ->
+                            TelemetryEntry(
+                                packageName = app.packageName,
+                                appName     = app.appName,
+                                bytesIn     = 0L, 
+                                bytesOut    = app.currentThroughputBps.toLong() // Truyền BPS lên để vẽ Chart
+                            )
+                        }
+                        CloudSyncManager.pushTelemetry(url, deviceId, telemetry)
+                    }
+                }
+                kotlinx.coroutines.delay(3000)
+            }
+        }
     }
     
     val uiState: StateFlow<UiState> = combine(
@@ -66,7 +104,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             _hotspotState,
             qosApp.relayHealth,
             _targetMode,
-            _isTransitioning
+            _isTransitioning,
+            qosApp.serverUrlFlow,
+            _isConnectedToServer,
+            _syncStatusMessage
         )
     ) { args ->
         val isRunning = args[0] as Boolean
@@ -77,9 +118,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val relayHealth = args[5] as RelayHealthSnapshot
         val targetMode = args[6] as RelayRuntimeMode
         val transitioning = args[7] as Boolean
+        val serverUrl = args[8] as String
+        val isConnected = args[9] as Boolean
+        val syncMsg = args[10] as String
         
-        // Auto-clear transitioning once service state changes have propagated
-        // Also clear transitioning if we are somehow stuck but isRunning hasn't become true yet
         if (transitioning) {
             val wasRunning = uiState.value?.isRunning ?: false
             if (isRunning != wasRunning) {
@@ -97,7 +139,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             hotspotSubnet = hotspotState.second,
             relayHealth = relayHealth,
             runtimeMode = if (isRunning) relayHealth.mode else targetMode,
-            isMonitorOnlyMode = relayHealth.mode == RelayRuntimeMode.MONITOR
+            isMonitorOnlyMode = relayHealth.mode == RelayRuntimeMode.MONITOR,
+            serverUrl = serverUrl,
+            isConnectedToServer = isConnected,
+            syncStatusMessage = syncMsg
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, UiState())
 
@@ -150,6 +195,71 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun resetAllPriorities() {
         viewModelScope.launch {
             QosVpnService.getInstance()?.resetAllPriorities()
+        }
+    }
+
+    // ── Cloud Server ──────────────────────────────────────────────────────
+
+    fun saveServerUrl(url: String) {
+        qosApp.saveServerUrl(url)
+    }
+
+    /**
+     * Ping server, register device, fetch policies, apply them.
+     * Non-blocking, safe — errors update syncStatusMessage but never crash.
+     */
+    fun syncFromServer() {
+        val url = qosApp.getServerUrl().takeIf { it.isNotBlank() } ?: run {
+            _syncStatusMessage.value = "⚠️ Chưa có địa chỉ server"
+            return
+        }
+        viewModelScope.launch {
+            _syncStatusMessage.value = "⏳ Đang kết nối..."
+            val reachable = CloudSyncManager.ping(url)
+            if (!reachable) {
+                _isConnectedToServer.value = false
+                _syncStatusMessage.value = "❌ Không kết nối được server"
+                return@launch
+            }
+
+            // Register this device
+            val deviceId = android.provider.Settings.Secure.getString(
+                getApplication<android.app.Application>().contentResolver,
+                android.provider.Settings.Secure.ANDROID_ID
+            )
+            val model = android.os.Build.MODEL
+            val name  = android.os.Build.MANUFACTURER + " " + model
+            CloudSyncManager.registerDevice(url, deviceId, name, model)
+
+            // Fetch and apply policies
+            when (val result = CloudSyncManager.fetchPolicies(url, deviceId)) {
+                is SyncResult.Success -> {
+                    _isConnectedToServer.value = true
+                    result.policies.forEach { policy ->
+                        // Match by package name against tracked apps
+                        val app = qosApp.appsFlow.value.find { it.packageName == policy.packageName }
+                        if (app != null) {
+                            onAppPriorityChanged(app.uid, policy.priority)
+                        }
+                    }
+                    _syncStatusMessage.value = "✅ Đã đồng bộ ${result.policies.size} policy"
+
+                    // Push telemetry
+                    val telemetry = qosApp.appsFlow.value.map { app ->
+                        TelemetryEntry(
+                            packageName = app.packageName,
+                            appName     = app.appName,
+                            bytesIn     = 0L, // TODO: expose from VpnService stats
+                            bytesOut    = app.currentThroughputBps.toLong()
+                        )
+                    }
+                    CloudSyncManager.pushTelemetry(url, deviceId, telemetry)
+                }
+                is SyncResult.Error -> {
+                    _isConnectedToServer.value = false
+                    _syncStatusMessage.value = "❌ Lỗi: ${result.message}"
+                }
+            }
         }
     }
 }

@@ -1,6 +1,8 @@
 package com.qos.scheduler
 
 import android.app.Application
+import android.content.Context
+import android.content.SharedPreferences
 import com.qos.scheduler.model.ConnectedDevice
 import com.qos.scheduler.service.RelayHealthSnapshot
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,14 +42,32 @@ class QosApplication : Application() {
     fun updateRelayHealth(snapshot: RelayHealthSnapshot) {
         _relayHealth.value = snapshot
     }
+
+    // ── Server URL ──────────────────────────────────────────────────────────
+    private lateinit var prefs: SharedPreferences
+
+    /** Persisted server URL, e.g. "http://192.168.10.115:3000" */
+    fun getServerUrl(): String =
+        prefs.getString(PREF_SERVER_URL, "") ?: ""
+
+    fun saveServerUrl(url: String) {
+        prefs.edit().putString(PREF_SERVER_URL, url.trimEnd('/')).apply()
+        _serverUrlFlow.value = url.trimEnd('/')
+    }
+
+    private val _serverUrlFlow = MutableStateFlow("")
+    val serverUrlFlow: StateFlow<String> = _serverUrlFlow.asStateFlow()
     
     companion object {
         private var instance: QosApplication? = null
         fun getInstance(): QosApplication = instance!!
+        private const val PREF_SERVER_URL = "server_url"
     }
     
     override fun onCreate() {
         super.onCreate()
         instance = this
+        prefs = getSharedPreferences("qos_prefs", Context.MODE_PRIVATE)
+        _serverUrlFlow.value = getServerUrl()
     }
 }
