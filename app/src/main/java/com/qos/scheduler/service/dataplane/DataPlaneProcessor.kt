@@ -10,6 +10,7 @@ import com.qos.scheduler.model.TrafficClass
 import com.qos.scheduler.scheduler.BandwidthScheduler
 import com.qos.scheduler.util.AppResolver
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 
 class DataPlaneProcessor(
     private val classifier: DpiClassifier,
@@ -19,9 +20,17 @@ class DataPlaneProcessor(
     private val hostBucketKey: String
 ) {
     companion object {
-        // Static caches survive service restarts
-        private val flowCache = ConcurrentHashMap<FlowKey, Int>()
+        /**
+         * FIX: flowCache is now an instance field, not a companion object static.
+         * Previously it was in companion object so it persisted across service restarts,
+         * accumulating stale FlowKey->UID mappings forever (memory leak + misattribution).
+         *
+         * Moving it here means it is cleared when the service (and DataPlaneProcessor) is recreated.
+         */
     }
+
+    // FIX: instance-level cache — cleared on service restart
+    private val flowCache = ConcurrentHashMap<FlowKey, Int>()
 
     data class Result(
         val parsed: Boolean,
@@ -30,8 +39,12 @@ class DataPlaneProcessor(
         val packet: RawPacket? = null
     )
 
+    /**
+     * FIX: Actually evict the flow from the cache so it doesn't grow unboundedly.
+     * Previously this was a no-op stub with a comment "Don't clear flowCache".
+     */
     fun clearFlow(flowKey: FlowKey) {
-        // Don't clear flowCache — maintain memory of app-to-flow mappings
+        flowCache.remove(flowKey)
     }
 
     fun process(bytes: ByteArray, length: Int, isOutbound: Boolean): Result {
@@ -50,8 +63,6 @@ class DataPlaneProcessor(
         var finalUid = flowCache[flowKey]
 
         if (finalUid == null) {
-            // Try to resolve UID RIGHT NOW, synchronously on this thread.
-            // getConnectionOwnerUid is a fast syscall (~1ms), no need for async.
             val protocolNum = if (parsedPacket.protocol == Protocol.TCP) 6 else 17
             val resolvedUid = if (isOutbound) {
                 appResolver.getUidForConnection(protocolNum, parsedPacket.srcIp, parsedPacket.srcPort, parsedPacket.dstIp, parsedPacket.dstPort)
@@ -62,12 +73,13 @@ class DataPlaneProcessor(
             if (resolvedUid != null && resolvedUid > 0) {
                 flowCache[flowKey] = resolvedUid
                 finalUid = resolvedUid
-                
+
                 val appInfo = appResolver.getAppInfo(resolvedUid)
                 android.util.Log.d("AppResolver", "[OK] Flow identified: ${parsedPacket.dstIp}:${parsedPacket.dstPort} -> ${appInfo.appName} (UID: $resolvedUid)")
 
-                // RETROACTIVE MIGRATION: If this flow was previously tracked under a
-                // synthetic port bucket, move its accumulated traffic to the real app.
+                // RETROACTIVE MIGRATION: move this specific flow from synthetic port bucket to real app.
+                // FIX: Only migrate the bytes from the ONE flow being moved, not all bytes from the
+                // synthetic bucket (which could represent many different apps on the same port).
                 val port = if (isOutbound) parsedPacket.dstPort else parsedPacket.srcPort
                 val syntheticUid = -(port + 1)
                 val syntheticApp = appTraffic[syntheticUid]
@@ -75,21 +87,26 @@ class DataPlaneProcessor(
                     val realApp = appTraffic.getOrPut(resolvedUid) {
                         AppTraffic(uid = resolvedUid, appName = appInfo.appName, packageName = appInfo.packageName, priorityClass = TrafficClass.MEDIUM)
                     }
-                    // Migrate the specific flow from synthetic to real app
+                    // FIX: migrate only the byte count of this specific flow, not all of syntheticApp
                     syntheticApp.activeFlows.remove(flowKey)?.let { migratedFlow ->
                         migratedFlow.ownerUid = resolvedUid
                         realApp.activeFlows[flowKey] = migratedFlow
-                        realApp.bytesIn += syntheticApp.bytesIn
-                        realApp.bytesOut += syntheticApp.bytesOut
-                        android.util.Log.i("AppResolver", "Migrated traffic from Port $port to ${appInfo.appName}")
+                        // Transfer only the bytes carried by this one flow
+                        val flowBytes = migratedFlow.byteCount
+                        if (isOutbound) realApp.addBytesOut(flowBytes) else realApp.addBytesIn(flowBytes)
+                        android.util.Log.i("AppResolver", "Migrated flow ($flowBytes bytes) from Port $port to ${appInfo.appName}")
                     }
-                    // Remove synthetic entry if it has no more flows
                     if (syntheticApp.activeFlows.isEmpty()) {
                         appTraffic.remove(syntheticUid)
                     }
                 }
+            } else if (resolvedUid == -1) {
+                // FIX: Do NOT permanently cache UID=-1. Kernel socket ownership is transient;
+                // the same flow will be owned by a real app shortly after the process starts.
+                // We intentionally skip caching here so the next packet retries the lookup.
+                finalUid = -1
             }
-            // If not found, DON'T cache. Next packet will retry.
+            // resolvedUid == null → pre-Android Q or resolution pending → leave finalUid null
         }
 
         // ============================================================
@@ -99,11 +116,12 @@ class DataPlaneProcessor(
         var schedulerKey = hostBucketKey
 
         if (finalUid != null && finalUid > 0) {
-            // Real App identified — track under its name
+            // Real app identified
             val app = appTraffic.getOrPut(finalUid) {
                 val appInfo = appResolver.getAppInfo(finalUid)
                 AppTraffic(uid = finalUid, appName = appInfo.appName, packageName = appInfo.packageName, priorityClass = TrafficClass.MEDIUM)
             }
+            // FIX: use correct schedulerKey for this app (was using hostBucketKey in else branch)
             schedulerKey = BandwidthScheduler.appBucketKey(finalUid)
 
             val flow = app.activeFlows.getOrPut(flowKey) {
@@ -112,8 +130,9 @@ class DataPlaneProcessor(
             flow.category = trafficCategory
             flow.byteCount += length
             flow.lastSeen = System.currentTimeMillis()
-            if (isOutbound) app.bytesOut += length else app.bytesIn += length
-            app.lastSeenTimestamp = System.currentTimeMillis()
+            // FIX: thread-safe increments via synchronized AppTraffic helpers
+            if (isOutbound) app.addBytesOut(length.toLong()) else app.addBytesIn(length.toLong())
+            app.updateLastSeen()
             scheduler.ensureBucket(schedulerKey, app.priorityClass)
 
         } else {
@@ -132,31 +151,30 @@ class DataPlaneProcessor(
             val app = appTraffic.getOrPut(syntheticUid) {
                 AppTraffic(uid = syntheticUid, appName = portLabel, packageName = "port.$port", priorityClass = TrafficClass.MEDIUM)
             }
+            // FIX: use synthetic app's scheduler key (not hostBucketKey)
+            val syntheticSchedulerKey = BandwidthScheduler.appBucketKey(syntheticUid)
             val flow = app.activeFlows.getOrPut(flowKey) {
                 PacketFlow(key = flowKey, category = trafficCategory, ownerUid = syntheticUid)
             }
             flow.category = trafficCategory
             flow.byteCount += length
             flow.lastSeen = System.currentTimeMillis()
-            if (isOutbound) app.bytesOut += length else app.bytesIn += length
-            app.lastSeenTimestamp = System.currentTimeMillis()
-            scheduler.ensureBucket(schedulerKey, app.priorityClass)
+            if (isOutbound) app.addBytesOut(length.toLong()) else app.addBytesIn(length.toLong())
+            app.updateLastSeen()
+            scheduler.ensureBucket(syntheticSchedulerKey, app.priorityClass)
+            schedulerKey = syntheticSchedulerKey
         }
 
         // ============================================================
         // STEP 3: SCHEDULER DECISION
         // ============================================================
-        val allowed = if (isOutbound) {
-            scheduler.processPacket(schedulerKey, length)
-        } else {
-            true
-        }
+        val allowed = scheduler.processPacket(schedulerKey, length)
 
         if (finalUid != null && finalUid > 0) {
-            if (allowed) {
-                appTraffic[finalUid]?.qosAllowedPackets = (appTraffic[finalUid]?.qosAllowedPackets ?: 0) + 1
-            } else {
-                appTraffic[finalUid]?.qosDroppedPackets = (appTraffic[finalUid]?.qosDroppedPackets ?: 0) + 1
+            // FIX: read app once to avoid TOCTOU double-read
+            val app = appTraffic[finalUid]
+            if (app != null) {
+                if (allowed) app.incrementAllowed() else app.incrementDropped()
             }
         }
 

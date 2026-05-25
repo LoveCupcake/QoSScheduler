@@ -6,6 +6,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import com.qos.scheduler.service.RelayFallbackReason
 import com.qos.scheduler.service.RelayHealthSnapshot
 import com.qos.scheduler.service.RelayRuntimeMode
-import com.qos.scheduler.util.PacketLogger
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,12 +32,13 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     var uplinkText by remember(currentUplinkMbps) { mutableStateOf(currentUplinkMbps.toString()) }
+    var uplinkError by remember { mutableStateOf(false) }   // [K] validation state
     var showResetDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Cài đặt") },
+                title = { Text("Settings") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -54,21 +55,21 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Mode Selection
+            // ── Mode Selection ────────────────────────────────────────────────
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Chế độ Runtime", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    
+                    Text("Runtime Mode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         ModeOption(
-                            title = "Monitor (An toàn)",
-                            description = "Chỉ theo dõi lưu lượng, đảm bảo kết nối host ổn định tuyệt đối.",
+                            title = "Monitor (Safe)",
+                            description = "Observe traffic only. Guarantees host connectivity is never disrupted.",
                             selected = runtimeMode == RelayRuntimeMode.MONITOR,
                             onClick = { onModeChanged(RelayRuntimeMode.MONITOR) }
                         )
                         ModeOption(
                             title = "Relay Experimental",
-                            description = "Bật QoS thực tế cho TCP/DNS. Có thể gây trễ nhẹ khi khởi tạo.",
+                            description = "Enable real QoS enforcement for TCP/DNS. May add slight latency on first connect.",
                             selected = runtimeMode == RelayRuntimeMode.RELAY_EXPERIMENTAL,
                             onClick = { onModeChanged(RelayRuntimeMode.RELAY_EXPERIMENTAL) }
                         )
@@ -76,23 +77,29 @@ fun SettingsScreen(
                 }
             }
 
-            // Health & Telemetry
+            // ── Health & Telemetry ────────────────────────────────────────────
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Thông số Kỹ thuật", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    
-                    TelemetryRow("Trạng thái", if (relayHealth.qosEnforced) "Đang thực thi" else "Đang theo dõi")
-                    TelemetryRow("Lỗi DNS", String.format("%.1f%%", relayHealth.dnsErrorRate * 100))
-                    TelemetryRow("Lỗi Relay", String.format("%.1f%%", relayHealth.relayErrorRate * 100))
-                    TelemetryRow("Số luồng hoạt động", relayHealth.activeFlowCount.toString())
-                    TelemetryRow("Số lần Fallback", relayHealth.fallbackCount.toString())
-                    
+                    Text("System Health", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+                    TelemetryRow(
+                        "Status",
+                        if (relayHealth.qosEnforced) "Enforcing" else "Monitoring"
+                    )
+
+                    // [M] Color-coded error rates
+                    ColoredMetricRow("DNS Error Rate", relayHealth.dnsErrorRate)
+                    ColoredMetricRow("Relay Error Rate", relayHealth.relayErrorRate)
+
+                    TelemetryRow("Active Flows", relayHealth.activeFlowCount.toString())
+                    TelemetryRow("Fallback Count", relayHealth.fallbackCount.toString())
+
                     if (relayHealth.fallbackReason != RelayFallbackReason.NONE) {
                         Text(
-                            "Lý do ngắt gần nhất: ${relayHealth.fallbackReason.userLabel()}",
+                            "Last fallback: ${relayHealth.fallbackReason.userLabel()}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.Medium
@@ -101,23 +108,30 @@ fun SettingsScreen(
                 }
             }
 
-            // Uplink bandwidth config
+            // ── Uplink Bandwidth ──────────────────────────────────────────────
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Băng thông Uplink", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Uplink Bandwidth", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
-                        "Cấu hình tốc độ mạng để QoS phân bổ chính xác",
+                        "Set your uplink speed so QoS can allocate bandwidth accurately.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
-                    
+
                     OutlinedTextField(
                         value = uplinkText,
-                        onValueChange = { 
-                            uplinkText = it
-                            it.toFloatOrNull()?.let { mbps -> onUplinkChanged(mbps) }
+                        onValueChange = { input ->
+                            uplinkText = input
+                            val parsed = input.toFloatOrNull()
+                            uplinkError = parsed == null && input.isNotBlank()
+                            if (parsed != null) onUplinkChanged(parsed)
                         },
                         label = { Text("Mbps") },
+                        // [K] Validation error
+                        isError = uplinkError,
+                        supportingText = if (uplinkError) {
+                            { Text("Enter a valid number (e.g. 100)", color = MaterialTheme.colorScheme.error) }
+                        } else null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
@@ -125,37 +139,42 @@ fun SettingsScreen(
                 }
             }
 
-            // Reset priorities
+            // ── Reset Priorities ──────────────────────────────────────────────
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Khôi phục Ưu tiên", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Reset Priorities", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
-                        "Đặt lại tất cả ứng dụng về mức MEDIUM",
+                        "Reset all apps back to MEDIUM priority.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
-                    
+
+                    // [L] Destructive button with warning icon
                     Button(
                         onClick = { showResetDialog = true },
                         modifier = Modifier.align(Alignment.End),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                     ) {
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
                         Text("Reset All")
                     }
                 }
             }
 
-            // Cloud Server connect
+            // ── Cloud Server ──────────────────────────────────────────────────
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("☁️ Cloud Server", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
-                        "Kết nối với Web Admin Server để đồng bộ luật QoS và gửi thống kê.",
+                        "Connect to a Web Admin server to sync QoS policies and push telemetry.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
@@ -163,12 +182,12 @@ fun SettingsScreen(
                         onClick = onServerConnectClick,
                         modifier = Modifier.align(Alignment.End)
                     ) {
-                        Text("Cấu hình kết nối")
+                        Text("Configure Connection")
                     }
                 }
             }
 
-            // Info card
+            // ── Info card ─────────────────────────────────────────────────────
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
@@ -177,7 +196,7 @@ fun SettingsScreen(
                     Text("QoS Scheduler Phase 1", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Text("Production-Candidate Build", style = MaterialTheme.typography.bodySmall)
                     Text(
-                        "Hệ thống tự động bảo vệ (fail-open) sẽ ngắt QoS nếu phát hiện lỗi relay vượt ngưỡng để đảm bảo bạn không bị mất mạng.",
+                        "The fail-open safety system will automatically fall back to Monitor mode if relay error rates exceed thresholds, ensuring you never lose internet connectivity.",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -187,19 +206,19 @@ fun SettingsScreen(
         if (showResetDialog) {
             AlertDialog(
                 onDismissRequest = { showResetDialog = false },
-                title = { Text("Xác nhận Reset?") },
-                text = { Text("Tất cả thiết lập ưu tiên sẽ quay về mặc định.") },
+                title = { Text("Confirm Reset?") },
+                text = { Text("All priority settings will be reset to MEDIUM.") },
                 confirmButton = {
                     TextButton(onClick = {
                         onResetPriorities()
                         showResetDialog = false
                     }) {
-                        Text("Reset", color = MaterialTheme.errorColor())
+                        Text("Reset", color = MaterialTheme.colorScheme.error)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showResetDialog = false }) {
-                        Text("Hủy")
+                        Text("Cancel")
                     }
                 }
             )
@@ -207,8 +226,19 @@ fun SettingsScreen(
     }
 }
 
+// [M] Color-coded metric row based on error threshold
 @Composable
-fun MaterialTheme.errorColor() = colorScheme.error
+private fun ColoredMetricRow(label: String, rate: Double) {
+    val (color, valueText) = when {
+        rate >= 0.5  -> MaterialTheme.colorScheme.error to String.format("%.1f%%", rate * 100)
+        rate >= 0.1  -> Color(0xFFF57F17) to String.format("%.1f%%", rate * 100) // amber
+        else         -> Color(0xFF388E3C) to String.format("%.1f%%", rate * 100) // green
+    }
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, style = MaterialTheme.typography.bodySmall)
+        Text(valueText, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = color)
+    }
+}
 
 @Composable
 private fun ModeOption(
@@ -222,30 +252,23 @@ private fun ModeOption(
         color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
         contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
         shape = MaterialTheme.shapes.small,
-        border = if (selected) null else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = if (selected) null else androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        ),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            androidx.compose.material3.Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-            androidx.compose.material3.Text(description, style = MaterialTheme.typography.bodySmall)
+            Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            Text(description, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
 
 @Composable
-private fun Text(text: String, style: androidx.compose.ui.text.TextStyle, alpha: Float = 1f, fontWeight: FontWeight? = null) {
-    androidx.compose.material3.Text(
-        text = text,
-        style = style,
-        fontWeight = fontWeight,
-        color = androidx.compose.material3.LocalContentColor.current.copy(alpha = alpha)
-    )
-}
-
-@Composable
 private fun TelemetryRow(label: String, value: String) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        androidx.compose.material3.Text(label, style = MaterialTheme.typography.bodySmall)
-        androidx.compose.material3.Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+        Text(label, style = MaterialTheme.typography.bodySmall)
+        Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
     }
 }

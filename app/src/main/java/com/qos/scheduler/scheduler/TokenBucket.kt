@@ -4,14 +4,14 @@ package com.qos.scheduler.scheduler
  * Software token bucket for per-bucket bandwidth enforcement.
  * Thread-safe via synchronized methods.
  *
- * @param rateBps   Sustained refill rate in bytes/second
- * @param burstBytes Maximum burst capacity in bytes
+ * @param rateBps   Sustained refill rate in bits/second
+ * @param burstBits Maximum burst capacity in bits
  */
 class TokenBucket(
     @Volatile var rateBps: Long,
-    @Volatile var burstBytes: Long
+    @Volatile var burstBits: Long
 ) {
-    private var tokens: Double = burstBytes.toDouble()
+    private var tokens: Double = burstBits.toDouble()
     private var lastRefillTime: Long = System.nanoTime()
 
     /**
@@ -21,26 +21,42 @@ class TokenBucket(
     @Synchronized
     fun consume(bytes: Int): Boolean {
         refill()
-        return if (tokens >= bytes) {
-            tokens -= bytes
+        val bitsNeeded = bytes.toDouble() * 8.0
+        return if (tokens >= bitsNeeded) {
+            tokens -= bitsNeeded
             true
         } else {
             false
         }
     }
 
+    /**
+     * Update rate AND burst together — burst is explicitly provided,
+     * not recalculated as a fixed fraction of rate.
+     * This replaces the old setRate() which silently overwrote burst to rate/10.
+     */
+    @Synchronized
+    fun setRateAndBurst(newRateBps: Long, newBurstBits: Long) {
+        rateBps = newRateBps
+        burstBits = newBurstBits.coerceAtLeast(1L) // burst of 0 would starve forever
+        tokens = minOf(tokens, burstBits.toDouble())
+    }
+
+    /**
+     * Legacy single-parameter rate update — keeps burst at its current value.
+     * Only used for manual caps where burst is not being rebalanced.
+     */
     @Synchronized
     fun setRate(newRateBps: Long) {
         rateBps = newRateBps
-        // Recalculate burst proportionally
-        burstBytes = newRateBps * 2
-        tokens = minOf(tokens, burstBytes.toDouble())
+        // Do NOT touch burstBits here — caller should use setRateAndBurst() if burst matters.
+        tokens = minOf(tokens, burstBits.toDouble())
     }
 
     private fun refill() {
         val now = System.nanoTime()
         val elapsed = (now - lastRefillTime) / 1_000_000_000.0 // seconds
-        tokens = minOf(burstBytes.toDouble(), tokens + rateBps * elapsed)
+        tokens = minOf(burstBits.toDouble(), tokens + rateBps * elapsed)
         lastRefillTime = now
     }
 }

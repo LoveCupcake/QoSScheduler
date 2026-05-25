@@ -22,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -49,11 +50,14 @@ class QosVpnService : VpnService() {
         // PERSISTENT DATA: Stored in companion object to survive service recreation
         private val appTraffic = java.util.concurrent.ConcurrentHashMap<Int, com.qos.scheduler.model.AppTraffic>()
         private val lastAppTotals = java.util.concurrent.ConcurrentHashMap<Int, Long>()
+        private val lastAppDropped = java.util.concurrent.ConcurrentHashMap<Int, Long>()
+        private val lastAppAllowed = java.util.concurrent.ConcurrentHashMap<Int, Long>()
     }
 
-    private var tunInterface: ParcelFileDescriptor? = null
-    private var tunInputStream: FileInputStream? = null
-    private var tunOutputStream: FileOutputStream? = null
+    @Volatile private var tunInterface: ParcelFileDescriptor? = null
+    @Volatile private var tunInputStream: FileInputStream? = null
+    @Volatile private var tunOutputStream: FileOutputStream? = null
+    private val tunnelMutex = kotlinx.coroutines.sync.Mutex()
     private val scheduler  = BandwidthScheduler()
     private lateinit var hostStateRegistry: DeviceRegistry
     private val classifier = DpiClassifier()
@@ -84,15 +88,16 @@ class QosVpnService : VpnService() {
     private var tcpRelayManager: TcpRelayManager? = null
     private var udpRelayManager: UdpRelayManager? = null
 
-    private var currentMode = RelayRuntimeMode.MONITOR
-    private var healthSnapshot = RelayHealthSnapshot()
+    // FIX: @Volatile ensures cross-coroutine/cross-thread visibility without a lock
+    @Volatile private var currentMode = RelayRuntimeMode.MONITOR
+    @Volatile private var healthSnapshot = RelayHealthSnapshot()
     
-    // Telemetry counters
-    private var tcpTotalFlows = 0
-    private var tcpErrorRate = 0.0
-    private var dnsErrorRate = 0.0
-    private var packetsInModeCount = 0L
-    private var droppedPacketsCount = 0L
+    // Telemetry counters — written from multiple coroutines, must be atomic/volatile
+    @Volatile private var tcpTotalFlows = 0
+    @Volatile private var tcpErrorRate = 0.0
+    @Volatile private var dnsErrorRate = 0.0
+    private val packetsInModeCount = java.util.concurrent.atomic.AtomicLong(0L)
+    private val droppedPacketsCount = java.util.concurrent.atomic.AtomicLong(0L)
 
     fun getHealthSnapshot(): RelayHealthSnapshot = healthSnapshot
 
@@ -105,14 +110,17 @@ class QosVpnService : VpnService() {
             // Re-establish tunnel on background scope - never block main thread
             scope.launch { startTunnel() }
             
+            // FIX: refresh foreground notification to reflect new mode
+            startForeground(NOTIFICATION_ID, buildNotification())
+            
             // Notify UI
             updateHealthSnapshot(RelayFallbackReason.NONE)
         }
     }
 
     private fun resetTelemetry() {
-        packetsInModeCount = 0
-        droppedPacketsCount = 0
+        packetsInModeCount.set(0L)
+        droppedPacketsCount.set(0L)
         tcpErrorRate = 0.0
         dnsErrorRate = 0.0
     }
@@ -173,8 +181,10 @@ class QosVpnService : VpnService() {
             
             if (!success) {
                 try {
+                    // FIX: close PFD after extracting fd to avoid file descriptor leak
                     val pfd = android.os.ParcelFileDescriptor.fromSocket(socket)
                     success = protect(pfd.fd)
+                    runCatching { pfd.close() }
                 } catch (e: Exception) {
                     android.util.Log.e("QosVpnService", "protect(fd) failed: ${e.message}")
                     success = protect(socket)
@@ -198,8 +208,10 @@ class QosVpnService : VpnService() {
             
             if (!success) {
                 try {
+                    // FIX: close PFD after extracting fd to avoid file descriptor leak
                     val pfd = android.os.ParcelFileDescriptor.fromDatagramSocket(socket)
                     success = protect(pfd.fd)
+                    runCatching { pfd.close() }
                 } catch (e: Exception) {
                     android.util.Log.e("QosVpnService", "protect(fd) failed (UDP): ${e.message}")
                     success = protect(socket)
@@ -311,7 +323,7 @@ class QosVpnService : VpnService() {
         updateHealthSnapshot(healthSnapshot.fallbackReason)
 
         // Only fallback if we have significant traffic and very high error rates
-        if (currentMode != RelayRuntimeMode.MONITOR && packetsInModeCount > 100) {
+        if (currentMode != RelayRuntimeMode.MONITOR && packetsInModeCount.get() > 100) {
             val reason = when {
                 dnsErrorRate > 0.7 -> RelayFallbackReason.DNS_ERROR_RATE // Increased threshold
                 activeFlows > 2000 -> RelayFallbackReason.QUEUE_PRESSURE 
@@ -346,10 +358,16 @@ class QosVpnService : VpnService() {
     private fun fallbackToMonitor(reason: RelayFallbackReason) {
         android.util.Log.w("QosVpnService", "CRITICAL: Falling back to MONITOR mode. Reason: ${reason.userLabel()}")
         currentMode = RelayRuntimeMode.MONITOR
-        updateHealthSnapshot(reason)
-        healthSnapshot = healthSnapshot.copy(fallbackCount = healthSnapshot.fallbackCount + 1)
-        
-        // Re-establish tunnel in safe mode - on background scope
+        // FIX: read snapshot once, increment fallbackCount atomically in a single assignment
+        val current = healthSnapshot
+        healthSnapshot = current.copy(
+            mode = currentMode,
+            fallbackReason = reason,
+            fallbackCount = current.fallbackCount + 1,
+            qosEnforced = false
+        )
+        QosApplication.getInstance().updateRelayHealth(healthSnapshot)
+        startForeground(NOTIFICATION_ID, buildNotification())
         scope.launch { startTunnel() }
     }
 
@@ -393,11 +411,28 @@ class QosVpnService : VpnService() {
                     
                     // Calculate real throughput (BPS) for each app
                     appTraffic.values.forEach { app ->
+                        // 1. Total bytes throughput (BPS)
                         val prev = lastAppTotals[app.uid] ?: 0L
                         val current = app.bytesIn + app.bytesOut
                         val bytesDiff = if (current >= prev) (current - prev) else 0L
                         app.currentThroughputBps = bytesDiff * 8 // Bytes/sec to Bits/sec
                         lastAppTotals[app.uid] = current
+                        
+                        // 2. QoS Packet Drops and Allowed
+                        val prevDropped = lastAppDropped[app.uid] ?: 0L
+                        val currentDropped = app.qosDroppedPackets
+                        val droppedDiff = if (currentDropped >= prevDropped) (currentDropped - prevDropped) else 0L
+                        lastAppDropped[app.uid] = currentDropped
+                        
+                        val prevAllowed = lastAppAllowed[app.uid] ?: 0L
+                        val currentAllowed = app.qosAllowedPackets
+                        val allowedDiff = if (currentAllowed >= prevAllowed) (currentAllowed - prevAllowed) else 0L
+                        lastAppAllowed[app.uid] = currentAllowed
+                        
+                        // Approximate BPS based on packet counts (assuming avg packet size ~1000 bytes)
+                        // This gives a nice smooth chart for requested vs allowed bandwidth
+                        app.currentRequestedBps = (allowedDiff + droppedDiff) * 1000 * 8
+                        app.currentAllowedBps = allowedDiff * 1000 * 8
                     }
                     
                     // 1. Run detailed diagnostic reporting
@@ -408,6 +443,8 @@ class QosVpnService : VpnService() {
                         now - app.lastSeenTimestamp > 300_000
                     }
                     lastAppTotals.entries.removeIf { !appTraffic.containsKey(it.key) }
+                    lastAppDropped.entries.removeIf { !appTraffic.containsKey(it.key) }
+                    lastAppAllowed.entries.removeIf { !appTraffic.containsKey(it.key) }
                     
                     // 3. Always get list and update UI (fixes the "stuck" issue)
                     val currentApps = appTraffic.values.toList()
@@ -452,6 +489,15 @@ class QosVpnService : VpnService() {
         }
     }
 
+    fun updateAppManualCap(uid: Int, maxBps: Long) {
+        val key = com.qos.scheduler.scheduler.BandwidthScheduler.appBucketKey(uid)
+        if (maxBps > 0) {
+            scheduler.setManualCap(key, maxBps)
+        } else {
+            scheduler.removeManualCap(key)
+        }
+    }
+
     fun updateUplinkBps(uplinkBps: Long) {
         scheduler.uplinkBps = uplinkBps
         scheduler.rebalanceWithApps(appTraffic.values)
@@ -469,12 +515,11 @@ class QosVpnService : VpnService() {
     fun updateDevicePriority(ip: String, priority: com.qos.scheduler.model.TrafficClass) = hostStateRegistry.setPriority(ip, priority)
 
     private suspend fun startTunnel() {
-        stopTunnel()
-        
-        // Small delay to ensure previous tunnel is fully torn down - use delay, not sleep
-        delay(100)
-
-        android.util.Log.d("QosVpnService", "Establishing tunnel in mode: $currentMode")
+        tunnelMutex.withLock {
+            stopTunnelInternal()
+            delay(100)
+            
+            android.util.Log.d("QosVpnService", "Establishing tunnel in mode: $currentMode")
         
         // Removed aggressive early checkProtectCapability()
         // On newer Android versions (API 36), protect() might fail if called BEFORE builder.establish()
@@ -512,30 +557,26 @@ class QosVpnService : VpnService() {
             .allowFamily(android.system.OsConstants.AF_INET6)
         
         try {
-            if (currentMode == RelayRuntimeMode.MONITOR) {
-                // Monitor mode: Capture ONLY our own app to avoid breaking host connectivity
-                builder.addAllowedApplication(packageName)
-                android.util.Log.i("QosVpnService", "VPN Scope: Restricted to controller app (Monitor Mode)")
-            } else {
-                // Relay mode: Explicitly include all apps to force traffic through VPN
-                // even if allowBypass() is enabled.
-                val pm = packageManager
-                val installedApps = pm.getInstalledPackages(0)
-                var includedCount = 0
-                
-                installedApps.forEach { app ->
-                    val pkgName = app.packageName
-                    if (pkgName != packageName) {
-                        try {
-                            builder.addAllowedApplication(pkgName)
-                            includedCount++
-                        } catch (e: Exception) {
-                            // Some system apps might not be addable, just ignore
-                        }
-                    }
+            // FIX: Both Monitor and Relay mode capture all installed apps.
+            // Previously Monitor mode only captured the controller app itself,
+            // which meant appTraffic was always empty in Monitor mode — defeating
+            // the entire purpose of monitoring.
+            // Monitor mode is now functionally identical to Relay mode in terms of
+            // VPN scope; the difference is that Monitor mode only reads packets
+            // (forwards them straight back to TUN) whereas Relay mode processes them
+            // through TcpRelayManager/UdpRelayManager.
+            val pm = packageManager
+            val installedApps = pm.getInstalledPackages(0)
+            var includedCount = 0
+            installedApps.forEach { app ->
+                try {
+                    builder.addAllowedApplication(app.packageName)
+                    includedCount++
+                } catch (e: Exception) {
+                    // Some system packages are not addable — ignore silently
                 }
-                android.util.Log.i("QosVpnService", "VPN Scope: Explicitly included $includedCount apps (Relay Mode)")
             }
+            android.util.Log.i("QosVpnService", "VPN Scope: $includedCount apps included (Mode: $currentMode)")
         } catch (e: Exception) {
             android.util.Log.e("QosVpnService", "App scope error: ${e.message}")
         }
@@ -558,6 +599,7 @@ class QosVpnService : VpnService() {
         } ?: run {
             android.util.Log.e("QosVpnService", "Failed to establish TUN interface!")
         }
+        } // end mutex lock
     }
 
     private fun checkProtectCapability(): Boolean {
@@ -587,6 +629,10 @@ class QosVpnService : VpnService() {
     }
 
     private suspend fun stopTunnel() {
+        tunnelMutex.withLock { stopTunnelInternal() }
+    }
+    
+    private suspend fun stopTunnelInternal() {
         // Cancel jobs first
         val jobs = listOfNotNull(tunReadJob, packetProcessJob, tunWriteJob)
         jobs.forEach { it.cancel() }
@@ -607,6 +653,7 @@ class QosVpnService : VpnService() {
         jobs.forEach { it.join() }
         
         // Drain channels
+        packetChannel.close()
         while (packetChannel.tryReceive().isSuccess) {}
         while (tunWriteChannel.tryReceive().isSuccess) {}
         
@@ -669,22 +716,22 @@ class QosVpnService : VpnService() {
             try {
                 val packet = packetChannel.receiveCatching().getOrNull() ?: break
                 try {
-                    packetsInModeCount++
+                    packetsInModeCount.incrementAndGet()
 
-                    val parsedPacket = RawPacket.parse(packet.bytes, packet.length)
-                    if (parsedPacket == null) {
-                        continue
-                    }
+                    // FIX: Do NOT parse here — DataPlaneProcessor.process() already parses
+                    // Parsing twice per packet was pure redundant CPU work.
+                    // We only parse to decide relay vs forward AFTER the scheduler decision.
 
                     // All packets from tunReadLoop are OUTBOUND
                     val decision = dataPlaneProcessor.process(packet.bytes, packet.length, isOutbound = true)
                     if (decision.droppedByScheduler) {
-                        droppedPacketsCount++
+                        droppedPacketsCount.incrementAndGet()
                         continue
                     }
 
-                    if (currentMode == RelayRuntimeMode.MONITOR) {
-                        // Monitor mode: Just forward back to TUN
+                    val parsedPacket = decision.packet
+                    if (currentMode == RelayRuntimeMode.MONITOR || parsedPacket == null) {
+                        // Monitor mode: Just forward back to TUN (read-only observation)
                         tunWriteChannel.trySend(packet.bytes.copyOf(packet.length))
                     } else {
                         // RELAY MODE: Process through managers
@@ -742,7 +789,15 @@ class QosVpnService : VpnService() {
 
     private fun emitPacketToTun(packet: ByteArray) {
         // Track inbound traffic (from internet to apps)
-        dataPlaneProcessor.process(packet, packet.size, isOutbound = false)
+        val decision = dataPlaneProcessor.process(packet, packet.size, isOutbound = false)
+        
+        // CRITICAL: Apply Token Bucket / WFQ decision to inbound traffic
+        // If we drop inbound packets, TCP Congestion Control will naturally slow down the sender,
+        // effectively throttling the download speed.
+        if (decision.droppedByScheduler) {
+            droppedPacketsCount.incrementAndGet()
+            return // DROP PACKET
+        }
         
         // Push to channel instead of blocking thread!
         // We use trySend; if the queue is full (4096 packets), we drop the packet.

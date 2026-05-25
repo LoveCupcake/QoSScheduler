@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.qos.scheduler.model.ConnectedDevice
@@ -21,8 +22,6 @@ fun DeviceDetailScreen(
     onPriorityChanged: (TrafficClass) -> Unit,
     onBack: () -> Unit
 ) {
-    var showPriorityDialog by remember { mutableStateOf(false) }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -47,10 +46,8 @@ fun DeviceDetailScreen(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Device Information", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        device.hostname?.let { 
-                            if (it != device.ipAddress) {
-                                InfoRow("Device Name", it)
-                            }
+                        device.hostname?.let {
+                            if (it != device.ipAddress) InfoRow("Name", it)
                         }
                         InfoRow("IP Address", device.ipAddress)
                         device.macAddress?.let { InfoRow("MAC Address", it) }
@@ -58,20 +55,56 @@ fun DeviceDetailScreen(
                 }
             }
 
-            // Priority
+            // [T] Inline priority selector — consistent with AppDetailScreen (no dialog)
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Priority Class", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            PriorityBadge(device.priorityClass)
-                            Button(onClick = { showPriorityDialog = true }) {
-                                Text("Change")
+                        Text("Priority Level", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+                        TrafficClass.entries.forEach { priority ->
+                            // [F] Include description per level, same pattern as AppDetailScreen
+                            val description = when (priority) {
+                                TrafficClass.HIGH   -> "Maximum throughput — reduces allocation of lower-priority devices"
+                                TrafficClass.MEDIUM -> "Balanced allocation — default for most devices"
+                                TrafficClass.LOW    -> "Background only — minimal bandwidth share"
                             }
+                            Surface(
+                                onClick = { onPriorityChanged(priority) },
+                                color = if (device.priorityClass == priority)
+                                    MaterialTheme.colorScheme.primaryContainer
+                                else
+                                    MaterialTheme.colorScheme.surface,
+                                shape = MaterialTheme.shapes.small,
+                                border = if (device.priorityClass == priority) null else
+                                    androidx.compose.foundation.BorderStroke(
+                                        1.dp, MaterialTheme.colorScheme.outlineVariant
+                                    ),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            priority.name,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = if (device.priorityClass == priority)
+                                                FontWeight.Bold else FontWeight.Normal
+                                        )
+                                        Text(
+                                            description,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.outline
+                                        )
+                                    }
+                                    if (device.priorityClass == priority) {
+                                        PriorityBadge(priority)
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(4.dp))
                         }
                     }
                 }
@@ -95,44 +128,24 @@ fun DeviceDetailScreen(
                 item {
                     Text("Active Flows", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
+                // [U] Use category.displayName (friendly) instead of category.name (enum raw)
                 items(device.activeFlows.values.toList()) { flow ->
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Text(flow.category.name, fontWeight = FontWeight.SemiBold)
-                            Text("${flow.key.dstIp}:${flow.key.dstPort}", style = MaterialTheme.typography.bodySmall)
-                            Text("${flow.key.protocol.name} • ${formatBytes(flow.byteCount)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                            Text(flow.category.displayName, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "${flow.key.dstIp}:${flow.key.dstPort}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                "${flow.key.protocol.name} • ${formatBytes(flow.byteCount)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
                         }
                     }
                 }
             }
-        }
-
-        if (showPriorityDialog) {
-            AlertDialog(
-                onDismissRequest = { showPriorityDialog = false },
-                title = { Text("Select Priority") },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TrafficClass.entries.forEach { priority ->
-                            Button(
-                                onClick = {
-                                    onPriorityChanged(priority)
-                                    showPriorityDialog = false
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(priority.name)
-                            }
-                        }
-                    }
-                },
-                confirmButton = {},
-                dismissButton = {
-                    TextButton(onClick = { showPriorityDialog = false }) {
-                        Text("Cancel")
-                    }
-                }
-            )
         }
     }
 }

@@ -1,14 +1,17 @@
 package com.qos.scheduler.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,15 +31,18 @@ fun AppDetailScreen(
     onBack: () -> Unit
 ) {
     val isMonitorOnlyMode = !qosEnforced
-    
+
     // Local state for optimistic UI: moves the checkmark immediately
-    var localPriority by androidx.compose.runtime.remember(app.uid) { 
-        androidx.compose.runtime.mutableStateOf(app.priorityClass) 
+    var localPriority by remember(app.uid) {
+        mutableStateOf(app.priorityClass)
     }
-    
+    // Track whether we are showing the "applying…" feedback
+    var isApplying by remember { mutableStateOf(false) }
+
     // Sync local state when the underlying app data updates from the service
-    androidx.compose.runtime.LaunchedEffect(app.priorityClass) {
+    LaunchedEffect(app.priorityClass) {
         localPriority = app.priorityClass
+        isApplying = false
     }
 
     Scaffold(
@@ -66,71 +72,122 @@ fun AppDetailScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
-                            Text(app.packageName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
-                            Text("UID: ${app.uid}", style = MaterialTheme.typography.labelSmall)
-                        }
-                        
+                        // [H] Show only packageName, UID is noise for regular users
+                        Text(
+                            app.packageName,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+
                         Surface(
-                            color = if (isMonitorOnlyMode) MaterialTheme.colorScheme.secondaryContainer else Color(0xFF4CAF50).copy(alpha = 0.2f),
+                            color = if (isMonitorOnlyMode)
+                                MaterialTheme.colorScheme.secondaryContainer
+                            else
+                                Color(0xFF4CAF50).copy(alpha = 0.2f),
                             shape = MaterialTheme.shapes.extraSmall
                         ) {
                             Text(
                                 if (isMonitorOnlyMode) "MONITORING" else "QoS ACTIVE",
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (isMonitorOnlyMode) MaterialTheme.colorScheme.onSecondaryContainer else Color(0xFF2E7D32),
+                                color = if (isMonitorOnlyMode)
+                                    MaterialTheme.colorScheme.onSecondaryContainer
+                                else
+                                    Color(0xFF2E7D32),
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
-                    
+
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                        ThroughputItem("Tải xuống", formatTraffic(app.bytesIn))
-                        ThroughputItem("Tải lên", formatTraffic(app.bytesOut))
-                        ThroughputItem("Hiện tại", "${app.currentThroughputBps / 1024} KB/s")
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround
+                    ) {
+                        ThroughputItem("Downloaded", formatTraffic(app.bytesIn))
+                        ThroughputItem("Uploaded", formatTraffic(app.bytesOut))
+                        ThroughputItem("Current", "%.2f Mbps".format(app.currentThroughputBps / 1_000_000.0))
                     }
                 }
             }
 
             // Priority Selection
-            Text("Mức độ Ưu tiên", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Priority Level",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                // [I] "Applying…" feedback
+                AnimatedVisibility(visible = isApplying, enter = fadeIn(), exit = fadeOut()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 1.5.dp)
+                        Text(
+                            "Applying…",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    }
+                }
+            }
+
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(8.dp)) {
                     TrafficClass.values().forEach { priority ->
                         PriorityOption(
                             priority = priority,
                             selected = localPriority == priority,
-                            onClick = { 
-                                localPriority = priority
-                                onPriorityChanged(priority) 
+                            onClick = {
+                                if (localPriority != priority) {
+                                    localPriority = priority
+                                    isApplying = true
+                                    onPriorityChanged(priority)
+                                }
                             }
                         )
                     }
                 }
             }
-            
-            // Active Connections
-            Text("Kết nối Đang hoạt động (${app.activeFlows.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            
+
+            // [J] Active Connections with accurate count
+            val totalFlows = app.activeFlows.size
+            val shownFlows = minOf(totalFlows, 20)
+            Text(
+                if (totalFlows > 20)
+                    "Active Connections (showing $shownFlows of $totalFlows)"
+                else
+                    "Active Connections ($totalFlows)",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f) // Use weight to fill remaining space
+                    .weight(1f)
             ) {
                 if (app.activeFlows.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Không có kết nối nào", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                        Text(
+                            "No active connections",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
                     }
                 } else {
                     val sortedFlows = app.activeFlows.values.toList()
                         .sortedByDescending { it.lastSeen }
                         .take(20)
 
-                    androidx.compose.foundation.lazy.LazyColumn(
+                    LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(8.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -151,6 +208,21 @@ fun AppDetailScreen(
 
 @Composable
 private fun FlowItem(flow: com.qos.scheduler.model.PacketFlow) {
+    // [G] Show resolved hostname if available, fallback to raw IP
+    var displayHost by remember(flow.key.dstIp) { mutableStateOf(flow.key.dstIp) }
+    LaunchedEffect(flow.key.dstIp) {
+        // Attempt a lightweight reverse lookup via coroutine (IO context already)
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val addr = java.net.InetAddress.getByName(flow.key.dstIp)
+                val host = addr.canonicalHostName
+                if (host != flow.key.dstIp && !host.matches(Regex("\\d+\\.\\d+\\.\\d+\\.\\d+"))) {
+                    displayHost = host
+                }
+            } catch (_: Exception) { }
+        }
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
@@ -164,7 +236,7 @@ private fun FlowItem(flow: com.qos.scheduler.model.PacketFlow) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "${flow.key.dstIp}:${flow.key.dstPort}",
+                    "$displayHost:${flow.key.dstPort}",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium
                 )
@@ -175,10 +247,15 @@ private fun FlowItem(flow: com.qos.scheduler.model.PacketFlow) {
                 )
             }
             Surface(
-                color = when(flow.category) {
-                    com.qos.scheduler.model.TrafficCategory.ONLINE_GAMING, com.qos.scheduler.model.TrafficCategory.VOIP -> Color(0xFFFFEB3B).copy(alpha = 0.3f)
-                    com.qos.scheduler.model.TrafficCategory.STREAMING, com.qos.scheduler.model.TrafficCategory.VIDEO_CONFERENCING -> Color(0xFF2196F3).copy(alpha = 0.2f)
-                    com.qos.scheduler.model.TrafficCategory.WEB_BROWSING -> Color(0xFF4CAF50).copy(alpha = 0.2f)
+                color = when (flow.category) {
+                    com.qos.scheduler.model.TrafficCategory.ONLINE_GAMING,
+                    com.qos.scheduler.model.TrafficCategory.VOIP ->
+                        Color(0xFFFFEB3B).copy(alpha = 0.3f)
+                    com.qos.scheduler.model.TrafficCategory.STREAMING,
+                    com.qos.scheduler.model.TrafficCategory.VIDEO_CONFERENCING ->
+                        Color(0xFF2196F3).copy(alpha = 0.2f)
+                    com.qos.scheduler.model.TrafficCategory.WEB_BROWSING ->
+                        Color(0xFF4CAF50).copy(alpha = 0.2f)
                     else -> MaterialTheme.colorScheme.secondaryContainer
                 },
                 shape = MaterialTheme.shapes.extraSmall
@@ -197,16 +274,12 @@ private fun FlowItem(flow: com.qos.scheduler.model.PacketFlow) {
 @Composable
 private fun ThroughputItem(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.outline
+        )
         Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun ExplanationItem(label: String, description: String) {
-    Column {
-        Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-        Text(description, style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -216,22 +289,44 @@ private fun PriorityOption(
     selected: Boolean,
     onClick: () -> Unit
 ) {
+    // [F] Description per priority level
+    val description = when (priority) {
+        TrafficClass.HIGH   -> "Maximum throughput — reduces allocation of lower-priority apps"
+        TrafficClass.MEDIUM -> "Balanced allocation — default for most apps"
+        TrafficClass.LOW    -> "Background only — minimal bandwidth share"
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            priority.name,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                priority.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                color = if (selected)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline
+            )
+        }
         if (selected) {
-            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                Icons.Default.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }

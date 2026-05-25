@@ -70,8 +70,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             while (isActive) {
                 val url = qosApp.getServerUrl()
                 
-                // Chỉ gửi nếu đã lưu URL và server đang kết nối
-                if (url.isNotBlank() && _isConnectedToServer.value) {
+                // Only send if URL is set, server is connected AND QoS is running
+                if (url.isNotBlank() && _isConnectedToServer.value && uiState.value.isRunning) {
                     val deviceId = android.provider.Settings.Secure.getString(
                         getApplication<android.app.Application>().contentResolver,
                         android.provider.Settings.Secure.ANDROID_ID
@@ -80,17 +80,31 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     val currentApps = qosApp.appsFlow.value
                     if (currentApps.isNotEmpty()) {
                         val telemetry = currentApps.map { app ->
+                            // Calculate TCP/UDP flows
+                            var tcpCount = 0
+                            var udpCount = 0
+                            app.activeFlows.values.forEach { flow ->
+                                if (flow.key.protocol == com.qos.scheduler.model.Protocol.TCP) tcpCount++
+                                if (flow.key.protocol == com.qos.scheduler.model.Protocol.UDP) udpCount++
+                            }
+                            
                             TelemetryEntry(
                                 packageName = app.packageName,
                                 appName     = app.appName,
-                                bytesIn     = 0L, 
-                                bytesOut    = app.currentThroughputBps.toLong() // Truyền BPS lên để vẽ Chart
+                                priority    = app.priorityClass.name,
+                                bytesIn     = app.bytesIn, 
+                                bytesOut    = app.bytesOut,
+                                requestedBps = app.currentRequestedBps,
+                                allowedBps   = app.currentAllowedBps,
+                                droppedPkts  = app.qosDroppedPackets,
+                                tcpFlows     = tcpCount,
+                                udpFlows     = udpCount
                             )
                         }
                         CloudSyncManager.pushTelemetry(url, deviceId, telemetry)
                     }
                 }
-                kotlinx.coroutines.delay(3000)
+                kotlinx.coroutines.delay(2000)
             }
         }
     }
@@ -192,6 +206,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun onAppManualCapChanged(uid: Int, maxBps: Long) {
+        viewModelScope.launch {
+            QosVpnService.getInstance()?.updateAppManualCap(uid, maxBps)
+        }
+    }
+
     fun resetAllPriorities() {
         viewModelScope.launch {
             QosVpnService.getInstance()?.resetAllPriorities()
@@ -210,15 +230,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun syncFromServer() {
         val url = qosApp.getServerUrl().takeIf { it.isNotBlank() } ?: run {
-            _syncStatusMessage.value = "⚠️ Chưa có địa chỉ server"
+            _syncStatusMessage.value = "⚠️ No server address configured"
             return
         }
         viewModelScope.launch {
-            _syncStatusMessage.value = "⏳ Đang kết nối..."
+            _syncStatusMessage.value = "⏳ Connecting…"
             val reachable = CloudSyncManager.ping(url)
             if (!reachable) {
                 _isConnectedToServer.value = false
-                _syncStatusMessage.value = "❌ Không kết nối được server"
+                _syncStatusMessage.value = "❌ Cannot reach server"
                 return@launch
             }
 
@@ -240,24 +260,39 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         val app = qosApp.appsFlow.value.find { it.packageName == policy.packageName }
                         if (app != null) {
                             onAppPriorityChanged(app.uid, policy.priority)
+                            onAppManualCapChanged(app.uid, policy.maxBps)
                         }
                     }
-                    _syncStatusMessage.value = "✅ Đã đồng bộ ${result.policies.size} policy"
+                    _syncStatusMessage.value = "✅ Synced ${result.policies.size} policies"
 
                     // Push telemetry
                     val telemetry = qosApp.appsFlow.value.map { app ->
+                        // Calculate TCP/UDP flows
+                        var tcpCount = 0
+                        var udpCount = 0
+                        app.activeFlows.values.forEach { flow ->
+                            if (flow.key.protocol == com.qos.scheduler.model.Protocol.TCP) tcpCount++
+                            if (flow.key.protocol == com.qos.scheduler.model.Protocol.UDP) udpCount++
+                        }
+                        
                         TelemetryEntry(
                             packageName = app.packageName,
                             appName     = app.appName,
-                            bytesIn     = 0L, // TODO: expose from VpnService stats
-                            bytesOut    = app.currentThroughputBps.toLong()
+                            priority    = app.priorityClass.name,
+                            bytesIn     = app.bytesIn, 
+                            bytesOut    = app.bytesOut,
+                            requestedBps = app.currentRequestedBps,
+                            allowedBps   = app.currentAllowedBps,
+                            droppedPkts  = app.qosDroppedPackets,
+                            tcpFlows     = tcpCount,
+                            udpFlows     = udpCount
                         )
                     }
                     CloudSyncManager.pushTelemetry(url, deviceId, telemetry)
                 }
                 is SyncResult.Error -> {
                     _isConnectedToServer.value = false
-                    _syncStatusMessage.value = "❌ Lỗi: ${result.message}"
+                    _syncStatusMessage.value = "❌ Error: ${result.message}"
                 }
             }
         }

@@ -97,7 +97,7 @@ class UdpRelayManager(
             val job = scope.launch {
                 try {
                     val s = DatagramSocket()
-                    if (!protectSocket(s)) {
+                    if (isClosed || !protectSocket(s)) {
                         Log.e("UdpRelay", "Failed to protect socket for $id")
                         close()
                         return@launch
@@ -153,8 +153,9 @@ class UdpRelayManager(
                         onError(id.dstIp, id.dstPort)
                     }
                 } finally {
+                    val wasClosed = isClosed
                     close()
-                    onClosed()
+                    if (!wasClosed) onClosed()
                 }
             }
             jobs.add(job)
@@ -177,6 +178,8 @@ class UdpRelayManager(
         }
 
         override fun close() {
+            if (isClosed) return
+            isClosed = true
             jobs.forEach { it.cancel() }
             if (socketDeferred.isCompleted) {
                 runCatching { socketDeferred.getCompleted().close() }
