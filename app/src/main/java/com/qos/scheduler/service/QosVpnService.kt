@@ -137,10 +137,10 @@ class QosVpnService : VpnService() {
         val bytes: ByteArray,
         val length: Int
     )
-    private val packetChannel = Channel<TunPacket>(capacity = 4096)
+    private var packetChannel = Channel<TunPacket>(capacity = 4096)
     
     // Dedicated channel for writing to TUN to prevent thread exhaustion
-    private val tunWriteChannel = Channel<ByteArray>(capacity = 4096)
+    private var tunWriteChannel = Channel<ByteArray>(capacity = 4096)
     private var tunWriteJob: Job? = null
 
     override fun onCreate() {
@@ -273,6 +273,13 @@ class QosVpnService : VpnService() {
                 // If tunnel is already running, just update parameters and don't reset data
                 if (tunInterface != null) {
                     android.util.Log.d("QosVpnService", "Service already running, updating parameters only")
+                    
+                    val requestedModeStr = intent?.getStringExtra(EXTRA_INITIAL_MODE)
+                    val requestedMode = requestedModeStr?.let { RelayRuntimeMode.valueOf(it) } ?: currentMode
+                    if (requestedMode != currentMode) {
+                        setRuntimeMode(requestedMode)
+                    }
+                    
                     return START_STICKY
                 }
                 
@@ -518,6 +525,10 @@ class QosVpnService : VpnService() {
         tunnelMutex.withLock {
             stopTunnelInternal()
             delay(100)
+            
+            // Recreate channels because stopTunnelInternal() closes them permanently
+            packetChannel = Channel(capacity = 4096)
+            tunWriteChannel = Channel(capacity = 4096)
             
             android.util.Log.d("QosVpnService", "Establishing tunnel in mode: $currentMode")
         
