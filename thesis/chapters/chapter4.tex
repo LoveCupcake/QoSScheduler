@@ -1,0 +1,294 @@
+% ============================================================
+% CHAPTER 4: SYSTEM ANALYSIS AND DESIGN
+% ============================================================
+
+\chapter{SYSTEM ANALYSIS AND DESIGN}
+\label{chap:design}
+
+This chapter presents the requirements analysis, overall architecture, and detailed module design of the QoS Scheduler system. The design follows the Data Plane / Control Plane separation paradigm commonly found in professional network equipment.
+
+\section{Requirements Analysis}
+\label{sec:requirements}
+
+\subsection{Functional Requirements}
+
+The system must satisfy the following functional requirements:
+
+\begin{enumerate}[label=\textbf{FR\arabic*.}]
+    \item \textbf{Packet Interception:} The system shall intercept 100\% of outbound IP traffic from the Android device through a virtual TUN interface.
+    \item \textbf{Packet Parsing:} The system shall extract the following fields from each packet: source/destination IP addresses, source/destination ports, and protocol type (TCP/UDP), supporting both IPv4 and IPv6.
+    \item \textbf{Application Identification:} The system shall identify the application (UID) owning each network connection using the 5-tuple lookup.
+    \item \textbf{Traffic Classification:} The system shall classify packets into service categories (Gaming, Streaming, Web Browsing, File Transfer) based on destination port heuristics.
+    \item \textbf{Bandwidth Scheduling:} The system shall allocate bandwidth according to priority weights (HIGH/MEDIUM/LOW) for each application using Token Bucket rate limiting and Weighted Fair Queuing.
+    \item \textbf{Data Relay:} The system shall relay TCP and UDP packets to the real Internet without disrupting application connectivity.
+    \item \textbf{Real-time Configuration:} Users shall be able to modify priority levels and bandwidth limits without restarting the VPN service.
+\end{enumerate}
+
+\subsection{Non-Functional Requirements}
+
+\begin{enumerate}[label=\textbf{NFR\arabic*.}]
+    \item \textbf{Performance:} Packet processing latency shall not exceed 5 ms to avoid perceptible impact on user experience.
+    \item \textbf{Stability:} The VPN service shall run continuously as a Foreground Service, resistant to Android's process lifecycle management.
+    \item \textbf{Memory Safety:} The system shall employ buffer pooling to prevent Out of Memory (OOM) errors under high traffic loads.
+    \item \textbf{No Root Requirement:} All functionality shall operate on unrooted Android devices running Android 10 (API 29) or higher.
+    \item \textbf{Responsiveness:} The user interface shall update traffic statistics in real time with a refresh interval of no more than 2 seconds.
+\end{enumerate}
+
+% -----------------------------------------------------------
+
+\section{Overall Architecture}
+\label{sec:architecture}
+
+\subsection{Data Plane / Control Plane Model}
+
+The system architecture follows the Data Plane / Control Plane separation model, analogous to the design of professional network routers \cite{kurose2021computer}:
+
+\begin{itemize}
+    \item \textbf{Data Plane:} Handles high-speed, per-packet processing. It includes: \texttt{RawPacket} (packet parsing), \texttt{DataPlaneProcessor} (pipeline orchestration), \texttt{TcpRelayManager} / \texttt{UdpRelayManager} (packet forwarding), and \texttt{PacketComposer} (packet synthesis).
+    
+    \item \textbf{Control Plane:} Manages configuration, statistics, and user interaction. It includes: \texttt{MainViewModel} (UI logic), \texttt{BandwidthScheduler} (QoS configuration), and \texttt{DeviceRegistry} (connected device management).
+\end{itemize}
+
+This separation ensures that the critical data path (packet processing) is not burdened by slower control operations (UI updates, configuration changes), enabling high throughput even on resource-constrained mobile devices.
+
+\subsection{Data Flow Overview}
+
+The end-to-end packet processing pipeline follows this sequence:
+
+\begin{enumerate}
+    \item Applications on the device generate outbound IP packets.
+    \item Android routes all traffic through the TUN virtual interface (configured with route \texttt{0.0.0.0/0}).
+    \item \texttt{QosVpnService} reads raw packets from the TUN file descriptor via \texttt{runTunReadLoop()}.
+    \item Packets are placed into a bounded \texttt{Channel} queue for asynchronous processing.
+    \item \texttt{DataPlaneProcessor} executes the processing pipeline:
+    \begin{enumerate}[label=\alph*.]
+        \item \texttt{RawPacket.parse()}: Extract header fields.
+        \item \texttt{AppResolver.getUid()}: Identify the owning application.
+        \item \texttt{DpiClassifier.classify()}: Categorize the traffic type.
+        \item \texttt{BandwidthScheduler.processPacket()}: Make the allow/drop decision.
+    \end{enumerate}
+    \item If allowed, the packet is forwarded to the appropriate relay module:
+    \begin{itemize}
+        \item TCP packets $\rightarrow$ \texttt{TcpRelayManager}
+        \item UDP packets $\rightarrow$ \texttt{UdpRelayManager}
+    \end{itemize}
+    \item The relay module forwards data to the real Internet via a protected socket.
+    \item Response data from the Internet is received by the relay, wrapped in IP/TCP or IP/UDP headers by \texttt{PacketComposer}, and written back to the TUN interface for delivery to the originating application.
+\end{enumerate}
+
+The two-stage pipeline (ingress queue + processing/egress) reduces head-of-line blocking: the ingress loop can continue reading from TUN while the processing loop handles scheduling decisions and relay operations.
+
+% -----------------------------------------------------------
+
+\section{Detailed Module Design}
+\label{sec:module_design}
+
+\subsection{Packet Parsing Module (\texttt{model/RawPacket.kt})}
+
+\textbf{Responsibility:} Convert raw byte arrays read from the TUN interface into structured \texttt{RawPacket} objects.
+
+\textbf{IPv4 Processing Algorithm:}
+\begin{enumerate}
+    \item Read byte[0], shift right by 4 bits to extract the Version field.
+    \item Read the lower 4 bits of byte[0], multiply by 4 to compute IHL (header length in bytes).
+    \item Read byte[9] to determine the Protocol (TCP=6, UDP=17).
+    \item Read bytes[12--15] for Source IP, bytes[16--19] for Destination IP.
+    \item Jump to offset \texttt{IHL} to read Source Port (2 bytes) and Destination Port (2 bytes).
+\end{enumerate}
+
+\textbf{IPv6 Processing Algorithm:}
+\begin{enumerate}
+    \item Read byte[6] to obtain the Next Header value.
+    \item Set \texttt{headerOffset = 40} (the fixed IPv6 header length).
+    \item Loop: If Next Header indicates an Extension Header (0, 43, 44, 60):
+    \begin{itemize}
+        \item Compute extension length using Equation~\ref{eq:ext_header_len}.
+        \item Advance \texttt{headerOffset} by the extension length.
+        \item Read the first byte of the extension to obtain the next Next Header value.
+    \end{itemize}
+    \item Upon loop termination, \texttt{headerOffset} points to the start of the TCP/UDP header.
+\end{enumerate}
+
+\textbf{IPv6 Address Compression:}
+The \texttt{formatIpv6()} function implements the ``\texttt{::}'' compression algorithm per RFC 5952 \cite{rfc5952}: the 128-bit address is divided into eight 16-bit segments, the longest consecutive sequence of all-zero segments is identified, and that sequence is replaced with ``\texttt{::}''.
+
+\subsection{Application Resolution Module (\texttt{util/AppResolver.kt})}
+
+\textbf{Responsibility:} Determine which application owns a given network connection.
+
+\textbf{Processing Flow:}
+\begin{enumerate}
+    \item Check the UID cache (\texttt{uidCache}) using the key: \texttt{protocol:srcIp:srcPort:dstIp:dstPort}.
+    \item On cache miss, invoke \texttt{ConnectivityManager.getConnectionOwnerUid()} --- a system call to the kernel with approximately 1 ms execution time.
+    \item Special handling for IPv6: use the wildcard address \texttt{::} instead of \texttt{0.0.0.0}.
+    \item If a UID is found, cache the result. Otherwise, the packet is temporarily tracked as a ``Synthetic Port Bucket''.
+\end{enumerate}
+
+\textbf{Retroactive Migration:} When a packet initially fails UID resolution (cache miss), it is assigned to a synthetic bucket keyed by port number. When a subsequent packet from the same connection is successfully resolved to a UID, the system migrates all accumulated traffic statistics from the synthetic bucket to the actual application record, ensuring statistical accuracy.
+
+\subsection{Traffic Classification Module (\texttt{classifier/DpiClassifier.kt})}
+
+\textbf{Responsibility:} Classify packets into service categories for priority assignment.
+
+\begin{table}[H]
+\centering
+\caption{DPI-Lite classification rules}
+\label{tab:dpi_rules}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Condition} & \textbf{Category} & \textbf{Default Priority} \\
+\midrule
+UDP, Port 5060--5061 or 10000--20000 & VoIP            & HIGH \\
+Port 27015--27016, 5000, 5500, 8001--8002 & Gaming     & HIGH \\
+Port 53                               & DNS/Web         & MEDIUM \\
+Port 1935, 8080                        & Streaming       & MEDIUM \\
+Port 80, 443                           & Web Browsing    & MEDIUM \\
+Port 21, 22, 143, 993, 110, 995       & File Transfer   & LOW \\
+Other                                  & Unknown         & MEDIUM \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Bandwidth Scheduler Module (\texttt{scheduler/BandwidthScheduler.kt})}
+
+\textbf{Responsibility:} Allocate bandwidth and make per-packet allow/drop decisions.
+
+\textbf{Core Data Structures:}
+\begin{itemize}
+    \item \texttt{buckets: ConcurrentHashMap<String, TokenBucket>} --- Each application (or traffic group) has a dedicated Token Bucket.
+    \item \texttt{manualCaps: ConcurrentHashMap<String, Long>} --- User-configured manual bandwidth caps.
+\end{itemize}
+
+\textbf{Rebalancing Algorithm (\texttt{rebalanceWithApps()}):}
+\begin{enumerate}
+    \item Count applications at each priority level: \texttt{highCount}, \texttt{medCount}, \texttt{lowCount}.
+    \item Compute total weight: $\text{totalWeight} = \text{highCount} \times 4 + \text{medCount} \times 2 + \text{lowCount} \times 1 + 2$ (the additional 2 accounts for the host bucket).
+    \item For each application: $\text{rate} = \text{uplinkBps} \times \text{weight} / \text{totalWeight}$.
+    \item Update each application's \texttt{TokenBucket.setRate(rate)}.
+\end{enumerate}
+
+\textbf{Packet Processing (\texttt{processPacket(key, packetSize)}):}
+\begin{enumerate}
+    \item Locate the Token Bucket corresponding to the key.
+    \item Call \texttt{bucket.consume(packetSize)}.
+    \item Return \texttt{true} (allow) or \texttt{false} (drop).
+\end{enumerate}
+
+\subsection{Token Bucket Module (\texttt{scheduler/TokenBucket.kt})}
+
+\textbf{Responsibility:} Enforce per-application transmission rate limits.
+
+\textbf{Algorithm (\texttt{consume(bytes)}):}
+\begin{enumerate}
+    \item Call \texttt{refill()}:
+    \begin{itemize}
+        \item $\text{elapsed} = (\texttt{System.nanoTime()} - \text{lastRefillTime}) / 10^9$ seconds.
+        \item $\text{tokens} = \min(\text{burstBytes}, \text{tokens} + \text{rateBps} \times \text{elapsed})$.
+        \item Update $\text{lastRefillTime} = \text{now}$.
+    \end{itemize}
+    \item If $\text{tokens} \geq \text{bytes}$: subtract tokens and return \texttt{true}. Otherwise return \texttt{false}.
+\end{enumerate}
+
+\textbf{Thread Safety:} The \texttt{@Synchronized} annotation ensures mutual exclusion, preventing concurrent access from multiple packet-processing threads.
+
+\subsection{TCP Relay Module (\texttt{service/relay/TcpRelayManager.kt})}
+
+\textbf{Responsibility:} Acts as a TCP proxy, emulating connections between applications and the Internet.
+
+\textbf{State Machine:} Each TCP connection is managed as a \texttt{TcpFlow} with the following states:
+
+\begin{enumerate}
+    \item \texttt{SYN\_RECEIVED}: Application sends SYN $\rightarrow$ Relay responds with synthetic SYN-ACK.
+    \item \texttt{ESTABLISHED}: Application sends ACK $\rightarrow$ Relay opens a real socket to the Internet.
+    \item \texttt{CLOSED}: Application sends FIN or RST $\rightarrow$ Relay releases the socket and resources.
+\end{enumerate}
+
+\textbf{Socket Protection:} Before calling \texttt{Socket.connect()}, the relay invokes \texttt{VpnService.protect(socket)}. This instructs the Linux kernel to exempt the socket from VPN routing, preventing the Infinite Routing Loop described in Section~\ref{sec:vpn_technology}.
+
+\subsection{Packet Composer Module (\texttt{model/PacketComposer.kt})}
+
+\textbf{Responsibility:} Synthesize valid IP/TCP/UDP packets for injection back into the TUN interface.
+
+\textbf{IPv4 TCP Packet Construction:}
+\begin{enumerate}
+    \item Allocate a \texttt{ByteBuffer} of size = 20 (IP header) + TCP header length + payload length.
+    \item Write the IP Header: Version=4, IHL=5, Protocol=6, TTL=64, source/destination IP addresses.
+    \item Compute the IP Header Checksum using the RFC 1071 algorithm.
+    \item Write the TCP Header: source/destination ports, sequence number, acknowledgment number, flags.
+    \item Compute the TCP Checksum using the pseudo-header + TCP header + payload.
+    \item Return the complete \texttt{ByteArray}.
+\end{enumerate}
+
+% -----------------------------------------------------------
+
+\section{State Data Design}
+\label{sec:state_design}
+
+\subsection{Core Data Structures}
+
+The system maintains several concurrent data structures for thread-safe, high-performance state management:
+
+\begin{table}[H]
+\centering
+\caption{Core runtime data structures}
+\label{tab:data_structures}
+\begin{tabular}{@{}p{3cm}p{5cm}p{5cm}@{}}
+\toprule
+\textbf{Structure} & \textbf{Type} & \textbf{Purpose} \\
+\midrule
+\texttt{appTraffic}  & \texttt{ConcurrentHashMap<Int, AppTraffic>} & Per-UID traffic statistics \\
+\texttt{flowCache}   & \texttt{ConcurrentHashMap<FlowKey, Int>}    & 5-tuple $\rightarrow$ UID mapping \\
+\texttt{uidCache}    & \texttt{ConcurrentHashMap<String, Int>}     & UID lookup result cache \\
+\texttt{buckets}     & \texttt{ConcurrentHashMap<String, TokenBucket>} & Per-app rate limiters \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Data Models}
+
+\textbf{FlowKey} (Flow Identifier):
+\begin{itemize}
+    \item \texttt{srcIp: String}, \texttt{dstIp: String}, \texttt{srcPort: Int}, \texttt{dstPort: Int}, \texttt{protocol: Protocol}
+    \item This 5-tuple uniquely identifies a network connection.
+\end{itemize}
+
+\textbf{AppTraffic} (Application Statistics):
+\begin{itemize}
+    \item \texttt{uid: Int}, \texttt{appName: String}, \texttt{packageName: String}
+    \item \texttt{bytesIn: Long}, \texttt{bytesOut: Long} (cumulative traffic volumes)
+    \item \texttt{priorityClass: TrafficClass} (HIGH/MEDIUM/LOW)
+    \item \texttt{activeFlows: ConcurrentHashMap<FlowKey, PacketFlow>} (active connections)
+    \item \texttt{qosAllowedPackets: Int}, \texttt{qosDroppedPackets: Int} (QoS decision counters)
+\end{itemize}
+
+% -----------------------------------------------------------
+
+\section{User Interface Design}
+\label{sec:ui_design}
+
+\subsection{MVVM Architecture}
+
+The user interface follows the Model-View-ViewModel (MVVM) architecture using Jetpack Compose \cite{jetpack_compose}:
+
+\begin{itemize}
+    \item \textbf{Model:} \texttt{AppTraffic}, \texttt{ConnectedDevice}, \texttt{RelayHealthSnapshot} --- domain data classes.
+    \item \textbf{ViewModel:} \texttt{MainViewModel} --- uses the Kotlin \texttt{combine} operator to merge 8 \texttt{StateFlow} sources into a single \texttt{UiState} object.
+    \item \textbf{View:} Composable functions rendering the Dashboard, application list, and Settings screens.
+\end{itemize}
+
+\subsection{Real-time Data Synchronization}
+
+The \texttt{QosApplication} global singleton acts as the intermediary between the VPN service and the UI:
+
+\begin{enumerate}
+    \item The VPN Service updates traffic data into \texttt{StateFlow} observables.
+    \item The ViewModel observes these \texttt{StateFlow} instances and automatically triggers recomposition.
+    \item The UI redraws without polling or manual callbacks, ensuring responsive, real-time updates.
+\end{enumerate}
+
+% -----------------------------------------------------------
+
+\section{Chapter Summary}
+\label{sec:ch4_summary}
+
+This chapter presented the complete system analysis and design of the QoS Scheduler. Seven functional requirements and five non-functional requirements were defined. The architecture follows the Data Plane / Control Plane separation model with a two-stage asynchronous packet processing pipeline. Seven core modules were designed in detail: packet parsing, application resolution, traffic classification, bandwidth scheduling, token bucket rate limiting, TCP relay, and packet composition. The state data design leverages \texttt{ConcurrentHashMap} for thread-safe concurrent access, and the UI follows the MVVM architecture with reactive data binding through Kotlin \texttt{StateFlow}.

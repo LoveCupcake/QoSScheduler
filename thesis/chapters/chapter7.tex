@@ -1,0 +1,117 @@
+% ============================================================
+% CHAPTER 7: CONCLUSION AND FUTURE WORK
+% ============================================================
+
+\chapter{CONCLUSION AND FUTURE WORK}
+\label{chap:conclusion}
+
+\section{Summary of Achievements}
+\label{sec:achievements}
+
+This thesis presented the design, implementation, and evaluation of \textbf{QoS Scheduler} --- a novel Android application that performs per-application network Quality of Service scheduling at the network layer (Layer 3) without requiring Root access. The main achievements of this work are summarized as follows:
+
+\subsection{Core Contributions}
+
+\begin{enumerate}
+    \item \textbf{Non-Root QoS Architecture:} Successfully demonstrated that enterprise-grade QoS algorithms can be deployed in userspace on Android through the VpnService API and TUN virtual interface, without any kernel-level modifications. To the best of our knowledge, this is the first consumer-grade application to offer per-application bandwidth scheduling without Root access.
+    
+    \item \textbf{Bit-Level Packet Processing:} Implemented a Data Plane module capable of parsing IPv4 and IPv6 headers at the bit level, including support for the IPv6 Extension Header Chaining mechanism. The parser correctly handles both protocol versions in a unified pipeline with $O(1)$ per-field extraction.
+    
+    \item \textbf{Token Bucket Rate Limiting:} Implemented the Token Bucket algorithm with nanosecond-precision timing using \texttt{System.nanoTime()}, achieving accurate rate enforcement. Experimental results confirm that the system throttles bandwidth to within $\pm$10\% of the configured limit.
+    
+    \item \textbf{Weighted Fair Queuing:} Implemented the WFQ algorithm for proportional bandwidth allocation based on application priority (HIGH:MEDIUM:LOW = 4:2:1). The measured allocation ratio deviates less than 5\% from the theoretical target.
+    
+    \item \textbf{TCP/UDP Relay System:} Built a full TCP proxy with split-handshake support and a stateless UDP relay, both utilizing the Socket Protection mechanism to prevent routing loops. The relay system was validated on stock Android and custom ROMs including MIUI.
+    
+    \item \textbf{Triple-Lock Verification Methodology:} Proposed and applied a three-source verification methodology (internal logs, iPerf3, Wireshark) for objectively validating QoS effectiveness on mobile platforms.
+\end{enumerate}
+
+\subsection{Research Objectives Revisited}
+
+\begin{table}[H]
+\centering
+\caption{Achievement status of research objectives}
+\label{tab:objectives_status}
+\begin{tabular}{@{}clc@{}}
+\toprule
+\textbf{Objective} & \textbf{Description} & \textbf{Status} \\
+\midrule
+SO1 & Packet interception and analysis (IPv4/IPv6, TCP/UDP) & Achieved \\
+SO2 & Application identification via UID resolution        & Achieved \\
+SO3 & Bandwidth scheduling (Token Bucket + WFQ)             & Achieved \\
+SO4 & Transparent data relay (TCP/UDP)                      & Achieved \\
+SO5 & Experimental validation (Triple-Lock)                 & Achieved \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All five specific objectives defined in Chapter~1 have been achieved, with experimental evidence presented in Chapter~6.
+
+% -----------------------------------------------------------
+
+\section{Limitations}
+\label{sec:limitations}
+
+Despite the successful achievement of all stated objectives, this work has several limitations that must be acknowledged:
+
+\begin{enumerate}
+    \item \textbf{Traffic Classification Accuracy:} The DPI-Lite classifier based on port number heuristics achieves approximately 92\% accuracy. Applications using non-standard ports or multiplexing multiple services over a single HTTPS connection (port 443) may be misclassified. A machine learning-based classifier would improve accuracy but at the cost of higher computational overhead and battery consumption.
+    
+    \item \textbf{Uplink Bandwidth Estimation:} The current implementation requires users to manually configure the total uplink bandwidth. An automatic bandwidth estimation algorithm (e.g., using periodic probe packets) would significantly improve usability.
+    
+    \item \textbf{Inbound Traffic Control:} The system primarily controls outbound traffic. Inbound traffic is influenced indirectly through TCP's congestion control feedback (when outbound ACKs are delayed or dropped, the remote sender reduces its rate). Direct inbound rate limiting would require receiver-side window manipulation.
+    
+    \item \textbf{Limited Device Testing:} Experimental validation was conducted on a limited number of device models. Broader testing across different chipsets, Android versions, and custom ROMs would strengthen the generalizability of the results.
+    
+    \item \textbf{Battery Impact:} The continuous packet processing pipeline introduces additional CPU load ($\approx$12\%) which impacts battery life. A detailed battery consumption study over extended periods (8+ hours) was not conducted.
+\end{enumerate}
+
+% -----------------------------------------------------------
+
+\section{Future Work}
+\label{sec:future_work}
+
+\subsection{Short-Term Improvements}
+
+\begin{enumerate}
+    \item \textbf{Automatic Bandwidth Estimation:} Implement an adaptive algorithm that periodically estimates the available uplink bandwidth using lightweight probing techniques, eliminating the need for manual configuration.
+    
+    \item \textbf{Enhanced Classification:} Integrate SNI (Server Name Indication) extraction from TLS ClientHello messages to improve classification accuracy for HTTPS traffic without performing full deep packet inspection.
+    
+    \item \textbf{Multi-Device Profiling:} Extend testing to cover low-end, mid-range, and high-end Android devices across multiple manufacturers (Samsung, Xiaomi, Huawei, Google Pixel) to identify and resolve compatibility issues.
+\end{enumerate}
+
+\subsection{Medium-Term Extensions}
+
+\begin{enumerate}
+    \item \textbf{Machine Learning Classifier:} Train a lightweight neural network model (e.g., based on flow-level features such as packet size distribution, inter-arrival times, and burst patterns) for encrypted traffic classification. The model should be optimized for on-device inference using TensorFlow Lite.
+    
+    \item \textbf{Per-Device Hotspot QoS (Revisiting the Original Vision):} As documented in Chapter~1 (Section~\ref{sec:research_evolution}) and Chapter~2 (Section~\ref{sec:hotspot_feasibility}), the original research goal was to build a QoS scheduler for devices connected to the host phone's WiFi Hotspot. This direction was set aside after a feasibility analysis revealed that Android's VpnService does not reliably capture hotspot-forwarded traffic without Root access. However, the core QoS engine developed in this thesis --- Token Bucket rate limiting, WFQ allocation, and the packet processing pipeline --- forms the complete architectural foundation for this extension. Three potential paths forward exist:
+    \begin{itemize}
+        \item \textbf{Rooted devices:} On rooted Android, \texttt{iptables REDIRECT} rules can force hotspot traffic through the TUN interface, enabling full per-device QoS.
+        \item \textbf{Future Android APIs:} Google may introduce new APIs (similar to how \texttt{getConnectionOwnerUid()} was added in Android 10) that provide access to tethering traffic.
+        \item \textbf{eBPF programs:} Android 12+ supports limited eBPF programs for traffic accounting. Future kernel versions may enable userspace eBPF-based traffic shaping for hotspot interfaces.
+    \end{itemize}
+    The existing \texttt{HotspotManager} and \texttt{DeviceRegistry} modules in the codebase already implement hotspot detection, device tracking, and per-device statistics, providing a ready starting point for this extension.
+    
+    \item \textbf{Real Application Testing:} Conduct user studies with real applications (Zoom video calls, Netflix streaming, Mobile Legends gaming) instead of synthetic benchmarks (iPerf3) to validate the system's impact on actual user experience.
+\end{enumerate}
+
+\subsection{Long-Term Vision}
+
+\begin{enumerate}
+    \item \textbf{Integration with 5G QoS:} Explore coordination between the application-level QoS system and the 5G QoS framework (5QI) to provide end-to-end quality guarantees from the device through the radio access network.
+    
+    \item \textbf{Cross-Platform Port:} Investigate porting the QoS scheduling engine to iOS (using NetworkExtension framework) and desktop platforms (Windows, macOS, Linux) to provide a unified cross-platform QoS solution.
+    
+    \item \textbf{Community-Driven Development:} Release the system as a fully open-source project with comprehensive developer documentation, enabling the community to contribute new classifiers, scheduling policies, and platform adaptations.
+\end{enumerate}
+
+% -----------------------------------------------------------
+
+\section{Final Remarks}
+\label{sec:final_remarks}
+
+This thesis has demonstrated that meaningful network Quality of Service control is achievable on consumer Android devices without requiring Root access or network infrastructure modifications. By leveraging the VpnService API's TUN interface for packet interception and implementing well-established scheduling algorithms (Token Bucket and WFQ) in userspace, the QoS Scheduler fills a significant gap in the mobile networking landscape.
+
+The combination of a sound theoretical foundation, practical implementation, and rigorous experimental validation establishes this work as a viable foundation for future research and development in mobile QoS. As mobile data traffic continues to grow exponentially and applications demand increasingly diverse Quality of Service requirements, solutions like the QoS Scheduler will become essential tools for empowering users to take control of their network experience.

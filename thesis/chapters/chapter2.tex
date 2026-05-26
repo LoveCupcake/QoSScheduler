@@ -1,0 +1,181 @@
+% ============================================================
+% CHAPTER 2: RELATED WORK
+% ============================================================
+
+\chapter{RELATED WORK}
+\label{chap:relatedwork}
+
+This chapter surveys and critically analyzes existing approaches to network Quality of Service management on the Android platform. The objective is to identify the technical gap that motivates the design of the QoS Scheduler system presented in this thesis.
+
+\section{Existing QoS Solutions on Android}
+\label{sec:existing_solutions}
+
+Current approaches to network traffic management on Android can be broadly classified into two categories based on their privilege requirements: Root-dependent solutions and non-Root solutions.
+
+\subsection{Root-Dependent Solutions}
+
+Root-dependent applications operate by directly manipulating the Linux kernel's \texttt{iptables} or \texttt{nftables} subsystems, providing deep control over network traffic. Notable examples include:
+
+\textbf{AFWall+} \cite{afwall} is an open-source firewall application that provides a graphical frontend for managing \texttt{iptables} rules. It supports per-application allow/deny policies for both WiFi and mobile data interfaces. While AFWall+ offers granular control over which applications can access the network, it fundamentally operates as a binary filter (allow/deny) and \textbf{does not provide bandwidth scheduling or priority-based traffic management}.
+
+\textbf{NetHogs} \cite{nethogs} is a Linux-based tool that monitors per-process bandwidth usage in real time. Although it can be compiled and run on rooted Android devices, it is purely a monitoring tool with no capability to enforce QoS policies.
+
+\textbf{Traffic Control (tc)} is a Linux kernel utility that implements sophisticated QoS mechanisms including Hierarchical Token Bucket (HTB), Class-Based Queuing (CBQ), and Stochastic Fair Queuing (SFQ). While \texttt{tc} is the gold standard for QoS on Linux servers and routers, its deployment on Android presents several challenges: (1) it requires Root access, (2) Android's kernel may not include all required kernel modules (e.g., \texttt{sch\_htb}), and (3) there is no user-friendly interface for configuration on mobile devices.
+
+The fundamental limitation of all Root-dependent solutions is their inaccessibility to the vast majority of Android users. Rooting a device voids manufacturer warranties, may compromise device security by disabling verified boot, and is actively discouraged by Google's SafetyNet attestation framework.
+
+\subsection{Non-Root Solutions}
+
+Non-Root solutions leverage the Android \texttt{VpnService} API to create a local VPN tunnel, intercepting all network traffic without requiring elevated privileges.
+
+\textbf{NetGuard} \cite{netguard} is the most popular open-source non-Root firewall for Android. It operates by establishing a local VPN and implementing packet-level filtering based on application UID. NetGuard supports per-application allow/deny policies for WiFi and mobile data separately, and can block specific IP addresses or domains. However, NetGuard's architecture is fundamentally designed for \textbf{access control}, not bandwidth management. It provides no mechanism for rate limiting, priority queuing, or proportional bandwidth allocation.
+
+\textbf{GlassWire} \cite{glasswire} is a commercial network monitoring application that tracks per-application data usage over time. While it provides excellent visualization of network activity and can alert users to suspicious traffic patterns, GlassWire functions purely as a \textbf{monitoring tool} and does not modify or schedule network traffic in any way.
+
+\textbf{NoRootFirewall} and similar applications provide basic firewall functionality through the VpnService API. Like NetGuard, they are limited to binary allow/deny decisions and cannot perform bandwidth scheduling.
+
+\subsection{Commercial VPN Applications}
+
+Commercial VPN applications (e.g., NordVPN, ExpressVPN, Cloudflare WARP) also use the VpnService API but serve an entirely different purpose: encrypting traffic and routing it through remote servers for privacy. While these applications demonstrate the technical viability of the VpnService approach for intercepting all device traffic, they do not implement any form of per-application QoS scheduling.
+
+\subsection{Summary of Existing Solutions}
+
+Table~\ref{tab:existing_solutions} summarizes the capabilities of existing solutions:
+
+\begin{table}[H]
+\centering
+\caption{Comparison of existing network management solutions on Android}
+\label{tab:existing_solutions}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Solution} & \textbf{Root} & \textbf{Allow/} & \textbf{Rate} & \textbf{Priority} & \textbf{Per-App} \\
+                   & \textbf{Required} & \textbf{Deny} & \textbf{Limiting} & \textbf{Queuing} & \textbf{QoS} \\
+\midrule
+AFWall+        & Yes & \checkmark & $\times$ & $\times$ & $\times$ \\
+NetHogs        & Yes & $\times$   & $\times$ & $\times$ & $\times$ \\
+tc (Linux)     & Yes & \checkmark & \checkmark & \checkmark & \checkmark \\
+NetGuard       & No  & \checkmark & $\times$ & $\times$ & $\times$ \\
+GlassWire      & No  & $\times$   & $\times$ & $\times$ & $\times$ \\
+Commercial VPNs & No & $\times$   & $\times$ & $\times$ & $\times$ \\
+\midrule
+\textbf{QoS Scheduler} & \textbf{No} & \checkmark & \checkmark & \checkmark & \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+As shown in Table~\ref{tab:existing_solutions}, no existing non-Root solution provides rate limiting, priority queuing, or per-application QoS capabilities. The only solution offering full QoS functionality is the Linux \texttt{tc} utility, which requires Root access and lacks a mobile-friendly interface.
+
+% -----------------------------------------------------------
+
+\section{Related Academic Research}
+\label{sec:related_research}
+
+\subsection{QoS in Mobile Networks}
+
+Research on QoS for mobile networks has predominantly focused on carrier-level infrastructure rather than end-device solutions.
+
+\textbf{Carrier-level QoS:} The 3GPP standards define QoS mechanisms for LTE and 5G networks through Quality Class Identifiers (QCIs) and 5G QoS Indicators (5QIs). These mechanisms operate at the radio access network (RAN) level and are managed by the mobile network operator, not the end user. While effective for differentiating between traffic classes (e.g., voice vs. data), they do not provide per-application control at the device level.
+
+\textbf{SDN-based approaches:} Software-Defined Networking (SDN) has been applied to mobile network QoS through centralized traffic management. FlowQoS \cite{seddiki2015flowqos} demonstrated an SDN-based approach to residential QoS, where an OpenFlow controller classifies traffic and applies per-flow rate limits at the home gateway. However, FlowQoS operates at the network infrastructure level and requires a dedicated SDN-capable gateway, making it unsuitable for mobile devices without network infrastructure modifications.
+
+\subsection{Traffic Classification}
+
+Traffic classification is a prerequisite for any QoS system, as scheduling decisions depend on identifying the type of traffic being processed.
+
+\textbf{Port-based classification} is the simplest approach, mapping well-known port numbers to application categories (e.g., port 80/443 for web browsing, port 53 for DNS). While limited by the increasing use of encrypted traffic on standard ports (particularly HTTPS on port 443), port-based classification remains effective for identifying specific protocols such as DNS, VoIP (ports 5060--5061), and gaming servers \cite{tanenbaum2021}.
+
+\textbf{Deep Packet Inspection (DPI)} examines packet payloads to identify applications based on protocol signatures, byte patterns, or application-layer headers. DPI provides higher accuracy than port-based methods but faces significant challenges with encrypted traffic (TLS 1.3) and introduces computational overhead that may be prohibitive on mobile devices \cite{stallings2014data}.
+
+\textbf{Machine Learning approaches} have gained attention for traffic classification, particularly for encrypted traffic. Wang et al. \cite{wang2017machine} demonstrated the use of Convolutional Neural Networks (CNNs) for malware traffic classification. Li et al. \cite{li2019mobile} proposed a deep learning framework for mobile traffic classification and QoS enhancement. While ML approaches achieve high accuracy, they require training data, introduce inference latency, and consume significant computational resources --- considerations that are critical on battery-powered mobile devices.
+
+\subsection{Scheduling Algorithms}
+
+The QoS scheduling algorithms employed in this thesis have extensive theoretical foundations in the networking literature.
+
+\textbf{Token Bucket:} The Token Bucket algorithm, formalized by Turner \cite{peterson2011computer}, is widely used in network equipment for rate limiting and traffic shaping. Its $O(1)$ per-packet complexity makes it suitable for high-speed packet processing. The algorithm allows controlled bursting (up to the bucket capacity) while enforcing a long-term average rate, making it more flexible than the Leaky Bucket alternative.
+
+\textbf{Weighted Fair Queuing (WFQ):} WFQ was introduced by Demers, Keshav, and Shenker \cite{demers1989analysis} as a practical approximation of the Generalized Processor Sharing (GPS) model formalized by Parekh and Gallager \cite{parekh1993generalized}. WFQ assigns weights to traffic flows and allocates bandwidth proportionally, ensuring that high-priority flows receive a larger share while preventing starvation of low-priority flows.
+
+\textbf{Deficit Round Robin (DRR):} Shreedhar and Varghese \cite{shreedhar1996efficient} proposed DRR as a computationally efficient alternative to WFQ. DRR achieves $O(1)$ per-packet complexity compared to WFQ's $O(\log n)$ for flow selection. While DRR is suitable for environments with many active flows, WFQ provides better isolation between flows and more predictable bandwidth allocation for the relatively small number of flows typical on a mobile device.
+
+\subsection{Android VPN Ecosystem}
+
+Jiang et al. \cite{jiang2021android} conducted a comprehensive study of the Android VPN ecosystem, analyzing over 150 VPN applications from Google Play. Their findings revealed that VPN-based applications are overwhelmingly used for privacy and censorship circumvention, with no identified applications implementing QoS scheduling. This study further validates the novelty of the approach presented in this thesis.
+
+\subsection{Feasibility Analysis: Per-Device Hotspot QoS Without Root}
+\label{sec:hotspot_feasibility}
+
+A natural extension of per-application QoS is \textit{per-device} QoS in a WiFi Hotspot scenario, where the host phone controls bandwidth for each connected device. This was, in fact, the original research direction explored in this thesis (see Chapter~1, Section~\ref{sec:research_evolution}). A detailed feasibility analysis revealed fundamental platform limitations that make this approach unreliable without Root access:
+
+\begin{table}[H]
+\centering
+\caption{Technical barriers to per-device hotspot QoS without Root}
+\label{tab:hotspot_barriers}
+\begin{tabular}{@{}p{3.5cm}p{9.5cm}@{}}
+\toprule
+\textbf{Barrier} & \textbf{Technical Explanation} \\
+\midrule
+Traffic routing bypass &
+Hotspot client traffic is forwarded between the \texttt{ap0}/\texttt{swlan0} interface and the upstream WAN interface by the kernel's IP forwarding engine (\texttt{netfilter}). On most Android versions, this forwarded traffic \textbf{does not enter the TUN interface} created by VpnService, making it invisible to a non-Root application. \\
+\addlinespace
+No per-app visibility on clients &
+The \texttt{ConnectivityManager.getConnectionOwnerUid()} API resolves UIDs only for connections owned by processes \textit{on the local device}. For traffic from a connected client (e.g., \texttt{192.168.43.x}), the API returns $-1$ (unresolved), making per-application classification of client traffic impossible. \\
+\addlinespace
+Unreliable device identification &
+MAC address resolution via \texttt{/proc/net/arp} is accessible without Root but produces increasingly unreliable results on Android 10+ due to MAC address randomization. Devices may change their MAC on each reconnection. \\
+\addlinespace
+ROM-specific inconsistencies &
+Testing on MIUI, OneUI, and stock Android revealed different behaviors: some route hotspot traffic through the VPN, some do not, and some do so inconsistently depending on IPv4 vs. IPv6. A universal, reliable solution is not achievable. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This analysis led to the deliberate decision to pivot the research scope to per-application QoS on the host device --- a technically sound approach that universally works across all Android 10+ devices. The per-device hotspot QoS remains a viable \textit{future extension} for rooted devices or when new platform APIs become available (see Chapter~7).
+
+% -----------------------------------------------------------
+
+\section{Comparison and Positioning}
+\label{sec:comparison_positioning}
+
+Based on the literature review, we identify the following key dimensions for positioning this thesis:
+
+\begin{table}[H]
+\centering
+\caption{Positioning of QoS Scheduler relative to existing approaches}
+\label{tab:positioning}
+\begin{tabular}{@{}p{3.5cm}p{3cm}p{3cm}p{3.5cm}@{}}
+\toprule
+\textbf{Dimension} & \textbf{Carrier-level QoS} & \textbf{Linux tc} & \textbf{QoS Scheduler (Ours)} \\
+\midrule
+Deployment scope & Network infra. & Rooted devices & Any Android 10+ \\
+User control & None & Expert-level & Consumer-friendly \\
+Per-app granularity & No & Yes & Yes \\
+Root requirement & N/A & Yes & No \\
+Rate limiting & Yes & Yes & Yes (Token Bucket) \\
+Fair queuing & Yes & Yes & Yes (WFQ) \\
+Real-time config. & No & CLI only & GUI with live updates \\
+Protocol support & All & All & IPv4, IPv6, TCP, UDP \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Identified Research Gap}
+
+The analysis reveals a clear gap in the current landscape:
+
+\begin{enumerate}
+    \item \textbf{No non-Root QoS solution exists.} All existing Android applications that do not require Root are limited to access control (allow/deny) or monitoring. None implements bandwidth scheduling.
+    
+    \item \textbf{Enterprise QoS algorithms are not deployed on mobile devices.} Token Bucket and WFQ, while well-established in network infrastructure, have not been implemented in userspace on Android devices.
+    
+    \item \textbf{VpnService is underutilized for QoS.} Despite the VpnService API providing complete access to all IP traffic at Layer 3, no existing application leverages this capability for traffic scheduling.
+\end{enumerate}
+
+This thesis addresses all three gaps by implementing enterprise-grade QoS algorithms (Token Bucket + WFQ) within the Android VpnService framework, providing per-application bandwidth scheduling without Root access through a consumer-friendly interface.
+
+% -----------------------------------------------------------
+
+\section{Chapter Summary}
+\label{sec:ch2_summary}
+
+This chapter surveyed existing approaches to network QoS on Android, categorizing them into Root-dependent and non-Root solutions. The analysis revealed that no existing non-Root solution provides bandwidth scheduling capabilities. A dedicated feasibility analysis demonstrated that per-device hotspot QoS --- the original research direction --- is technically infeasible without Root due to Android's VPN tunnel architecture and API limitations. Related academic research was reviewed across four domains: mobile network QoS, traffic classification, scheduling algorithms, and the Android VPN ecosystem. The identified research gap --- the absence of a non-Root, per-application QoS scheduling system for Android --- establishes the clear motivation and positioning for the QoS Scheduler system presented in this thesis.

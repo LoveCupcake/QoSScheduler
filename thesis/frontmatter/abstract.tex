@@ -1,0 +1,23 @@
+% ============================================================
+% ABSTRACT
+% ============================================================
+
+\chapter*{ABSTRACT}
+\addcontentsline{toc}{chapter}{Abstract}
+
+As the number of mobile applications continues to grow and network usage demands diversify, controlling Quality of Service (QoS) on mobile devices has become a critical technical challenge. Existing solutions on Android either require Root privileges --- impractical for most users --- or only provide basic firewall functionality without priority-based bandwidth scheduling capabilities.
+
+This thesis presents the design and implementation of \textbf{QoS Scheduler} --- an Android application capable of intervening at the network layer (Layer 3) to perform per-application bandwidth scheduling \textbf{without requiring Root access}. The system utilizes the TUN virtual network interface through the Android VpnService API to intercept, analyze, and schedule all IP traffic on the device.
+
+The main contributions of this thesis include:
+\begin{itemize}
+    \item A Data Plane module capable of bit-level IPv4/IPv6 and TCP/UDP header parsing, including IPv6 Extension Header Chaining support.
+    \item Implementation of the \textbf{Token Bucket} algorithm for rate limiting and \textbf{Weighted Fair Queuing (WFQ)} for priority-weighted bandwidth allocation (HIGH/MEDIUM/LOW).
+    \item A UID Resolution mechanism based on 5-tuple information for per-application traffic classification.
+    \item A stable TCP/UDP Relay system compatible with multiple Android versions, including custom ROMs such as MIUI.
+\end{itemize}
+
+Experimental results demonstrate the system's ability to accurately limit bandwidth, allocate network resources by weight with less than 5\% deviation, and mitigate Bufferbloat for high-priority applications.
+
+\vspace{1cm}
+\noindent\textbf{Keywords:} Quality of Service, QoS, Android, VPN, Token Bucket, Weighted Fair Queuing, Packet Analysis, Bandwidth Scheduling.

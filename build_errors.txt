@@ -1,0 +1,2023 @@
+﻿To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.11.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+.\gradlew : Failed to execute 
+org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@68e3235.
+At line:1 char:1
++ .\gradlew assembleDebug --no-daemon 2>&1 | Out-File -FilePath "build_ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Failed to execu...5c5088@68e3235.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+org.gradle.api.UncheckedIOException: Could not add entry 'C:\Users\hieum\.gradle\caches\modules-2\files-2.1\io.netty\ne
+tty-buffer\4.1.93.Final\87fac21f4ef95157866b07b48e3c707a2f13c581' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@715ee0e3.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\7a8206364f293185342925c03f036df7' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@20fd6a56.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\02623f93c74d5fbb69b57318c62cf00d' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@49b65990.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\8c6c65feada3d8607290dfa09461768d' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@796ddcaa.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\2428ba1fd0c38c1840ae68667b6caea4' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@76ca9fdb.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\34f399e6fd5b47de625f11a752c05539' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@329e1f09.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\63796c1bea1edbb2ccd7d9d522702146' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@2a8e09d2.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\0b2b44f1437989647da4dc89fa09a1bb' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@2f009177.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\cb7ef79ad396b143a70972d8b44fc9ec' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@4ae44a2b.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\88c66794f3d58df7cdcecd23165713f4' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@3095222f.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\8fd3df5dcf41ea670bd4ad7b5a15aff5' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@45ac6f01.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\3e8e963a4b797736e93102d09402e1ad' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@415b7af6.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\a25798d4943dab54de7331dc9c699df0' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@185bb65f.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\b4c423d191031f260765910d87c40344' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@25503636.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\7ebbcc1a4d0b613ad27161a0488d70e3' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@205e0fb4.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\b5cfeb66a7e82f423103140b13cbb153' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@32d8d088.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\0560d1866577ff481e9e47300d23177f' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@4331cfea.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\50f2c4900be29d64353c86f7933a8418' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@4b5ba151.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\e939fc786dca4f1c1a99b576f446e691' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@1183c370.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\61a73520aed0d81ef1512d06aef3d551' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@2ba53238.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\a9199dbbbc45cfe5013a8dd95a3a35f0' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@598581af.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\b020963308763fbc623f31cbfe46bc0d' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@2433bb6.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\846762e381feb5c8ff0f8dd8de4dd7d5' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@5209e6b1.
+org.gradle.api.UncheckedIOException: Could not add entry 'C:\Users\hieum\.gradle\caches\modules-2\files-2.1\androidx.co
+mpose.ui\ui-tooling-android\1.7.0\72990f04b90f64350ea023487d7773c332c427e1' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@d8238bd.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\eab81c5512000e5d94d956382b065c34' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@66ff346c.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\f81f03dc9e9c4fa80978aa45359d4a2e' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@320a4969.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\5e2a026c039f39005efe7aadbcae86a1' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@16cf107c.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\85e079f1b9a04001508719aac1be856c' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@11d0ad7.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\9636f2da44814fb14f2cf9d313d1e3a7' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@3d3b0805.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\a1d46d364a7c5b4a298182ee38d45720' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@327baf4b.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\b8facf8b5ca5b93bc0ca69b46ede3110' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@329a73c2.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\b3ffeb3954b4422275e559caffbb360b' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@6123349a.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\5bfb345f0309b65a6dc360091188e738' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@18f9caf5.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\0b1749298be5a638df6699d533f476fd' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@3d79687d.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\034d40b04eb5a7d3c1a2212537c2594c' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@3df65d18.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\307e65a282f5306fdb4a1277ad8f047a' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@20f9e14f.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\80fd1085ebda99707bb949489fbd4716' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@215604a9.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\dc31111b3096331fbad37acc1646ca30' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+> Task :app:processDebugResources UP-TO-DATE
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@767a8ab8.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\657ebc4fade10cd3ef82a41c3f76ccf3' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@1f1c4de9.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\87d0e99a20af6ee52e0a31fe0f534f21' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@a107fa6.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\90c99c016f238832e7fa9010c67178fd' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@62ad183c.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\f7b681d5f56263c716fa736b8ca1a28f' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@a8d2820.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\340050403cef62a187196ba33b80b641' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@4ba07a14.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\7012925181440fe9e93f4038f118b605' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@50f50d6b.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\78f9366b1501677c5fdad39a44624cca' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@1922d718.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\8e216fc7eca719683c7ac05958fe2d42' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@3272b4de.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\0b764984d7ca58929a59a74a16568fc2' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@6222543f.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\86d26e147797b901664bf39a502e9e22' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:stripDebugDebugSymbols UP-TO-DATE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:compileDebugKotlin
+w: file:///C:/Users/hieum/AndroidStudioProjects/QoSScheduler/app/src/main/java/com/qos/scheduler/classifier/DpiClassifier.kt:28:31 Check for instance is always 'true'.
+w: file:///C:/Users/hieum/AndroidStudioProjects/QoSScheduler/app/src/main/java/com/qos/scheduler/classifier/DpiClassifier.kt:28:58 Check for instance is always 'false'.
+w: file:///C:/Users/hieum/AndroidStudioProjects/QoSScheduler/app/src/main/java/com/qos/scheduler/service/QosVpnService.kt:77:52 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///C:/Users/hieum/AndroidStudioProjects/QoSScheduler/app/src/main/java/com/qos/scheduler/service/QosVpnService.kt:161:31 'val allNetworks: (Array<Network!>..Array<out Network!>)' is deprecated. Deprecated in Java.
+w: file:///C:/Users/hieum/AndroidStudioProjects/QoSScheduler/app/src/main/java/com/qos/scheduler/service/relay/UdpRelayManager.kt:185:46 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///C:/Users/hieum/AndroidStudioProjects/QoSScheduler/app/src/main/java/com/qos/scheduler/ui/MainViewModel.kt:128:31 Unchecked cast of 'kotlin.Any' to 'kotlin.collections.List<com.qos.scheduler.model.ConnectedDevice>'.
+w: file:///C:/Users/hieum/AndroidStudioProjects/QoSScheduler/app/src/main/java/com/qos/scheduler/ui/MainViewModel.kt:129:28 Unchecked cast of 'kotlin.Any' to 'kotlin.collections.List<com.qos.scheduler.model.AppTraffic>'.
+w: file:///C:/Users/hieum/AndroidStudioProjects/QoSScheduler/app/src/main/java/com/qos/scheduler/ui/MainViewModel.kt:131:36 Unchecked cast of 'kotlin.Any' to 'kotlin.Pair<kotlin.Boolean, kotlin.String?>'.
+
+> Task :app:compileDebugJavaWithJavac NO-SOURCE
+> Task :app:processDebugJavaRes UP-TO-DATE
+Failed to execute org.gradle.cache.internal.AsyncCacheAccessDecoratedCache$$Lambda/0x00000259c95c5088@69a52cef.
+org.gradle.api.UncheckedIOException: Could not add entry 
+'C:\Users\hieum\.gradle\caches\8.11.1\transforms\18099f179e937327e92ef6a5f8ae4998' to cache file-access.bin 
+(C:\Users\hieum\.gradle\caches\journal-1\file-access.bin).
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:162)
+	at 
+org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.lambda$put$1(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.doWriteAction(DefaultFileLockManager.java:231)
+	at org.gradle.cache.internal.DefaultFileLockManager$DefaultFileLock.writeFile(DefaultFileLockManager.java:221)
+	at org.gradle.cache.internal.DefaultCacheCoordinator$UnitOfWorkFileAccess.writeFile(DefaultCacheCoordinator.java:475)
+	at org.gradle.cache.internal.DefaultMultiProcessSafeIndexedCache.put(DefaultMultiProcessSafeIndexedCache.java:67)
+	at org.gradle.cache.internal.AsyncCacheAccessDecoratedCache.lambda$putLater$1(AsyncCacheAccessDecoratedCache.java:56)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker$1.run(ExclusiveCacheAccessingWorker.java:179)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.lambda$toSupplier$2(DefaultCacheCoordinator.java:228)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:249)
+	at org.gradle.cache.internal.DefaultCacheCoordinator.useCache(DefaultCacheCoordinator.java:223)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.flushOperations(ExclusiveCacheAccessingWorker.java:169)
+	at org.gradle.cache.internal.ExclusiveCacheAccessingWorker.run(ExclusiveCacheAccessingWorker.java:139)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.gradle.cache.internal.btree.CorruptedCacheException: block pointer must be >= -1, but 
+was-7882558615433211286
+	at org.gradle.cache.internal.btree.BlockPointer.pos(BlockPointer.java:30)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.read(BTreePersistentIndexedCache.java:395)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore$BlockImpl.read(FileBackedBlockStore.java:254)
+	at org.gradle.cache.internal.btree.FileBackedBlockStore.read(FileBackedBlockStore.java:123)
+	at org.gradle.cache.internal.btree.CachingBlockStore.read(CachingBlockStore.java:100)
+	at org.gradle.cache.internal.btree.FreeListBlockStore.read(FreeListBlockStore.java:86)
+	at org.gradle.cache.internal.btree.StateCheckBlockStore.read(StateCheckBlockStore.java:67)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.load(BTreePersistentIndexedCache.java:182)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.access$1200(BTreePersistentIndexedCache.java:50)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.find(BTreePersistentIndexedCache.java:496)
+	at 
+org.gradle.cache.internal.btree.BTreePersistentIndexedCache$IndexBlock.access$600(BTreePersistentIndexedCache.java:366)
+	at org.gradle.cache.internal.btree.BTreePersistentIndexedCache.put(BTreePersistentIndexedCache.java:144)
+	... 18 more
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:dexBuilderDebug
+> Task :app:mergeProjectDexDebug
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleDebug
+
+BUILD SUCCESSFUL in 1m 27s
+34 actionable tasks: 4 executed, 30 up-to-date

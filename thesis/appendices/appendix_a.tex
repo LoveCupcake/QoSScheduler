@@ -1,0 +1,530 @@
+% ============================================================
+% APPENDIX A: KEY SOURCE CODE MODULES
+% ============================================================
+
+\chapter{KEY SOURCE CODE MODULES}
+\label{app:source_code}
+
+This appendix presents the complete source code of the most critical modules in the QoS Scheduler system. These modules form the core of the Data Plane pipeline and are referenced throughout Chapters~4 and~5.
+
+% -----------------------------------------------------------
+
+\section{Packet Parser --- \texttt{RawPacket.kt}}
+\label{app:rawpacket}
+
+The \texttt{RawPacket} module is responsible for parsing raw byte arrays read from the TUN interface into structured packet objects. It supports both IPv4 and IPv6 with full Extension Header Chaining.
+
+\begin{lstlisting}[language=Java, caption={RawPacket.kt --- Complete packet parser}, label={lst:rawpacket}]
+package com.qos.scheduler.model
+
+import java.nio.ByteBuffer
+
+data class RawPacket(
+    val ipVersion: Int,
+    val srcIp: String, val dstIp: String,
+    val srcPort: Int, val dstPort: Int,
+    val protocol: Protocol,
+    val length: Int,
+    val ipHeaderLength: Int,
+    val transportHeaderLength: Int,
+    val payloadOffset: Int,
+    val payloadLength: Int,
+    val tcpSequenceNumber: Long? = null,
+    val tcpAckNumber: Long? = null,
+    val tcpWindowSize: Int? = null,
+    val tcpFlags: TcpControlFlags? = null,
+    val rawBuffer: ByteArray
+) {
+    val isIpv4: Boolean get() = ipVersion == 4
+    val payload: ByteArray
+        get() = rawBuffer.copyOfRange(
+            payloadOffset, payloadOffset + payloadLength)
+
+    companion object {
+        fun parse(buffer: ByteArray, length: Int): RawPacket? {
+            if (length < 20) return null
+            val buf = ByteBuffer.wrap(buffer, 0, length)
+            val version = (buf.get(0).toInt() and 0xFF) shr 4
+            return when (version) {
+                4 -> parseIpv4(buf, buffer, length)
+                6 -> parseIpv6(buf, buffer, length)
+                else -> null
+            }
+        }
+
+        private fun parseIpv4(
+            buf: ByteBuffer, raw: ByteArray, length: Int
+        ): RawPacket? {
+            val ihl = (buf.get(0).toInt() and 0x0F) * 4
+            if (length < ihl + 4) return null
+            val protocolNum = buf.get(9).toInt() and 0xFF
+            val protocol = Protocol.fromNumber(protocolNum)
+            val srcIp = buildString {
+                for (i in 12..15) {
+                    if (i > 12) append('.')
+                    append(buf.get(i).toInt() and 0xFF)
+                }
+            }
+            val dstIp = buildString {
+                for (i in 16..19) {
+                    if (i > 16) append('.')
+                    append(buf.get(i).toInt() and 0xFF)
+                }
+            }
+            val (srcPort, dstPort) = extractPorts(
+                buf, ihl, protocol)
+            val tcpMeta = extractTcpMetadata(
+                buf, ihl, protocol, length)
+            val thl = when (protocol) {
+                Protocol.TCP -> tcpMeta.headerLength
+                Protocol.UDP -> 8
+                else -> 0
+            }
+            val po = (ihl + thl).coerceAtMost(length)
+            val pl = (length - po).coerceAtLeast(0)
+            return RawPacket(
+                ipVersion = 4, srcIp = srcIp,
+                dstIp = dstIp, srcPort = srcPort,
+                dstPort = dstPort, protocol = protocol,
+                length = length, ipHeaderLength = ihl,
+                transportHeaderLength = thl,
+                payloadOffset = po, payloadLength = pl,
+                tcpSequenceNumber = tcpMeta.sequenceNumber,
+                tcpAckNumber = tcpMeta.ackNumber,
+                tcpWindowSize = tcpMeta.windowSize,
+                tcpFlags = tcpMeta.flags,
+                rawBuffer = raw.copyOf(length)
+            )
+        }
+
+        private fun parseIpv6(
+            buf: ByteBuffer, raw: ByteArray, length: Int
+        ): RawPacket? {
+            if (length < 40) return null
+            var nextHeader = buf.get(6).toInt() and 0xFF
+            var headerOffset = 40
+            while (isIpv6ExtensionHeader(nextHeader)
+                && headerOffset < length) {
+                if (headerOffset + 2 > length) return null
+                val extNext =
+                    buf.get(headerOffset).toInt() and 0xFF
+                val extLength = when (nextHeader) {
+                    44 -> 8 // Fragment: fixed 8 bytes
+                    else -> (buf.get(headerOffset + 1)
+                        .toInt() and 0xFF) * 8 + 8
+                }
+                nextHeader = extNext
+                headerOffset += extLength
+            }
+            val protocol = Protocol.fromNumber(nextHeader)
+            val srcIp = formatIpv6(buf, 8)
+            val dstIp = formatIpv6(buf, 24)
+            val (srcPort, dstPort) = extractPorts(
+                buf, headerOffset, protocol)
+            val thl = if (protocol == Protocol.TCP
+                && headerOffset + 13 < length) {
+                ((buf.get(headerOffset + 12).toInt()
+                    ushr 4) and 0x0F) * 4
+            } else 8
+            val po = (headerOffset+thl).coerceAtMost(length)
+            val pl = (length - po).coerceAtLeast(0)
+            return RawPacket(
+                ipVersion = 6, srcIp = srcIp,
+                dstIp = dstIp, srcPort = srcPort,
+                dstPort = dstPort, protocol = protocol,
+                length = length,
+                ipHeaderLength = headerOffset,
+                transportHeaderLength = thl,
+                payloadOffset = po, payloadLength = pl,
+                rawBuffer = raw.copyOf(length)
+            )
+        }
+
+        private fun isIpv6ExtensionHeader(nh: Int) =
+            nh in setOf(0, 43, 44, 60)
+
+        private fun extractPorts(
+            buf: ByteBuffer, off: Int, proto: Protocol
+        ): Pair<Int, Int> {
+            if (proto == Protocol.OTHER) return Pair(0, 0)
+            if (buf.capacity() < off + 4) return Pair(0, 0)
+            val src = ((buf.get(off).toInt() and 0xFF) shl 8
+                ) or (buf.get(off+1).toInt() and 0xFF)
+            val dst = ((buf.get(off+2).toInt() and 0xFF
+                ) shl 8) or (buf.get(off+3).toInt() and 0xFF)
+            return Pair(src, dst)
+        }
+
+        private fun extractTcpMetadata(
+            buf: ByteBuffer, off: Int,
+            proto: Protocol, len: Int
+        ): TcpMetadata {
+            if (proto != Protocol.TCP || off+20 > len)
+                return TcpMetadata(0, null, null, null, null)
+            val seq = buf.getInt(off+4).toLong() and
+                0xFFFFFFFFL
+            val ack = buf.getInt(off+8).toLong() and
+                0xFFFFFFFFL
+            val dataOff = ((buf.get(off+12).toInt()
+                ushr 4) and 0x0F) * 4
+            val flagsByte = buf.get(off+13).toInt() and 0xFF
+            val win = buf.getShort(off+14).toInt() and 0xFFFF
+            val flags = TcpControlFlags(
+                fin = (flagsByte and 0x01) != 0,
+                syn = (flagsByte and 0x02) != 0,
+                rst = (flagsByte and 0x04) != 0,
+                psh = (flagsByte and 0x08) != 0,
+                ack = (flagsByte and 0x10) != 0
+            )
+            return TcpMetadata(dataOff, seq, ack, win, flags)
+        }
+
+        // IPv6 address formatting with :: compression
+        private fun formatIpv6(
+            buf: ByteBuffer, offset: Int
+        ): String {
+            val segs = IntArray(8) { i ->
+                val h = buf.get(offset+i*2).toInt() and 0xFF
+                val l = buf.get(offset+i*2+1).toInt() and 0xFF
+                (h shl 8) or l
+            }
+            var maxStart = -1; var maxLen = 0
+            var curStart = -1; var curLen = 0
+            for (i in segs.indices) {
+                if (segs[i] == 0) {
+                    if (curStart == -1) {
+                        curStart = i; curLen = 1
+                    } else curLen++
+                } else {
+                    if (curLen > maxLen) {
+                        maxStart = curStart
+                        maxLen = curLen
+                    }
+                    curStart = -1; curLen = 0
+                }
+            }
+            if (curLen > maxLen) {
+                maxStart = curStart; maxLen = curLen
+            }
+            return buildString {
+                var i = 0
+                var justEmitted = false
+                while (i < 8) {
+                    if (i == maxStart && maxLen > 1) {
+                        append("::"); i += maxLen
+                        justEmitted = true
+                        if (i >= 8) break
+                    } else {
+                        if (i > 0 && !justEmitted) append(':')
+                        justEmitted = false
+                        append(String.format("%x", segs[i]))
+                        i++
+                    }
+                }
+            }
+        }
+
+        private data class TcpMetadata(
+            val headerLength: Int,
+            val sequenceNumber: Long?,
+            val ackNumber: Long?,
+            val windowSize: Int?,
+            val flags: TcpControlFlags?
+        )
+    }
+}
+
+data class TcpControlFlags(
+    val fin: Boolean = false,
+    val syn: Boolean = false,
+    val rst: Boolean = false,
+    val psh: Boolean = false,
+    val ack: Boolean = false
+)
+\end{lstlisting}
+
+% -----------------------------------------------------------
+
+\section{Token Bucket --- \texttt{TokenBucket.kt}}
+\label{app:tokenbucket}
+
+The Token Bucket module implements the rate-limiting algorithm with nanosecond-precision timing. Thread safety is ensured via the \texttt{@Synchronized} annotation.
+
+\begin{lstlisting}[language=Java, caption={TokenBucket.kt --- Complete rate limiter}, label={lst:tokenbucket}]
+package com.qos.scheduler.scheduler
+
+class TokenBucket(
+    @Volatile var rateBps: Long,
+    @Volatile var burstBytes: Long
+) {
+    private var tokens: Double = burstBytes.toDouble()
+    private var lastRefillTime: Long = System.nanoTime()
+
+    @Synchronized
+    fun consume(bytes: Int): Boolean {
+        refill()
+        return if (tokens >= bytes) {
+            tokens -= bytes
+            true
+        } else {
+            false
+        }
+    }
+
+    @Synchronized
+    fun setRate(newRateBps: Long) {
+        rateBps = newRateBps
+        burstBytes = newRateBps * 2
+        tokens = minOf(tokens, burstBytes.toDouble())
+    }
+
+    private fun refill() {
+        val now = System.nanoTime()
+        val elapsed =
+            (now - lastRefillTime) / 1_000_000_000.0
+        tokens = minOf(burstBytes.toDouble(),
+                       tokens + rateBps * elapsed)
+        lastRefillTime = now
+    }
+}
+\end{lstlisting}
+
+% -----------------------------------------------------------
+
+\section{Bandwidth Scheduler --- \texttt{BandwidthScheduler.kt}}
+\label{app:scheduler}
+
+The Bandwidth Scheduler orchestrates all Token Buckets and implements the Weighted Fair Queuing rebalancing algorithm.
+
+\begin{lstlisting}[language=Java, caption={BandwidthScheduler.kt --- WFQ orchestrator}, label={lst:scheduler}]
+package com.qos.scheduler.scheduler
+
+import com.qos.scheduler.model.AppTraffic
+import com.qos.scheduler.model.TrafficClass
+import java.util.concurrent.ConcurrentHashMap
+
+class BandwidthScheduler {
+    var uplinkBps: Long = 50_000_000L
+    private val buckets =
+        ConcurrentHashMap<String, TokenBucket>()
+    private val manualCaps =
+        ConcurrentHashMap<String, Long>()
+
+    companion object {
+        fun appBucketKey(uid: Int) = "app_$uid"
+    }
+
+    fun processPacket(key: String, size: Int): Boolean {
+        val bucket = buckets[key] ?: return true
+        return bucket.consume(size)
+    }
+
+    fun ensureBucket(
+        key: String, priority: TrafficClass = TrafficClass.MEDIUM
+    ) {
+        if (!buckets.containsKey(key)) {
+            val (rate, burst) = rateForClass(priority)
+            buckets[key] = TokenBucket(rate, burst)
+        }
+    }
+
+    fun setManualCap(ip: String, rateBps: Long) {
+        manualCaps[ip] = rateBps
+        buckets[ip]?.setRate(rateBps)
+    }
+
+    fun rebalanceWithApps(apps: Collection<AppTraffic>) {
+        val hc = apps.count {
+            it.priorityClass == TrafficClass.HIGH }
+        val mc = apps.count {
+            it.priorityClass == TrafficClass.MEDIUM }
+        val lc = apps.count {
+            it.priorityClass == TrafficClass.LOW }
+        val totalWeight = hc*4 + mc*2 + lc*1 + 2
+        if (totalWeight <= 0) return
+
+        apps.forEach { app ->
+            val key = appBucketKey(app.uid)
+            if (manualCaps.containsKey(key)) return@forEach
+            val weight = when (app.priorityClass) {
+                TrafficClass.HIGH -> 4
+                TrafficClass.MEDIUM -> 2
+                TrafficClass.LOW -> 1
+            }
+            val rate = (uplinkBps * weight) / totalWeight
+            buckets.getOrPut(key) {
+                TokenBucket(rate, rate * 5) }.setRate(rate)
+        }
+
+        val hostRate = (uplinkBps * 2) / totalWeight
+        buckets.getOrPut("__host__") {
+            TokenBucket(hostRate, hostRate * 5)
+        }.setRate(hostRate)
+    }
+
+    private fun rateForClass(
+        cls: TrafficClass
+    ): Pair<Long, Long> {
+        val rate = when (cls) {
+            TrafficClass.HIGH -> (uplinkBps * 0.8).toLong()
+            TrafficClass.MEDIUM -> (uplinkBps * 0.5).toLong()
+            TrafficClass.LOW -> (uplinkBps * 0.2).toLong()
+        }
+        val burst = when (cls) {
+            TrafficClass.HIGH -> rate * 2
+            TrafficClass.MEDIUM -> rate
+            TrafficClass.LOW -> rate / 2
+        }
+        return Pair(rate, burst)
+    }
+}
+\end{lstlisting}
+
+% -----------------------------------------------------------
+
+\section{DPI Classifier --- \texttt{DpiClassifier.kt}}
+\label{app:dpi}
+
+The DPI-Lite classifier categorizes traffic based on destination port heuristics.
+
+\begin{lstlisting}[language=Java, caption={DpiClassifier.kt --- Port-based traffic classifier}, label={lst:dpi}]
+package com.qos.scheduler.classifier
+
+import com.qos.scheduler.model.Protocol
+import com.qos.scheduler.model.RawPacket
+import com.qos.scheduler.model.TrafficCategory
+
+class DpiClassifier {
+    fun classify(packet: RawPacket): TrafficCategory {
+        val port = packet.dstPort
+        val protocol = packet.protocol
+
+        // VoIP / Real-time (High Priority)
+        if (protocol == Protocol.UDP) {
+            if (port in 5060..5061
+                || port in 10000..20000)
+                return TrafficCategory.VOIP
+        }
+
+        // Gaming (High Priority)
+        val gamingPorts = listOf(
+            27015, 27016, 5000, 5500, 8001, 8002)
+        if (gamingPorts.contains(port))
+            return TrafficCategory.ONLINE_GAMING
+
+        // DNS
+        if (port == 53)
+            return TrafficCategory.WEB_BROWSING
+
+        // Video Streaming
+        if (port == 1935 || port == 8080)
+            return TrafficCategory.STREAMING
+
+        // Web / Social
+        if (port == 80 || port == 443)
+            return TrafficCategory.WEB_BROWSING
+
+        // Downloads (Low Priority)
+        val dlPorts = listOf(21, 22, 143, 993, 110, 995)
+        if (dlPorts.contains(port))
+            return TrafficCategory.FILE_TRANSFER
+
+        return TrafficCategory.UNKNOWN
+    }
+}
+\end{lstlisting}
+
+% -----------------------------------------------------------
+
+\section{Data Plane Processor --- \texttt{DataPlaneProcessor.kt}}
+\label{app:dataplane}
+
+The Data Plane Processor orchestrates the entire per-packet pipeline: parsing, UID resolution, classification, and scheduling decisions.
+
+\begin{lstlisting}[language=Java, caption={DataPlaneProcessor.kt --- Pipeline orchestrator}, label={lst:dataplane}]
+package com.qos.scheduler.service.dataplane
+
+import com.qos.scheduler.classifier.DpiClassifier
+import com.qos.scheduler.model.*
+import com.qos.scheduler.scheduler.BandwidthScheduler
+import com.qos.scheduler.util.AppResolver
+import java.util.concurrent.ConcurrentHashMap
+
+class DataPlaneProcessor(
+    private val classifier: DpiClassifier,
+    private val scheduler: BandwidthScheduler,
+    private val appResolver: AppResolver,
+    private val appTraffic:
+        ConcurrentHashMap<Int, AppTraffic>,
+    private val hostBucketKey: String
+) {
+    companion object {
+        private val flowCache =
+            ConcurrentHashMap<FlowKey, Int>()
+    }
+
+    data class Result(
+        val parsed: Boolean,
+        val droppedByScheduler: Boolean,
+        val qosKey: String,
+        val packet: RawPacket? = null
+    )
+
+    fun process(
+        bytes: ByteArray, length: Int, isOutbound: Boolean
+    ): Result {
+        val pkt = RawPacket.parse(bytes, length)
+            ?: return Result(false, false, hostBucketKey)
+
+        val flowKey = if (isOutbound)
+            FlowKey(pkt.srcIp, pkt.dstIp,
+                pkt.srcPort, pkt.dstPort, pkt.protocol)
+        else
+            FlowKey(pkt.dstIp, pkt.srcIp,
+                pkt.dstPort, pkt.srcPort, pkt.protocol)
+
+        // STEP 1: UID Resolution (~1ms syscall)
+        var uid = flowCache[flowKey]
+        if (uid == null) {
+            val pNum = if (pkt.protocol == Protocol.TCP)
+                6 else 17
+            val resolved = if (isOutbound)
+                appResolver.getUidForConnection(pNum,
+                    pkt.srcIp, pkt.srcPort,
+                    pkt.dstIp, pkt.dstPort)
+            else appResolver.getUidForConnection(pNum,
+                    pkt.dstIp, pkt.dstPort,
+                    pkt.srcIp, pkt.srcPort)
+
+            if (resolved != null && resolved > 0) {
+                flowCache[flowKey] = resolved
+                uid = resolved
+                // Retroactive migration of synthetic
+                // port buckets occurs here (omitted
+                // for brevity)
+            }
+        }
+
+        // STEP 2: Classify & Track
+        val cat = classifier.classify(pkt)
+        var sKey = hostBucketKey
+        if (uid != null && uid > 0) {
+            val app = appTraffic.getOrPut(uid) {
+                val info = appResolver.getAppInfo(uid)
+                AppTraffic(uid, info.appName,
+                    info.packageName, TrafficClass.MEDIUM)
+            }
+            sKey = BandwidthScheduler.appBucketKey(uid)
+            if (isOutbound) app.bytesOut += length
+            else app.bytesIn += length
+            scheduler.ensureBucket(sKey, app.priorityClass)
+        }
+
+        // STEP 3: Scheduler Decision
+        val allowed = if (isOutbound)
+            scheduler.processPacket(sKey, length) else true
+
+        return Result(true, !allowed, sKey, pkt)
+    }
+}
+\end{lstlisting}

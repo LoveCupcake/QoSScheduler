@@ -1,0 +1,392 @@
+% ============================================================
+% CHAPTER 3: THEORETICAL FOUNDATION
+% ============================================================
+
+\chapter{THEORETICAL FOUNDATION}
+\label{chap:theory}
+
+This chapter presents the theoretical background underpinning the design and implementation of the QoS Scheduler system. It covers the relevant network protocols, QoS algorithms, and Android platform technologies.
+
+\section{The TCP/IP Layered Model}
+\label{sec:tcpip_model}
+
+The Internet Protocol Suite (TCP/IP model) organizes network communication into four abstraction layers, each with distinct responsibilities \cite{tanenbaum2021}:
+
+\begin{enumerate}
+    \item \textbf{Link Layer:} Handles physical transmission of frames over a single network segment (e.g., Ethernet, WiFi 802.11).
+    \item \textbf{Network Layer (Layer 3):} Responsible for routing packets from source to destination across intermediate routers. The Internet Protocol (IP) operates at this layer.
+    \item \textbf{Transport Layer (Layer 4):} Provides end-to-end communication channels between applications. TCP and UDP operate at this layer.
+    \item \textbf{Application Layer:} Encompasses application-specific protocols such as HTTP, DNS, and SMTP.
+\end{enumerate}
+
+The QoS Scheduler system operates primarily at \textbf{Layers 3 and 4}. It intercepts IP packets through a TUN virtual interface at Layer 3, extracts transport-layer (Layer 4) header information to identify flows and applications, and applies scheduling decisions before forwarding packets to the real network.
+
+% -----------------------------------------------------------
+
+\section{Internet Protocol version 4 (IPv4) --- RFC 791}
+\label{sec:ipv4}
+
+IPv4 \cite{rfc791} is the fourth version of the Internet Protocol and remains the dominant protocol for routing packets across the Internet. Each IPv4 packet begins with a header of at least 20 bytes.
+
+\subsection{IPv4 Header Structure}
+
+The IPv4 header format is defined as follows:
+
+\begin{verbatim}
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|Version|  IHL  |    DSCP   |ECN|         Total Length          |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|         Identification        |Flags|     Fragment Offset     |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|  Time to Live |    Protocol   |        Header Checksum        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                       Source IP Address                       |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                    Destination IP Address                     |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+\end{verbatim}
+
+The fields relevant to this project are:
+
+\begin{itemize}
+    \item \textbf{Version (4 bits):} Identifies the IP version. Value is 4 for IPv4 or 6 for IPv6. In the implementation, this is extracted via bit-shifting: \texttt{(byte[0] >> 4)}.
+    
+    \item \textbf{IHL --- Internet Header Length (4 bits):} Specifies the header length in 32-bit words. The minimum value is 5 (corresponding to 20 bytes). The conversion formula is: $\text{Header Length (bytes)} = \text{IHL} \times 4$. This value is critical as it determines the byte offset where the TCP/UDP header begins.
+    
+    \item \textbf{Protocol (8 bits, byte offset 9):} Identifies the upper-layer protocol encapsulated within the IP packet. A value of 6 indicates TCP, and 17 indicates UDP. The system uses this field to determine whether to route the packet to the TCP or UDP relay module.
+    
+    \item \textbf{Source IP Address (32 bits, bytes 12--15):} The sender's IP address. The system reads these 4 bytes and converts them to dotted-decimal notation using the bitmask \texttt{AND 0xFF} to handle Java/Kotlin's signed byte type.
+    
+    \item \textbf{Destination IP Address (32 bits, bytes 16--19):} The recipient's IP address, processed identically to the source address.
+\end{itemize}
+
+\subsection{Bitwise Operations in Packet Parsing}
+\label{sec:bitwise}
+
+Low-level network programming requires bitwise operations because header fields do not align with byte boundaries. For example, the first byte of an IPv4 header encodes both the Version (upper 4 bits) and IHL (lower 4 bits):
+
+\begin{verbatim}
+Byte[0] = 0x45 = 0100 0101 (binary)
+           ^^^^------------ Version = 4 (IPv4)
+                ^^^^-------- IHL = 5 (Header is 20 bytes)
+\end{verbatim}
+
+The bitwise operations used throughout the implementation are:
+
+\begin{itemize}
+    \item \texttt{AND 0xFF}: Converts a signed byte ($-128$ to $127$) to an unsigned value ($0$ to $255$). This is necessary because Java/Kotlin uses signed byte types.
+    \item \texttt{SHR 4} (Shift Right 4): Extracts the upper 4 bits (Version field).
+    \item \texttt{AND 0x0F}: Extracts the lower 4 bits (IHL field).
+    \item \texttt{SHL 8 OR byte2}: Combines two bytes into a 16-bit value (used when reading port numbers).
+\end{itemize}
+
+% -----------------------------------------------------------
+
+\section{Internet Protocol version 6 (IPv6) --- RFC 8200}
+\label{sec:ipv6}
+
+IPv6 \cite{rfc8200} was designed to address the exhaustion of the IPv4 address space and introduces a simplified, fixed-length header structure.
+
+\subsection{IPv6 Fixed Header (40 Bytes)}
+
+Unlike IPv4, the IPv6 header has a \textbf{fixed length of 40 bytes} with no variable-length options in the base header:
+
+\begin{verbatim}
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|Version| Traffic Class |           Flow Label                  |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|         Payload Length        |  Next Header  |   Hop Limit   |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                                                               |
++                     Source Address (128 bits)                  +
+|                                                               |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                                                               |
++                  Destination Address (128 bits)                +
+|                                                               |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+\end{verbatim}
+
+Key differences from IPv4: there is no IHL field (the header is always 40 bytes), and the \textbf{Next Header} field (byte 6) replaces IPv4's Protocol field, serving as a chain link to extension headers or the upper-layer protocol.
+
+\subsection{Extension Header Chaining}
+
+IPv6 uses a mechanism called \textit{Extension Header Chaining} to handle optional functionality. According to RFC 8200:
+
+\begin{quote}
+``Extension headers are not examined or processed by any node along a packet's delivery path, until the packet reaches the node identified in the Destination Address field.''
+\end{quote}
+
+The \textbf{Next Header} field links headers in a chain. If Next Header = 6 (TCP), the transport header begins immediately after the 40-byte fixed header. If Next Header = 0 (Hop-by-Hop Options), the system must traverse that extension header before locating the TCP/UDP header.
+
+\begin{table}[H]
+\centering
+\caption{Common IPv6 Next Header values}
+\label{tab:nextheader}
+\begin{tabular}{@{}clc@{}}
+\toprule
+\textbf{Value} & \textbf{Header Type} & \textbf{Length} \\
+\midrule
+0  & Hop-by-Hop Options    & $(HdrExtLen \times 8) + 8$ bytes \\
+6  & TCP                    & Variable (Data Offset) \\
+17 & UDP                    & 8 bytes (fixed) \\
+43 & Routing Header         & $(HdrExtLen \times 8) + 8$ bytes \\
+44 & Fragment Header        & 8 bytes (fixed) \\
+58 & ICMPv6                 & Variable \\
+60 & Destination Options    & $(HdrExtLen \times 8) + 8$ bytes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The general formula for computing extension header length is:
+
+\begin{equation}
+\text{Extension Length (bytes)} = (\text{HdrExtLen} \times 8) + 8
+\label{eq:ext_header_len}
+\end{equation}
+
+\noindent The Fragment Header is an exception: it always has a fixed length of 8 bytes and does not contain a HdrExtLen field.
+
+% -----------------------------------------------------------
+
+\section{Transmission Control Protocol (TCP) --- RFC 9293}
+\label{sec:tcp}
+
+TCP \cite{rfc9293} is a connection-oriented, reliable transport protocol that provides ordered, error-checked delivery of a byte stream between applications.
+
+\subsection{TCP Header Structure}
+
+\begin{verbatim}
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|          Source Port          |       Destination Port        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                        Sequence Number                        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                    Acknowledgment Number                      |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|  Data |           |U|A|P|R|S|F|                               |
+| Offset| Reserved  |R|C|S|S|Y|I|            Window             |
+|       |           |G|K|H|T|N|N|                               |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|           Checksum            |         Urgent Pointer        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+\end{verbatim}
+
+The fields used by the QoS Scheduler are:
+
+\begin{itemize}
+    \item \textbf{Source/Destination Port (16 bits each):} Identify the sending and receiving applications. These are read from the first 4 bytes after the IP header.
+    
+    \item \textbf{Sequence Number (32 bits):} The byte offset of the first data byte in this segment. The \texttt{TcpRelayManager} must maintain accurate sequence numbers for each connection to avoid ``TCP Out of Order'' errors.
+    
+    \item \textbf{Acknowledgment Number (32 bits):} The next sequence number the sender expects to receive, confirming receipt of prior data.
+    
+    \item \textbf{Data Offset (4 bits):} The TCP header length in 32-bit words. Extracted as: $(\texttt{byte[12]} >> 4) \times 4$.
+    
+    \item \textbf{Control Flags (6 bits):} Manage the TCP connection lifecycle:
+    \begin{itemize}
+        \item \textbf{SYN} (bit 1): Initiates a new connection.
+        \item \textbf{ACK} (bit 4): Acknowledges received data.
+        \item \textbf{FIN} (bit 0): Requests connection termination.
+        \item \textbf{RST} (bit 2): Abruptly resets the connection.
+        \item \textbf{PSH} (bit 3): Requests immediate delivery to the application layer.
+    \end{itemize}
+    
+    \item \textbf{Window Size (16 bits):} The receive window size. The system reads this field to implement backpressure mechanisms.
+\end{itemize}
+
+\subsection{Three-Way Handshake}
+
+TCP establishes connections through a three-way handshake, which the \texttt{TcpRelayManager} must emulate:
+
+\begin{enumerate}
+    \item \textbf{SYN:} The client sends a segment with SYN=1 and an Initial Sequence Number (ISN).
+    \item \textbf{SYN-ACK:} The server responds with SYN=1, ACK=1, its own ISN, and Acknowledgment = client ISN + 1.
+    \item \textbf{ACK:} The client sends ACK=1, confirming the connection.
+\end{enumerate}
+
+After step 3, the connection transitions to the ESTABLISHED state and data transmission begins. The relay module intercepts the client's SYN, immediately responds with a synthetic SYN-ACK, and asynchronously opens a real connection to the destination server.
+
+% -----------------------------------------------------------
+
+\section{User Datagram Protocol (UDP) --- RFC 768}
+\label{sec:udp}
+
+UDP \cite{rfc768} is a minimal, connectionless transport protocol that provides no guarantees of delivery, ordering, or duplicate protection. Its simplicity results in lower latency compared to TCP, making it the preferred protocol for real-time applications such as VoIP, online gaming, and DNS queries.
+
+\subsection{UDP Header Structure}
+
+The UDP header is a fixed 8 bytes:
+
+\begin{verbatim}
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|          Source Port          |       Destination Port        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|            Length             |           Checksum            |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+\end{verbatim}
+
+The QoS Scheduler extracts Source Port and Destination Port for flow identification and traffic classification. Unlike TCP, UDP has no connection state, so the relay module handles each datagram independently.
+
+% -----------------------------------------------------------
+
+\section{Internet Checksum Algorithm --- RFC 1071}
+\label{sec:checksum}
+
+The Internet Checksum \cite{rfc1071} is used to verify the integrity of IP headers and TCP/UDP segments. As stated in RFC 1071:
+
+\begin{quote}
+``The checksum algorithm is simply to form the one's complement sum of the data, and then take the one's complement of the result.''
+\end{quote}
+
+\subsection{Computation Steps}
+
+\begin{enumerate}
+    \item Divide the data to be checksummed into 16-bit (2-byte) words.
+    \item Compute the running sum of all words using a 32-bit accumulator.
+    \item Fold any carry bits back into the lower 16 bits:
+    \begin{equation}
+    \text{while } (\text{sum} >> 16 \neq 0): \quad \text{sum} = (\text{sum} \mathbin{\&} \text{0xFFFF}) + (\text{sum} >> 16)
+    \end{equation}
+    \item Take the bitwise NOT (one's complement) of the result.
+\end{enumerate}
+
+\subsection{Pseudo-Header for TCP/UDP Checksum}
+
+When computing the checksum for TCP or UDP, a \textit{pseudo-header} is prepended to the calculation. This pseudo-header includes: Source IP (4 bytes), Destination IP (4 bytes), a zero byte, Protocol number (1 byte), and TCP/UDP segment length (2 bytes). The purpose is to ensure that packets cannot be delivered to the wrong destination due to IP header corruption.
+
+% -----------------------------------------------------------
+
+\section{Token Bucket Algorithm}
+\label{sec:token_bucket}
+
+The Token Bucket algorithm is a rate-limiting mechanism widely deployed in network routers and firewalls \cite{peterson2011computer}. The core idea is that each packet must ``pay'' tokens to pass through. Tokens are replenished at a fixed rate.
+
+\subsection{Mathematical Formulation}
+
+The number of available tokens at time $t$ is given by:
+
+\begin{equation}
+T(t) = \min\Big(C,\ T(t_{\text{prev}}) + (t - t_{\text{prev}}) \times R\Big)
+\label{eq:token_bucket}
+\end{equation}
+
+\noindent where:
+\begin{itemize}
+    \item $C$: Maximum bucket capacity (burst size) in bytes.
+    \item $R$: Token replenishment rate in bytes per second.
+    \item $T(t_{\text{prev}})$: Remaining tokens at the previous time instant.
+\end{itemize}
+
+The admission decision for a packet of size $S$ is:
+
+\begin{equation}
+\text{Decision} = \begin{cases}
+\text{ALLOW}, \quad T(t) \leftarrow T(t) - S & \text{if } T(t) \geq S \\
+\text{DROP} & \text{if } T(t) < S
+\end{cases}
+\label{eq:token_decision}
+\end{equation}
+
+\subsection{Properties}
+
+\begin{itemize}
+    \item \textbf{Burst tolerance:} The bucket capacity $C$ allows short bursts of traffic up to $C$ bytes, accommodating the bursty nature of real application traffic.
+    \item \textbf{Long-term rate enforcement:} The replenishment rate $R$ controls the average long-term throughput.
+    \item \textbf{$O(1)$ per-packet complexity:} Each admission decision requires only a subtraction and comparison, making it suitable for real-time packet processing.
+\end{itemize}
+
+% -----------------------------------------------------------
+
+\section{Weighted Fair Queuing (WFQ)}
+\label{sec:wfq}
+
+Weighted Fair Queuing \cite{demers1989analysis} allocates bandwidth among competing flows proportionally to their assigned weights. Flows with higher weights receive a larger share of the available bandwidth.
+
+\subsection{Bandwidth Allocation Formula}
+
+The allocated bandwidth for flow $i$ is:
+
+\begin{equation}
+B_i = R_{\text{total}} \times \frac{W_i}{\displaystyle\sum_{j=1}^{n} W_j}
+\label{eq:wfq}
+\end{equation}
+
+\noindent where $R_{\text{total}}$ is the total available uplink bandwidth and $W_i$ is the weight assigned to flow $i$.
+
+In the QoS Scheduler, weight values are defined by priority class:
+
+\begin{itemize}
+    \item \textbf{HIGH} priority (gaming, VoIP): $W = 4$
+    \item \textbf{MEDIUM} priority (web browsing): $W = 2$
+    \item \textbf{LOW} priority (background downloads): $W = 1$
+\end{itemize}
+
+\subsection{Illustrative Example}
+
+Consider a total uplink bandwidth of $R_{\text{total}} = 10$ Mbps with one HIGH-priority application and one LOW-priority application:
+
+\begin{align}
+B_{\text{HIGH}} &= 10 \times \frac{4}{4 + 1} = 8 \text{ Mbps} \\
+B_{\text{LOW}} &= 10 \times \frac{1}{4 + 1} = 2 \text{ Mbps}
+\end{align}
+
+The HIGH-priority application receives four times the bandwidth of the LOW-priority application, reflecting the 4:1 weight ratio.
+
+% -----------------------------------------------------------
+
+\section{Android VPN Technology}
+\label{sec:vpn_technology}
+
+\subsection{VpnService API}
+
+Android provides the \texttt{VpnService} class \cite{android_vpnservice} that allows applications to create a virtual network interface (TUN interface) without requiring Root privileges. The TUN interface operates at Layer 3 (IP), enabling the application to:
+
+\begin{itemize}
+    \item Intercept all outbound IP packets from the device.
+    \item Read, parse, and analyze packet contents.
+    \item Make forwarding, modification, or drop decisions for each packet.
+\end{itemize}
+
+\subsection{Socket Protection}
+
+According to the Android Developer Documentation:
+
+\begin{quote}
+``The protect(Socket) method protects a socket from VPN routing. After a socket is protected, its outgoing packets will be sent directly through one of the physical interfaces instead of through the VPN.''
+\end{quote}
+
+This mechanism is essential to prevent an \textbf{Infinite Routing Loop}: when the VPN needs to forward a packet to the Internet, it opens a real socket. If this socket is not protected, outbound packets from the socket would be captured by the VPN again, creating an infinite loop that causes complete network failure. The \texttt{protect()} call instructs the Linux kernel to exempt the socket from VPN routing rules.
+
+\subsection{Application Identification via UID Resolution}
+\label{sec:uid_resolution}
+
+Android provides the API \texttt{ConnectivityManager.getConnectionOwnerUid()} (available from Android 10, API Level 29) \cite{android_connectivity} that identifies the UID (User Identifier) of the application owning a network connection based on 5-tuple information (Protocol, Source IP, Source Port, Destination IP, Destination Port). This is the foundational API that enables per-application QoS enforcement.
+
+% -----------------------------------------------------------
+
+\section{Deep Packet Inspection (DPI)}
+\label{sec:dpi}
+
+Deep Packet Inspection (DPI) is a technique for analyzing packet contents to classify the type of application or service generating the traffic. In the scope of this project, DPI is implemented in a ``DPI-Lite'' form --- classification based on destination port number heuristics:
+
+\begin{itemize}
+    \item Port 53: DNS
+    \item Ports 80, 443: Web/HTTPS
+    \item Ports 5060--5061: VoIP (SIP protocol)
+    \item Ports 27015--27016: Gaming (Steam servers)
+    \item Ports 10000--20000 (UDP): VoIP/Real-time media
+\end{itemize}
+
+While this approach is less accurate than full DPI or machine learning classification, it provides adequate accuracy for the primary use cases (distinguishing gaming, VoIP, web browsing, and bulk downloads) with negligible computational overhead --- a critical requirement for real-time processing on mobile devices.
+
+% -----------------------------------------------------------
+
+\section{Chapter Summary}
+\label{sec:ch3_summary}
+
+This chapter established the theoretical foundations required for the QoS Scheduler system. The key protocols (IPv4, IPv6, TCP, UDP) and their header structures were presented in detail, as they form the basis of the packet parsing module. The Token Bucket and WFQ algorithms provide the mathematical framework for bandwidth scheduling. Finally, the Android VpnService API and associated mechanisms (Socket Protection, UID Resolution) provide the platform-specific capabilities that make the non-Root QoS approach technically feasible.

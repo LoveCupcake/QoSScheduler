@@ -1,0 +1,242 @@
+% ============================================================
+% APPENDIX B: PACKET COMPOSER AND USER GUIDE
+% ============================================================
+
+\chapter{PACKET COMPOSER AND USER GUIDE}
+\label{app:composer_guide}
+
+\section{Packet Composer --- \texttt{PacketComposer.kt}}
+\label{app:packetcomposer}
+
+The \texttt{PacketComposer} module synthesizes valid IP packets for injection back into the TUN interface. It implements the RFC 1071 Internet Checksum algorithm with pseudo-header support for both IPv4 and IPv6.
+
+\begin{lstlisting}[language=Java, caption={PacketComposer.kt --- IPv4 TCP packet synthesis}, label={lst:composer_tcp}]
+object PacketComposer {
+
+    fun composeTcpV4(
+        srcIp: String, srcPort: Int,
+        dstIp: String, dstPort: Int,
+        sequenceNumber: Long, ackNumber: Long,
+        flags: TcpControlFlags,
+        windowSize: Int = 65535,
+        payload: ByteArray = byteArrayOf()
+    ): ByteArray {
+        val tcpHL = 20
+        val totalLength = 20 + tcpHL + payload.size
+        val buf = ByteBuffer.allocate(totalLength)
+
+        // --- IPv4 Header (20 bytes) ---
+        buf.put(0, (0x45).toByte()) // Ver=4, IHL=5
+        buf.put(1, 0)              // DSCP + ECN
+        buf.putShort(2, totalLength.toShort())
+        buf.putShort(4, (Math.random() * 65535)
+            .toInt().toShort())     // Random ID
+        buf.putShort(6, 0)         // Flags + Frag
+        buf.put(8, 64)             // TTL = 64
+        buf.put(9, 6)              // Protocol = TCP
+        buf.putShort(10, 0)        // Checksum placeholder
+
+        val srcBytes = ipToBytes(srcIp)
+        val dstBytes = ipToBytes(dstIp)
+        buf.position(12); buf.put(srcBytes)
+        buf.put(dstBytes)
+        buf.putShort(10, computeIpChecksum(buf, 0, 20))
+
+        // --- TCP Header (20 bytes) ---
+        val tcpStart = 20
+        buf.position(tcpStart)
+        buf.putShort(srcPort.toShort())
+        buf.putShort(dstPort.toShort())
+        buf.putInt(sequenceNumber.toInt())
+        buf.putInt(ackNumber.toInt())
+
+        var flagsBits = (tcpHL / 4) shl 12
+        if (flags.fin) flagsBits = flagsBits or 0x01
+        if (flags.syn) flagsBits = flagsBits or 0x02
+        if (flags.rst) flagsBits = flagsBits or 0x04
+        if (flags.psh) flagsBits = flagsBits or 0x08
+        if (flags.ack) flagsBits = flagsBits or 0x10
+        buf.putShort(flagsBits.toShort())
+        buf.putShort(windowSize.toShort())
+        buf.putShort(0) // TCP Checksum placeholder
+        buf.putShort(0) // Urgent pointer
+
+        if (payload.isNotEmpty()) {
+            buf.position(tcpStart + tcpHL)
+            buf.put(payload)
+        }
+
+        // --- TCP Checksum with Pseudo-header ---
+        val chk = computeTcpChecksum(buf, tcpStart,
+            tcpHL + payload.size, srcBytes, dstBytes)
+        buf.putShort(tcpStart + 16, chk)
+
+        return buf.array()
+    }
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=Java, caption={Internet Checksum (RFC 1071) implementation}, label={lst:checksum}]
+// IP Header Checksum
+private fun computeIpChecksum(
+    buffer: ByteBuffer, offset: Int, length: Int
+): Short {
+    var sum = 0L
+    for (i in 0 until length / 2) {
+        sum += (buffer.getShort(offset + i * 2)
+            .toInt() and 0xFFFF).toLong()
+    }
+    while (sum shr 16 != 0L) {
+        sum = (sum and 0xFFFF) + (sum shr 16)
+    }
+    return (sum.inv() and 0xFFFF).toShort()
+}
+
+// TCP Checksum with Pseudo-header
+private fun computeTcpChecksum(
+    buffer: ByteBuffer, tcpOffset: Int,
+    tcpLength: Int,
+    srcIp: ByteArray, dstIp: ByteArray
+): Short {
+    var sum = 0L
+    // Pseudo-header: src IP + dst IP
+    if (srcIp.size == 4) {
+        sum += ((srcIp[0].toInt() and 0xFF) shl 8
+            or (srcIp[1].toInt() and 0xFF)).toLong()
+        sum += ((srcIp[2].toInt() and 0xFF) shl 8
+            or (srcIp[3].toInt() and 0xFF)).toLong()
+        sum += ((dstIp[0].toInt() and 0xFF) shl 8
+            or (dstIp[1].toInt() and 0xFF)).toLong()
+        sum += ((dstIp[2].toInt() and 0xFF) shl 8
+            or (dstIp[3].toInt() and 0xFF)).toLong()
+    }
+    sum += 6L           // Protocol: TCP
+    sum += tcpLength.toLong()
+
+    // TCP Header + Payload
+    for (i in 0 until tcpLength / 2) {
+        sum += (buffer.getShort(tcpOffset + i * 2)
+            .toInt() and 0xFFFF).toLong()
+    }
+    if (tcpLength % 2 != 0) {
+        sum += ((buffer.get(tcpOffset + tcpLength - 1)
+            .toInt() and 0xFF) shl 8).toLong()
+    }
+    // Fold carries
+    while (sum shr 16 != 0L) {
+        sum = (sum and 0xFFFF) + (sum shr 16)
+    }
+    val result = (sum.inv() and 0xFFFF).toShort()
+    return if (result == (0).toShort())
+        (0xFFFF).toShort() else result
+}
+\end{lstlisting}
+
+% -----------------------------------------------------------
+
+\section{Application User Guide}
+\label{app:user_guide}
+
+This section provides a step-by-step guide for installing and using the QoS Scheduler application.
+
+\subsection{System Requirements}
+
+\begin{itemize}
+    \item Android 10 (API Level 29) or higher.
+    \item No Root access required.
+    \item At least 100 MB of free storage.
+    \item Active WiFi or mobile data connection.
+\end{itemize}
+
+\subsection{Installation}
+
+\begin{enumerate}
+    \item Open the project in Android Studio.
+    \item Connect the target Android device via USB with USB Debugging enabled.
+    \item Select the device in the toolbar and click \textbf{Run} (Shift+F10).
+    \item Alternatively, generate a signed APK via \textbf{Build $\rightarrow$ Generate Signed Bundle / APK} and install it manually on the device.
+\end{enumerate}
+
+\subsection{First Launch}
+
+\begin{enumerate}
+    \item Open the \textbf{QoS Scheduler} application.
+    \item The system will request VPN permission: \textit{``QoS Scheduler wants to set up a VPN connection''}. Tap \textbf{OK} to grant permission.
+    \item The Dashboard screen will appear, showing:
+    \begin{itemize}
+        \item VPN connection status indicator.
+        \item Real-time uplink/downlink throughput display.
+        \item List of detected applications and their traffic statistics.
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Configuring QoS Policies}
+
+\subsubsection{Setting Application Priority}
+
+\begin{enumerate}
+    \item Tap on any application in the traffic list.
+    \item Select the desired priority level:
+    \begin{itemize}
+        \item \textbf{HIGH} (Weight = 4): For latency-sensitive apps (gaming, video calls).
+        \item \textbf{MEDIUM} (Weight = 2): Default for general use (web browsing).
+        \item \textbf{LOW} (Weight = 1): For background tasks (downloads, sync).
+    \end{itemize}
+    \item The change takes effect immediately --- no VPN restart required.
+\end{enumerate}
+
+\subsubsection{Setting Manual Bandwidth Caps}
+
+\begin{enumerate}
+    \item Tap on an application in the traffic list.
+    \item Enter a manual bandwidth limit in Mbps (e.g., \texttt{1.0} for 1 Mbps).
+    \item The Token Bucket for that application is immediately reconfigured.
+    \item To remove the cap, set it to \texttt{0} or delete the value.
+\end{enumerate}
+
+\subsubsection{Configuring Total Uplink Bandwidth}
+
+\begin{enumerate}
+    \item Navigate to \textbf{Settings} via the gear icon.
+    \item Enter the estimated total uplink bandwidth in Mbps.
+    \item This value is used as $R_{\text{total}}$ in the WFQ formula (Equation~\ref{eq:wfq}) to calculate per-application allocations.
+\end{enumerate}
+
+\subsection{Monitoring}
+
+The Dashboard provides real-time information:
+
+\begin{itemize}
+    \item \textbf{Per-Application Statistics:} Bytes sent/received, active flow count, current throughput.
+    \item \textbf{QoS Metrics:} Allowed packets vs. dropped packets per application, indicating how aggressively the Token Bucket is throttling each app.
+    \item \textbf{System Status:} VPN uptime, total processed packets, relay health indicators.
+\end{itemize}
+
+\subsection{Stopping the Service}
+
+\begin{enumerate}
+    \item Tap the \textbf{Stop QoS} button on the Dashboard.
+    \item The VPN tunnel is torn down, the foreground notification is dismissed, and all network traffic returns to the default best-effort routing.
+    \item Alternatively, the service can be stopped from the Android system VPN settings.
+\end{enumerate}
+
+\subsection{Troubleshooting}
+
+\begin{table}[H]
+\centering
+\caption{Common issues and solutions}
+\label{tab:troubleshooting}
+\begin{tabular}{@{}p{4.5cm}p{8.5cm}@{}}
+\toprule
+\textbf{Issue} & \textbf{Solution} \\
+\midrule
+No Internet after enabling VPN & Ensure the device has an active network connection. Try disabling and re-enabling the VPN. Check that no other VPN application is running simultaneously. \\
+\addlinespace
+App not detected in traffic list & The app may not have generated any network traffic yet. Open the app and perform a network action (e.g., load a webpage). \\
+\addlinespace
+Battery drain & QoS processing requires continuous CPU usage. Consider setting the QoS uplink bandwidth to match your actual connection speed to reduce unnecessary processing. \\
+\addlinespace
+MIUI SecurityException & On Xiaomi devices, go to \textbf{Settings $\rightarrow$ Apps $\rightarrow$ QoS Scheduler $\rightarrow$ Permissions} and ensure all network-related permissions are granted. \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,165 @@
+% ============================================================
+% CHAPTER 1: INTRODUCTION
+% ============================================================
+
+\chapter{INTRODUCTION}
+\label{chap:introduction}
+
+\section{Problem Statement and Motivation}
+\label{sec:problem_statement}
+
+Over the past decade, smartphones have become the primary Internet-connected devices for billions of users worldwide. According to the Ericsson Mobility Report 2024, global mobile data traffic has reached an average of 17 GB per user per month and is projected to triple by 2029 \cite{ericsson2024}. This surge is driven by the proliferation of bandwidth-intensive applications such as video streaming (YouTube, Netflix), video conferencing (Zoom, Google Meet), online gaming (Mobile Legends, PUBG Mobile), and social media (TikTok, Facebook).
+
+Each of the aforementioned applications has distinct network Quality of Service (QoS) requirements. Online gaming demands ultra-low latency --- below 50 milliseconds --- with stable jitter. Video streaming requires sustained bandwidth at 5--8 Mbps for HD quality. Meanwhile, background activities such as downloading updates or cloud synchronization can tolerate lower speeds without degrading the user experience.
+
+However, the Android operating system --- commanding over 72\% of the global mobile market share according to StatCounter (2024) \cite{statcounter2024} --- does not provide per-application bandwidth scheduling mechanisms for ordinary users. Android's network stack employs a default ``best-effort'' policy: all applications receive equal treatment in terms of network resource access. This leads to a common scenario: when a single application consumes the entire available bandwidth through a large download, latency-sensitive applications (such as games or video calls) suffer severe performance degradation --- a phenomenon known as \textit{Bufferbloat} \cite{gettys2012bufferbloat}.
+
+Existing solutions on Android can be categorized into two main groups. The first group consists of applications that require Root access (e.g., AFWall+ \cite{afwall}, NetHogs \cite{nethogs}), which allow direct manipulation of iptables within the Linux kernel but are impractical for the vast majority of users due to warranty violations and potential security risks. The second group comprises non-Root firewall applications (e.g., NetGuard \cite{netguard}, GlassWire \cite{glasswire}), which utilize the VpnService API but only provide allow/deny functionality \textbf{without the ability to schedule bandwidth according to priority levels}.
+
+This technical gap is the primary motivation for this thesis: to build a system capable of \textbf{intervening at the network layer (Layer 3) to perform per-application QoS scheduling without requiring Root access} on Android devices.
+
+% -----------------------------------------------------------
+
+\section{Research Evolution: From Hotspot QoS to Per-Application QoS}
+\label{sec:research_evolution}
+
+It is important to document that the scope of this thesis underwent a significant and deliberate evolution during the early research phase. The \textbf{original research goal} was to build a QoS scheduling system for \textit{devices connected to the host phone's WiFi Hotspot} --- i.e., per-device bandwidth management in a mobile hotspot environment. The envisioned scenario was a user sharing their mobile data via WiFi Hotspot (e.g., in a dormitory, small office, or public setting) and wanting to control how much bandwidth each connected device could consume.
+
+However, a thorough feasibility analysis during the preliminary research phase revealed that \textbf{per-device hotspot QoS is technically infeasible on unrooted Android devices}, due to the following fundamental platform limitations:
+
+\begin{enumerate}
+    \item \textbf{VPN tunnel does not capture hotspot traffic:} The Android VpnService API creates a TUN interface that intercepts traffic originating from the \textit{host device's own network stack}. Traffic forwarded between the hotspot interface (\texttt{ap0} or \texttt{swlan0}) and the upstream WAN interface is handled by the Linux kernel's IP forwarding subsystem (\texttt{netfilter/iptables}). This forwarded traffic \textbf{does not pass through the TUN interface} on most Android versions and devices, making it invisible to a VpnService-based application.
+
+    \item \textbf{No per-application visibility on connected devices:} Even on Android versions where hotspot traffic does traverse the VPN tunnel, the host device can only observe the \textit{source IP address} of the connected device (e.g., \texttt{192.168.43.x}). It has \textbf{no mechanism to identify which application} on the connected device generated the traffic, since the \texttt{ConnectivityManager.getConnectionOwnerUid()} API only resolves UIDs for locally-owned connections.
+
+    \item \textbf{Device identification requires Root:} Reliable identification of connected devices via MAC address requires reading the kernel's ARP table (\texttt{/proc/net/arp}), which is accessible without Root but produces unreliable results on newer Android versions due to MAC address randomization. Furthermore, associating traffic flows with specific client devices across NAT boundaries requires kernel-level hooks unavailable in userspace.
+
+    \item \textbf{Inconsistent behavior across ROMs and versions:} Testing revealed that hotspot traffic routing through VPN varies significantly across Android versions (10--14), manufacturers (Samsung, Xiaomi, Google), and custom ROMs (MIUI, OneUI). This inconsistency makes it impossible to build a reliable, universal solution.
+\end{enumerate}
+
+Based on this analysis, the research scope was \textbf{pivoted} from per-device hotspot QoS to \textbf{per-application QoS on the host device itself}. This pivot was a deliberate engineering decision driven by the following reasoning:
+
+\begin{itemize}
+    \item \textbf{Broader applicability:} Per-application QoS benefits \textit{every} Android user --- not just those who share their connection via Hotspot. Any user running multiple applications simultaneously (e.g., gaming while a background app downloads updates) can benefit from bandwidth prioritization.
+    
+    \item \textbf{Technical soundness:} The VpnService API provides complete and reliable access to all traffic from the host device's own applications, making per-application QoS technically robust and universally compatible across all Android 10+ devices.
+    
+    \item \textbf{Foundation for future extension:} The core QoS engine (Token Bucket, WFQ, packet parsing) built for per-application scheduling forms the architectural foundation upon which per-device hotspot QoS can be added in the future --- potentially on rooted devices or when Android introduces new APIs for hotspot traffic interception.
+\end{itemize}
+
+The remnants of the original hotspot vision are preserved in the codebase through the \texttt{HotspotManager} (hotspot detection and subnet identification) and \texttt{DeviceRegistry} (connected device tracking) modules, which remain functional and are documented in Chapter~5. These modules demonstrate the research effort invested in the original direction and provide a starting point for the hotspot QoS extension described in Chapter~7.
+
+% -----------------------------------------------------------
+
+\section{Research Objectives}
+\label{sec:research_objectives}
+
+This thesis establishes the following specific research objectives:
+
+\subsection{General Objective}
+To design and implement an Android application capable of scheduling network Quality of Service (QoS) on a per-application basis, operating at the network layer (Layer 3) through a virtual TUN interface without requiring Root privileges.
+
+\subsection{Specific Objectives}
+
+\begin{enumerate}[label=\textbf{SO\arabic*.}]
+    \item \textbf{Packet Interception and Analysis:} Build a module capable of intercepting 100\% of IP traffic traversing the device and accurately parsing IPv4, IPv6, TCP, and UDP header structures at the bit level using bitwise operations.
+    
+    \item \textbf{Application Identification:} Develop a mechanism to identify the application owning each network flow based on Android's UID (User Identifier), using 5-tuple information (Protocol, Source IP, Source Port, Destination IP, Destination Port).
+    
+    \item \textbf{Bandwidth Scheduling:} Implement the Token Bucket algorithm for rate limiting and Weighted Fair Queuing (WFQ) for priority-weighted bandwidth allocation across applications.
+    
+    \item \textbf{Data Relay:} Build a TCP and UDP Proxy/Relay system that transparently forwards data to the real Internet, invisible to the applications running on the device.
+    
+    \item \textbf{Experimental Validation:} Evaluate the system's effectiveness through testing scenarios using iPerf3, Wireshark, and internal diagnostic logging.
+\end{enumerate}
+
+% -----------------------------------------------------------
+
+\section{Research Scope}
+\label{sec:research_scope}
+
+\subsection{Research Subjects}
+\begin{itemize}
+    \item The networking management mechanisms of the Android operating system, specifically the VpnService API and the virtual TUN network interface.
+    \item IP packet structures (IPv4/IPv6), TCP and UDP as defined by their respective RFC standards.
+    \item Bandwidth scheduling algorithms: Token Bucket and Weighted Fair Queuing.
+    \item Network traffic classification techniques based on destination port and application UID.
+\end{itemize}
+
+\subsection{Scope Boundaries}
+\begin{itemize}
+    \item \textbf{Platform:} Android 10 (API Level 29) and above --- the minimum version supporting the \texttt{ConnectivityManager.getConnectionOwnerUid()} API.
+    \item \textbf{Network Layers:} Layer 3 (Network Layer) and Layer 4 (Transport Layer) of the OSI model.
+    \item \textbf{Protocols:} IPv4, IPv6, TCP, UDP.
+    \item \textbf{Programming Language:} Kotlin.
+    \item \textbf{Limitation:} This thesis focuses on outbound traffic from the device. Inbound traffic is handled indirectly through TCP's congestion feedback mechanism.
+\end{itemize}
+
+% -----------------------------------------------------------
+
+\section{Research Methodology}
+\label{sec:research_methodology}
+
+This thesis employs a combination of two primary research methods:
+
+\subsection{Theoretical Research}
+\begin{itemize}
+    \item Study of Internet standards (RFCs) related to IPv4 (RFC 791) \cite{rfc791}, IPv6 (RFC 8200) \cite{rfc8200}, TCP (RFC 9293) \cite{rfc9293}, UDP (RFC 768) \cite{rfc768}, and the Checksum computation algorithm (RFC 1071) \cite{rfc1071}.
+    \item Analysis of the Android operating system architecture and APIs, specifically VpnService \cite{android_vpnservice}, ConnectivityManager \cite{android_connectivity}, and the Socket Protection mechanism.
+    \item Comparative analysis of QoS scheduling algorithms: Token Bucket, Leaky Bucket, Weighted Fair Queuing, and Deficit Round Robin.
+\end{itemize}
+
+\subsection{Experimental Research}
+The experimental methodology applies a \textbf{``Triple-Lock Verification''} approach --- collecting data simultaneously from three independent sources to ensure objectivity:
+
+\begin{enumerate}
+    \item \textbf{Internal Application Logs} (Internal Diagnostic Logging): Recording QoS algorithm operational metrics within the application (actual throughput in Mbps, packet drop rate, number of processed packets).
+    
+    \item \textbf{End-to-End Measurement:} Using the iPerf3 tool \cite{iperf3} to measure throughput, latency, jitter, and packet loss from the end-user perspective.
+    
+    \item \textbf{Packet-level Analysis:} Using Wireshark \cite{wireshark} to capture and analyze packets at the protocol level, verifying changes in TCP Window Size, RTT, and retransmission rate when the QoS system is active.
+\end{enumerate}
+
+% -----------------------------------------------------------
+
+\section{Scientific and Practical Significance}
+\label{sec:significance}
+
+\subsection{Scientific Significance}
+\begin{itemize}
+    \item Demonstrates the feasibility of implementing enterprise-grade QoS algorithms (Token Bucket, WFQ) on Android mobile devices without kernel-level intervention (no Root access required).
+    \item Proposes the ``Triple-Lock Verification'' methodology for validating QoS system effectiveness on mobile platforms --- a methodology applicable to future similar research.
+    \item Analyzes and resolves Android-specific technical challenges: the Routing Loop problem, custom ROM compatibility (MIUI), and the Socket Protection mechanism throughout the VPN lifecycle.
+\end{itemize}
+
+\subsection{Practical Significance}
+\begin{itemize}
+    \item Provides a solution for ordinary Android users to control bandwidth allocation among applications: prioritizing games and video calls while throttling background downloads.
+    \item The application can be deployed in real-world scenarios: WiFi Hotspot sharing in cafes, dormitories, or small offices where bandwidth control across multiple devices is needed.
+    \item The open-source codebase allows the developer community to continue extending and improving the system.
+\end{itemize}
+
+% -----------------------------------------------------------
+
+\section{Thesis Organization}
+\label{sec:organization}
+
+This thesis is organized into seven chapters as follows:
+
+\begin{itemize}[leftmargin=2cm]
+    \item[\textbf{Chapter 1:}] \textbf{Introduction} --- Presents the problem statement, research objectives, scope, methodology, and significance of the thesis.
+    
+    \item[\textbf{Chapter 2:}] \textbf{Related Work} --- Surveys and analyzes existing QoS solutions on Android, related research, and positions this thesis within the broader research landscape.
+    
+    \item[\textbf{Chapter 3:}] \textbf{Theoretical Foundation} --- Presents the theoretical background on IP, TCP, and UDP protocols, QoS algorithms (Token Bucket, WFQ), and VPN technology on Android.
+    
+    \item[\textbf{Chapter 4:}] \textbf{System Analysis and Design} --- Analyzes requirements, designs the system architecture following the Data Plane/Control Plane model, and provides detailed module specifications.
+    
+    \item[\textbf{Chapter 5:}] \textbf{Implementation} --- Presents the detailed implementation process, low-level programming techniques, and technical challenges that were resolved.
+    
+    \item[\textbf{Chapter 6:}] \textbf{Testing and Evaluation} --- Presents the testing methodology, experimental results, data analysis, and system effectiveness evaluation.
+    
+    \item[\textbf{Chapter 7:}] \textbf{Conclusion and Future Work} --- Summarizes the achieved results, identifies limitations, and proposes future development directions.
+\end{itemize}
+
+\noindent In addition, the thesis includes \textbf{References} and \textbf{Appendices} containing source code of key modules, detailed test results, and the application user manual.

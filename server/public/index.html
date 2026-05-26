@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QoS Scheduler — Admin Panel</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Chart.js for real-time graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <!-- QRCode.js for QR generation -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+  <!-- ──────────────── SIDEBAR ──────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">📡</div>
+      <div>
+        <div class="brand-name">QoS Scheduler</div>
+        <div class="brand-sub">Admin Panel</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="dashboard" id="nav-dashboard">
+        <span class="nav-icon">📊</span> Dashboard
+      </a>
+      <a href="#" class="nav-item" data-page="devices" id="nav-devices">
+        <span class="nav-icon">📱</span> Devices
+      </a>
+      <a href="#" class="nav-item" data-page="policies" id="nav-policies">
+        <span class="nav-icon">⚙️</span> QoS Policies
+      </a>
+      <a href="#" class="nav-item" data-page="statistics" id="nav-statistics">
+        <span class="nav-icon">🧪</span> QoS Statistics
+      </a>
+      <a href="#" class="nav-item" data-page="telemetry" id="nav-telemetry">
+        <span class="nav-icon">📈</span> Telemetry
+      </a>
+      <a href="#" class="nav-item" data-page="connect" id="nav-connect">
+        <span class="nav-icon">🔗</span> Connect App
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="server-status">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Connecting...</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ──────────────── MAIN ──────────────── -->
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1 class="page-title" id="page-title">Dashboard</h1>
+        <p class="page-sub" id="page-sub">Real-time network overview</p>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-ghost" id="btn-refresh" title="Refresh">↻ Refresh</button>
+        <div class="topbar-time" id="topbar-time"></div>
+      </div>
+    </header>
+
+    <!-- ────── PAGE: DASHBOARD ────── -->
+    <section class="page active" id="page-dashboard">
+      <!-- Stat Cards -->
+      <div class="stat-grid">
+        <div class="stat-card card-blue">
+          <div class="stat-icon">📱</div>
+          <div class="stat-info">
+            <div class="stat-value" id="stat-total-devices">—</div>
+            <div class="stat-label">Total Devices</div>
+          </div>
+        </div>
+        <div class="stat-card card-green">
+          <div class="stat-icon">🟢</div>
+          <div class="stat-info">
+            <div class="stat-value" id="stat-online-devices">—</div>
+            <div class="stat-label">Online Now</div>
+          </div>
+        </div>
+        <div class="stat-card card-pink">
+          <div class="stat-icon">⚙️</div>
+          <div class="stat-info">
+            <div class="stat-value" id="stat-total-policies">—</div>
+            <div class="stat-label">Active Policies</div>
+          </div>
+        </div>
+        <div class="stat-card card-purple">
+          <div class="stat-icon">📦</div>
+          <div class="stat-info">
+            <div class="stat-value" id="stat-total-data">—</div>
+            <div class="stat-label">Total Data (MB)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="chart-grid">
+        <div class="card chart-card">
+          <div class="card-header">
+            <h3>Network Traffic (Last 30 min)</h3>
+            <span class="badge badge-blue">Live</span>
+          </div>
+          <canvas id="chart-timeseries" height="120"></canvas>
+        </div>
+        <div class="card chart-card">
+          <div class="card-header">
+            <h3>Top Apps (by data usage)</h3>
+          </div>
+          <canvas id="chart-apps" height="120"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────── PAGE: DEVICES ────── -->
+    <section class="page" id="page-devices">
+      <div class="card">
+        <div class="card-header">
+          <h3>Registered Devices</h3>
+          <span class="badge badge-pink" id="devices-count">0</span>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Device ID</th>
+                <th>Name</th>
+                <th>Model</th>
+                <th>IP Address</th>
+                <th>Last Seen</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="devices-tbody">
+              <tr><td colspan="7" class="empty-row">No devices registered yet. Connect a device using the QR Code.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────── PAGE: POLICIES ────── -->
+    <section class="page" id="page-policies">
+      <!-- Add Policy Form -->
+      <div class="card" style="margin-bottom: 1.5rem">
+        <div class="card-header">
+          <h3>➕ Add / Update Policy</h3>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>App Name</label>
+            <input type="text" id="pol-app-name" placeholder="e.g., iPerf3" />
+          </div>
+          <div class="form-group">
+            <label>Package Name</label>
+            <input type="text" id="pol-package" placeholder="e.g., com.termux" />
+          </div>
+          <div class="form-group">
+            <label>Priority</label>
+            <select id="pol-priority">
+              <option value="HIGH">🔴 HIGH (Weight 4)</option>
+              <option value="MEDIUM" selected>🟡 MEDIUM (Weight 2)</option>
+              <option value="LOW">🟢 LOW (Weight 1)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Max Speed (Kbps, 0 = auto WFQ)</label>
+            <input type="number" id="pol-max-bps" placeholder="0" value="0" />
+          </div>
+          <div class="form-group">
+            <label>Target Device</label>
+            <select id="pol-device">
+              <option value="__all__">📡 All Devices</option>
+            </select>
+          </div>
+          <div class="form-group form-action">
+            <button class="btn btn-primary" id="btn-add-policy">Apply Policy</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Policies Table -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Current Policies</h3>
+          <span class="badge badge-blue" id="policies-count">0</span>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>App Name</th>
+                <th>Package</th>
+                <th>Priority</th>
+                <th>Max Speed</th>
+                <th>Target</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="policies-tbody">
+              <tr><td colspan="7" class="empty-row">No policies created yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────── PAGE: STATISTICS (QoS Validation) ────── -->
+    <section class="page" id="page-statistics">
+      
+      <div class="stat-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 20px;">
+        <div class="stat-card card-purple">
+          <div class="stat-icon">🔥</div>
+          <div class="stat-info">
+            <div class="stat-value" id="stat-tcp-flows">0</div>
+            <div class="stat-label">Active TCP Flows</div>
+          </div>
+        </div>
+        <div class="stat-card card-blue">
+          <div class="stat-icon">🌊</div>
+          <div class="stat-info">
+            <div class="stat-value" id="stat-udp-flows">0</div>
+            <div class="stat-label">Active UDP Flows</div>
+          </div>
+        </div>
+        <div class="stat-card card-pink">
+          <div class="stat-icon">💥</div>
+          <div class="stat-info">
+            <div class="stat-value" id="stat-drop-rate">0.0%</div>
+            <div class="stat-label">Global Drop Rate</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-grid" style="grid-template-columns: 2fr 1fr; margin-bottom: 20px;">
+        <div class="card chart-card">
+          <div class="card-header">
+            <h3>1. Token Bucket Enforcer (Requested vs Allowed)</h3>
+            <span class="badge badge-red">Top App</span>
+          </div>
+          <canvas id="chart-token-bucket" height="150"></canvas>
+        </div>
+        <div class="card chart-card">
+          <div class="card-header">
+            <h3>2. WFQ Fair Share Allocation</h3>
+          </div>
+          <canvas id="chart-wfq-pie" height="150"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-grid" style="grid-template-columns: 1fr; margin-bottom: 20px;">
+        <div class="card chart-card">
+          <div class="card-header">
+            <h3>3. Packet Drop Rate Timeline (%)</h3>
+          </div>
+          <canvas id="chart-drop-rate" height="100"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>4. Active QoS Flow Health</h3>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>App Name</th>
+                <th>Priority</th>
+                <th>Requested BPS</th>
+                <th>Allowed BPS</th>
+                <th>Total Dropped</th>
+              </tr>
+            </thead>
+            <tbody id="qos-health-tbody">
+              <tr><td colspan="5" class="empty-row">Waiting for telemetry...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ────── PAGE: TELEMETRY ────── -->
+    <section class="page" id="page-telemetry">
+      <div class="card">
+        <div class="card-header">
+          <h3>📊 App Traffic Summary (Last 10 min)</h3>
+          <button class="btn btn-ghost btn-sm" id="btn-refresh-telemetry">↻ Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>App Name</th>
+                <th>Package</th>
+                <th>Bytes In</th>
+                <th>Bytes Out</th>
+                <th>Total</th>
+                <th>Devices</th>
+              </tr>
+            </thead>
+            <tbody id="telemetry-tbody">
+              <tr><td colspan="6" class="empty-row">No telemetry data yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────── PAGE: CONNECT APP ────── -->
+    <section class="page" id="page-connect">
+      <div class="connect-container">
+        <div class="card connect-card">
+          <div class="connect-header">
+            <div class="connect-icon">🔗</div>
+            <h2>Connect Android App</h2>
+            <p>Scan this QR code with the QoS Scheduler app on your Android device to connect it to this server.</p>
+          </div>
+
+          <div class="qr-wrapper">
+            <div id="qr-code"></div>
+            <div class="qr-shimmer" id="qr-shimmer">Generating QR...</div>
+          </div>
+
+          <div class="connect-info" id="connect-info">
+            <div class="info-row">
+              <span class="info-label">Server IP</span>
+              <span class="info-value" id="connect-ip">Loading...</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Port</span>
+              <span class="info-value" id="connect-port">3000</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">API URL</span>
+              <span class="info-value" id="connect-url">Loading...</span>
+            </div>
+          </div>
+
+          <div class="connect-steps">
+            <h4>📋 Steps:</h4>
+            <ol>
+              <li>Open <strong>QoS Scheduler</strong> on your Android phone.</li>
+              <li>Go to <strong>Settings → Connect to Server</strong>.</li>
+              <li>Tap <strong>Scan QR Code</strong> and point camera at the code above.</li>
+              <li>The app will sync policies automatically every 15 minutes.</li>
+            </ol>
+          </div>
+
+          <button class="btn btn-primary" id="btn-regenerate-qr">🔄 Regenerate QR</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "qos-scheduler-server",
+  "version": "1.0.0",
+  "description": "QoS Scheduler Cloud Management Server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "sql.js": "^1.12.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.3"
+  }
+}

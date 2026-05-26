@@ -1,0 +1,259 @@
+% ============================================================
+% CHAPTER 5: IMPLEMENTATION
+% ============================================================
+
+\chapter{IMPLEMENTATION}
+\label{chap:implementation}
+
+This chapter presents the detailed implementation of the QoS Scheduler system, including the development environment, key code-level techniques, and technical challenges that were encountered and resolved.
+
+\section{Development Environment}
+\label{sec:dev_environment}
+
+The system was developed using the following tools and technologies:
+
+\begin{table}[H]
+\centering
+\caption{Development environment specification}
+\label{tab:dev_env}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Component} & \textbf{Specification} \\
+\midrule
+IDE                     & Android Studio Ladybug (2024.2) \\
+Programming Language    & Kotlin 1.9+ \\
+Minimum SDK             & Android 10 (API Level 29) \\
+Target SDK              & Android 14 (API Level 34) \\
+Build System            & Gradle 8.x with Kotlin DSL \\
+UI Framework            & Jetpack Compose with Material 3 \\
+Concurrency Framework   & Kotlin Coroutines with Channels \\
+Version Control         & Git \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The choice of Kotlin as the programming language is motivated by its null safety, coroutine support for asynchronous programming, and first-class support on the Android platform. Jetpack Compose was selected for the UI layer due to its declarative paradigm and seamless integration with Kotlin's \texttt{StateFlow} reactive streams.
+
+% -----------------------------------------------------------
+
+\section{Data Plane Implementation}
+\label{sec:data_plane_impl}
+
+\subsection{Packet Parsing with Java NIO}
+
+The packet parsing module (\texttt{RawPacket.kt}) processes raw byte arrays using Java NIO's \texttt{ByteBuffer} in Big-Endian (network byte order) mode. The parser must handle both IPv4 and IPv6 packets in a single unified pipeline.
+
+\textbf{Version Detection:} The first step reads the upper 4 bits of byte[0] to determine the IP version:
+
+\begin{lstlisting}[language=Java, caption={IP version detection}]
+val version = (buffer.get(0).toInt() shr 4) and 0x0F
+when (version) {
+    4 -> parseIPv4(buffer, length)
+    6 -> parseIPv6(buffer, length)
+    else -> null // Unsupported protocol
+}
+\end{lstlisting}
+
+\textbf{IPv4 Header Extraction:} For IPv4 packets, the IHL field determines where the transport header begins. The parser extracts all 5-tuple fields using bitwise operations:
+
+\begin{lstlisting}[language=Java, caption={IPv4 header parsing}]
+val ihl = (buffer.get(0).toInt() and 0x0F) * 4
+val protocol = buffer.get(9).toInt() and 0xFF
+val srcIp = formatIPv4(buffer, 12)
+val dstIp = formatIPv4(buffer, 16)
+val srcPort = buffer.getShort(ihl).toInt() and 0xFFFF
+val dstPort = buffer.getShort(ihl + 2).toInt() and 0xFFFF
+\end{lstlisting}
+
+\textbf{IPv6 Extension Header Traversal:} For IPv6 packets, the parser implements a loop that follows the Next Header chain until it reaches TCP (6) or UDP (17):
+
+\begin{lstlisting}[language=Java, caption={IPv6 extension header traversal}]
+var nextHeader = buffer.get(6).toInt() and 0xFF
+var offset = 40 // Fixed IPv6 header length
+
+while (nextHeader in setOf(0, 43, 44, 60)) {
+    val extLen = if (nextHeader == 44) {
+        8 // Fragment Header is always 8 bytes
+    } else {
+        (buffer.get(offset + 1).toInt() and 0xFF) * 8 + 8
+    }
+    nextHeader = buffer.get(offset).toInt() and 0xFF
+    offset += extLen
+}
+// 'offset' now points to the TCP/UDP header
+\end{lstlisting}
+
+\subsection{The \texttt{AND 0xFF} Pattern}
+
+A pervasive pattern in the implementation is the use of \texttt{.toInt() and 0xFF}. This is necessary because Java and Kotlin represent the \texttt{Byte} type as a signed 8-bit integer (range $-128$ to $127$). When interpreting raw network data, bytes must be treated as unsigned values (range $0$ to $255$). The bitwise AND with \texttt{0xFF} masks the sign-extension bits:
+
+\begin{verbatim}
+Byte value: -56 (signed) = 0xC8 (unsigned = 200)
+After toInt(): 0xFFFFFFC8 (sign-extended to 32 bits)
+AND 0xFF:      0x000000C8 (correct unsigned value: 200)
+\end{verbatim}
+
+% -----------------------------------------------------------
+
+\section{Relay Module Implementation}
+\label{sec:relay_impl}
+
+\subsection{TCP Relay State Machine}
+
+The \texttt{TcpRelayManager} implements a full TCP proxy by maintaining per-connection state machines (\texttt{TcpFlow} objects). The relay performs a ``split handshake'' --- it immediately responds to the client application with a synthetic SYN-ACK before establishing a real connection to the remote server.
+
+\textbf{Synthetic Handshake Process:}
+\begin{enumerate}
+    \item Application sends SYN $\rightarrow$ Relay intercepts, creates a new \texttt{TcpFlow}, generates a random server ISN, and sends back a SYN-ACK via \texttt{PacketComposer}.
+    \item Application sends ACK $\rightarrow$ Flow transitions to ESTABLISHED. Relay asynchronously opens a real socket to the destination server.
+    \item Application sends data (PSH+ACK) $\rightarrow$ Relay extracts the payload and forwards it through the real socket. Response data from the server is wrapped in synthetic IP/TCP headers and written back to TUN.
+\end{enumerate}
+
+\textbf{Sequence Number Maintenance:} The relay must maintain two independent sequence number spaces:
+
+\begin{itemize}
+    \item \textbf{App-facing:} Sequence numbers seen by the client application. The relay tracks \texttt{appSeq} (client's sequence) and \texttt{serverSeq} (relay's synthetic sequence presented to the client).
+    \item \textbf{Internet-facing:} The real TCP connection to the remote server, managed entirely by the operating system's TCP stack.
+\end{itemize}
+
+Every outbound packet must have correct sequence and acknowledgment numbers, or the client's TCP stack will detect inconsistencies and reset the connection.
+
+\subsection{UDP Relay}
+
+The UDP relay is simpler than TCP due to UDP's connectionless nature. Each outbound UDP datagram is extracted from the IP/UDP headers, and the payload is forwarded through a protected \texttt{DatagramSocket}. Responses are wrapped in synthesized IP/UDP headers and written back to TUN.
+
+\subsection{Socket Protection Implementation}
+
+Every socket opened by the relay modules must be protected before use:
+
+\begin{lstlisting}[language=Java, caption={Socket protection to prevent routing loop}]
+val socket = Socket()
+vpnService.protect(socket) // Critical: exempt from VPN routing
+socket.connect(InetSocketAddress(destIp, destPort), TIMEOUT_MS)
+\end{lstlisting}
+
+If \texttt{protect()} fails or is omitted, the socket's outbound traffic re-enters the TUN interface, creating an infinite routing loop that causes complete network failure on the device. The implementation includes retry logic with exponential backoff for protection failures, which can occur on certain custom ROMs (see Section~\ref{sec:technical_challenges}).
+
+% -----------------------------------------------------------
+
+\section{QoS Scheduling Implementation}
+\label{sec:qos_impl}
+
+\subsection{Token Bucket with Nanosecond Precision}
+
+The Token Bucket implementation uses \texttt{System.nanoTime()} instead of \texttt{System.currentTimeMillis()} for token replenishment timing. This provides nanosecond-resolution timing that is monotonic (not affected by system clock adjustments), critical for accurate rate enforcement:
+
+\begin{lstlisting}[language=Java, caption={Token Bucket consume operation}]
+@Synchronized
+fun consume(bytes: Long): Boolean {
+    refill()
+    return if (tokens >= bytes) {
+        tokens -= bytes
+        true // ALLOW
+    } else {
+        false // DROP
+    }
+}
+
+private fun refill() {
+    val now = System.nanoTime()
+    val elapsed = (now - lastRefillTime) / 1_000_000_000.0
+    tokens = min(burstBytes.toDouble(),
+                 tokens + rateBps * elapsed)
+    lastRefillTime = now
+}
+\end{lstlisting}
+
+The burst size is configured as twice the per-second rate ($C = 2 \times R$), providing sufficient buffer for short traffic bursts while maintaining tight long-term rate control.
+
+\subsection{WFQ Rebalancing}
+
+The \texttt{BandwidthScheduler} triggers rebalancing whenever an application's priority changes or when applications join/leave the active set. The rebalancing operation is $O(n)$ where $n$ is the number of active applications --- typically fewer than 20 on a mobile device, making the overhead negligible:
+
+\begin{lstlisting}[language=Java, caption={WFQ rebalancing algorithm}]
+fun rebalanceWithApps(apps: Map<Int, AppTraffic>) {
+    var totalWeight = 2L // Host bucket base weight
+    for (app in apps.values) {
+        totalWeight += when (app.priorityClass) {
+            TrafficClass.HIGH -> 4
+            TrafficClass.MEDIUM -> 2
+            TrafficClass.LOW -> 1
+        }
+    }
+    val bpsPerWeight = uplinkBps / totalWeight
+    for ((key, bucket) in buckets) {
+        bucket.setRate(bucket.weight * bpsPerWeight)
+    }
+}
+\end{lstlisting}
+
+% -----------------------------------------------------------
+
+\section{User Interface Implementation}
+\label{sec:ui_impl}
+
+\subsection{Reactive Dashboard with Jetpack Compose}
+
+The dashboard displays real-time traffic statistics using Jetpack Compose's declarative UI paradigm. The \texttt{MainViewModel} combines multiple \texttt{StateFlow} sources into a single \texttt{UiState} using Kotlin's \texttt{combine} operator:
+
+\begin{lstlisting}[language=Java, caption={Combining multiple state flows for the UI}]
+val uiState: StateFlow<UiState> = combine(
+    _isRunning, _appTraffic, _hotspotState,
+    _relayHealth, _devices, _mode,
+    _uplinkBps, _errorMessage
+) { running, traffic, hotspot, health,
+    devices, mode, uplink, error ->
+    UiState(running, traffic, hotspot, health,
+            devices, mode, uplink, error)
+}.stateIn(viewModelScope, SharingStarted.Eagerly,
+          UiState.EMPTY)
+\end{lstlisting}
+
+This ensures the UI always reflects the most recent state across all data sources without polling or manual invalidation.
+
+\subsection{Per-Application Priority Control}
+
+Users can modify application priority (HIGH/MEDIUM/LOW) and set manual bandwidth caps through the application detail screen. Changes are propagated immediately to the \texttt{BandwidthScheduler}, which triggers a rebalancing operation. The VPN service does not need to be restarted, enabling seamless real-time configuration.
+
+% -----------------------------------------------------------
+
+\section{Technical Challenges Resolved}
+\label{sec:technical_challenges}
+
+\subsection{Infinite Routing Loop Prevention}
+
+The most critical challenge is preventing the routing loop: when the relay opens a socket to forward traffic to the Internet, the socket's outbound packets must bypass the TUN interface. The solution is the \texttt{VpnService.protect()} mechanism described in Section~\ref{sec:relay_impl}. Failure to protect a single socket results in total network failure.
+
+\textbf{Edge case:} On some devices, \texttt{protect()} must be called \textit{before} \texttt{Socket.bind()}, while on others, the order does not matter. The implementation calls \texttt{protect()} immediately after socket creation and before any other socket operations.
+
+\subsection{MIUI Custom ROM Compatibility}
+
+Xiaomi's MIUI operating system introduces additional security restrictions on VPN socket protection. The system throws a \texttt{SecurityException} with a UID mismatch error when the VPN service attempts to protect sockets created on background threads.
+
+\textbf{Solution:} Socket creation and protection are performed on the VPN service's main coroutine context (\texttt{Dispatchers.Main}), and the protected socket is then handed off to background threads for data transfer. Additionally, stale relay state cleanup was implemented to prevent log flooding from repeated protection failures.
+
+\subsection{Buffer Management and Memory Efficiency}
+
+Under high traffic loads, the system processes thousands of packets per second. Naive implementations that allocate a new \texttt{ByteArray} for each packet would cause excessive garbage collection pressure and potential OOM errors.
+
+\textbf{Solution:} The implementation uses a bounded \texttt{Channel} for the packet queue, limiting the number of in-flight packets. Buffer sizes are capped at the MTU (1500 bytes), and the TUN read loop reuses a pre-allocated buffer for reading.
+
+\subsection{Foreground Service Lifecycle}
+
+Android's process lifecycle management aggressively terminates background services to conserve resources. The VPN service must run as a Foreground Service \cite{android_foreground} with a persistent notification to prevent the system from killing it:
+
+\begin{lstlisting}[language=Java, caption={Foreground service initialization}]
+val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+    .setContentTitle("QoS Scheduler Active")
+    .setSmallIcon(R.drawable.ic_vpn)
+    .setOngoing(true)
+    .build()
+startForeground(NOTIFICATION_ID, notification)
+\end{lstlisting}
+
+% -----------------------------------------------------------
+
+\section{Chapter Summary}
+\label{sec:ch5_summary}
+
+This chapter detailed the implementation of the QoS Scheduler across four major areas: the Data Plane (packet parsing with bitwise operations and Java NIO), the Relay modules (TCP split-handshake proxy and UDP forwarding), the QoS scheduling engine (Token Bucket with nanosecond precision and WFQ rebalancing), and the Jetpack Compose UI with reactive state management. Four significant technical challenges were addressed: routing loop prevention, MIUI compatibility, memory management, and foreground service lifecycle management.
