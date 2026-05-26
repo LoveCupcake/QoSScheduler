@@ -557,26 +557,29 @@ class QosVpnService : VpnService() {
             .allowFamily(android.system.OsConstants.AF_INET6)
         
         try {
-            // FIX: Both Monitor and Relay mode capture all installed apps.
-            // Previously Monitor mode only captured the controller app itself,
-            // which meant appTraffic was always empty in Monitor mode — defeating
-            // the entire purpose of monitoring.
-            // Monitor mode is now functionally identical to Relay mode in terms of
-            // VPN scope; the difference is that Monitor mode only reads packets
-            // (forwards them straight back to TUN) whereas Relay mode processes them
-            // through TcpRelayManager/UdpRelayManager.
-            val pm = packageManager
-            val installedApps = pm.getInstalledPackages(0)
-            var includedCount = 0
-            installedApps.forEach { app ->
-                try {
-                    builder.addAllowedApplication(app.packageName)
-                    includedCount++
-                } catch (e: Exception) {
-                    // Some system packages are not addable — ignore silently
+            if (currentMode == RelayRuntimeMode.MONITOR) {
+                // Monitor mode: Capture ONLY our own app to avoid breaking host connectivity
+                // (Without a relay, capturing all apps and writing back to TUN causes a routing loop)
+                builder.addAllowedApplication(packageName)
+                android.util.Log.i("QosVpnService", "VPN Scope: Restricted to controller app (Monitor Mode)")
+            } else {
+                // Relay mode: Explicitly include all apps to force traffic through VPN
+                val pm = packageManager
+                val installedApps = pm.getInstalledPackages(0)
+                var includedCount = 0
+                installedApps.forEach { app ->
+                    val pkgName = app.packageName
+                    if (pkgName != packageName) {
+                        try {
+                            builder.addAllowedApplication(pkgName)
+                            includedCount++
+                        } catch (e: Exception) {
+                            // Some system packages are not addable — ignore silently
+                        }
+                    }
                 }
+                android.util.Log.i("QosVpnService", "VPN Scope: $includedCount apps included (Relay Mode)")
             }
-            android.util.Log.i("QosVpnService", "VPN Scope: $includedCount apps included (Mode: $currentMode)")
         } catch (e: Exception) {
             android.util.Log.e("QosVpnService", "App scope error: ${e.message}")
         }
