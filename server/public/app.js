@@ -93,10 +93,18 @@ let timeseriesChart = null;
 let appsChart = null;
 
 function initCharts() {
-  const gradBlue = (ctx) => {
-    const g = ctx.createLinearGradient(0, 0, 0, 200);
-    g.addColorStop(0, 'rgba(59,130,246,0.3)');
-    g.addColorStop(1, 'rgba(59,130,246,0)');
+  // Shared dark theme defaults for Chart.js
+  const darkDefaults = {
+    color: '#7a8baa',
+    borderColor: 'rgba(0,243,255,0.08)',
+  };
+  Chart.defaults.color = darkDefaults.color;
+  Chart.defaults.borderColor = darkDefaults.borderColor;
+
+  const gradCyan = (ctx) => {
+    const g = ctx.createLinearGradient(0, 0, 0, 220);
+    g.addColorStop(0, 'rgba(0,243,255,0.22)');
+    g.addColorStop(1, 'rgba(0,243,255,0)');
     return g;
   };
 
@@ -108,28 +116,27 @@ function initCharts() {
       datasets: [{
         label: 'Total Traffic',
         data: [],
-        borderColor: '#3b82f6',
-        backgroundColor: (ctx) => gradBlue(ctx.chart.ctx),
+        borderColor: '#00f3ff',
+        backgroundColor: (ctx) => gradCyan(ctx.chart.ctx),
         fill: true,
         tension: 0.4,
-        borderWidth: 2.5,
-        pointRadius: 3,
-        pointBackgroundColor: '#fff',
-        pointBorderColor: '#3b82f6',
-        pointBorderWidth: 2,
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: '#00f3ff',
       }]
     },
     options: {
       responsive: true,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { display: false }, ticks: { maxTicksLimit: 8, font: { size: 11 } } },
+        x: {
+          grid: { color: 'rgba(0,243,255,0.06)' },
+          ticks: { maxTicksLimit: 8, font: { size: 11 }, color: '#4a5568' }
+        },
         y: {
-          grid: { color: 'rgba(0,0,0,0.05)' },
-          ticks: {
-            font: { size: 11 },
-            callback: v => fmtBytes(v)
-          }
+          grid: { color: 'rgba(0,243,255,0.06)' },
+          ticks: { font: { size: 11 }, color: '#4a5568', callback: v => fmtBytes(v) }
         }
       }
     }
@@ -138,58 +145,79 @@ function initCharts() {
   const apCtx = document.getElementById('chart-apps').getContext('2d');
   appsChart = new Chart(apCtx, {
     type: 'doughnut',
-    data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderWidth: 2, borderColor: '#fff' }] },
+    data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderWidth: 1, borderColor: 'rgba(0,243,255,0.1)' }] },
     options: {
       responsive: true,
       plugins: {
-        legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10 } },
-        tooltip: {
-          callbacks: { label: ctx => ` ${ctx.label}: ${fmtBytes(ctx.raw)}` }
-        }
+        legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10, color: '#7a8baa' } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmtBytes(ctx.raw)}` } }
       },
-      cutout: '60%'
+      cutout: '62%'
     }
   });
 
   // QoS Statistics Charts
-  const gradRed = (ctx) => {
+  const gradPink = (ctx) => {
     const g = ctx.createLinearGradient(0, 0, 0, 200);
-    g.addColorStop(0, 'rgba(239,68,68,0.3)');
-    g.addColorStop(1, 'rgba(239,68,68,0)');
+    g.addColorStop(0, 'rgba(255,45,155,0.28)');
+    g.addColorStop(1, 'rgba(255,45,155,0)');
     return g;
+  };
+
+  const scalesDark = {
+    x: { grid: { color: 'rgba(0,243,255,0.06)' }, ticks: { color: '#4a5568', font: { size: 11 } } },
+    y: { grid: { color: 'rgba(0,243,255,0.06)' }, ticks: { color: '#4a5568', font: { size: 11 } } }
   };
 
   if (document.getElementById('chart-token-bucket')) {
     window.tokenBucketChart = new Chart(document.getElementById('chart-token-bucket').getContext('2d'), {
       type: 'line',
       data: { labels: [], datasets: [
-        { label: 'Requested BPS', data: [], borderColor: '#ef4444', backgroundColor: (ctx) => gradRed(ctx.chart.ctx), fill: true, tension: 0.2, borderWidth: 2, pointRadius: 0 },
-        { label: 'Allowed BPS (Max Limit)', data: [], borderColor: '#3b82f6', borderDash: [5, 5], fill: false, tension: 0.2, borderWidth: 2, pointRadius: 0 }
+        { label: 'Requested BPS', data: [], borderColor: '#ff2d9b', backgroundColor: (ctx) => gradPink(ctx.chart.ctx), fill: true, tension: 0.3, borderWidth: 2, pointRadius: 0 },
+        { label: 'Allowed BPS', data: [], borderColor: '#00f3ff', borderDash: [5, 4], fill: false, tension: 0.3, borderWidth: 2, pointRadius: 0 }
       ]},
-      options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { x: { display: false }, y: { beginAtZero: true, callback: v => fmtBytes(v/8)+'/s' } }, animation: { duration: 0 } }
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom', labels: { color: '#7a8baa', font: { size: 11 } } } },
+        scales: { ...scalesDark, y: { ...scalesDark.y, beginAtZero: true, ticks: { ...scalesDark.y.ticks, callback: v => fmtBytes(v/8)+'/s' } } },
+        animation: { duration: 0 }
+      }
     });
   }
 
   if (document.getElementById('chart-wfq-pie')) {
     window.wfqPieChart = new Chart(document.getElementById('chart-wfq-pie').getContext('2d'), {
       type: 'doughnut',
-      data: { labels: ['HIGH (Weight 4)', 'MEDIUM (Weight 2)', 'LOW (Weight 1)'], datasets: [{ data: [0,0,0], backgroundColor: ['#ef4444', '#f59e0b', '#10b981'], borderWidth: 2 }] },
-      options: { responsive: true, plugins: { legend: { position: 'bottom' } }, cutout: '50%', animation: { duration: 500 } }
+      data: {
+        labels: ['HIGH (Weight 4)', 'MEDIUM (Weight 2)', 'LOW (Weight 1)'],
+        datasets: [{ data: [0,0,0], backgroundColor: ['rgba(239,68,68,0.7)', 'rgba(245,158,11,0.7)', 'rgba(0,243,255,0.7)'], borderWidth: 1, borderColor: 'rgba(0,0,0,0.3)' }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom', labels: { color: '#7a8baa', font: { size: 11 } } } },
+        cutout: '52%',
+        animation: { duration: 500 }
+      }
     });
   }
 
   if (document.getElementById('chart-drop-rate')) {
     window.dropRateChart = new Chart(document.getElementById('chart-drop-rate').getContext('2d'), {
       type: 'line',
-      data: { labels: [], datasets: [{ label: 'Drop Rate (%)', data: [], borderColor: '#ec4899', backgroundColor: 'rgba(236,72,153,0.2)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0 }] },
-      options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { min: 0, max: 100, ticks: { callback: v => v+'%' } } }, animation: { duration: 0 } }
+      data: { labels: [], datasets: [{ label: 'Drop Rate (%)', data: [], borderColor: '#ff2d9b', backgroundColor: 'rgba(255,45,155,0.12)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0 }] },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { ...scalesDark, y: { ...scalesDark.y, min: 0, max: 100, ticks: { ...scalesDark.y.ticks, callback: v => v+'%' } } },
+        animation: { duration: 0 }
+      }
     });
   }
 }
 
 const PALETTE = [
-  '#3b82f6','#ec4899','#8b5cf6','#10b981',
-  '#f59e0b','#ef4444','#06b6d4','#84cc16'
+  '#00f3ff','#ff2d9b','#8b5cf6','#10f59e',
+  '#f59e0b','#ef4444','#06b6d4','#a78bfa'
 ];
 
 // ─────────────────────────────────────────────
