@@ -9,6 +9,10 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
   <!-- QRCode.js for QR generation -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <!-- MediaPipe Hands for gesture control -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -70,6 +74,11 @@
       <div class="topbar-right">
         <button class="btn btn-ghost" id="btn-refresh" title="Refresh">↻ Refresh</button>
         <div class="topbar-time" id="topbar-time"></div>
+        <button class="btn btn-jarvis" id="btn-jarvis" title="Toggle Jarvis Mode">
+          <span class="jarvis-icon">🤖</span>
+          <span class="jarvis-label">Jarvis Mode</span>
+          <span class="jarvis-status-dot"></span>
+        </button>
       </div>
     </header>
 
@@ -370,6 +379,36 @@
 
   </main>
 
+  <!-- ── JARVIS MODE OVERLAYS ── -->
+  <!-- Virtual neon cursor -->
+  <div id="jarvis-cursor" class="jarvis-cursor" style="display:none;"></div>
+
+  <!-- Gesture HUD -->
+  <div id="jarvis-hud" class="jarvis-hud" style="display:none;">
+    <div class="hud-gesture" id="hud-gesture">SCANNING...</div>
+    <div class="hud-hint" id="hud-hint">Show your hand to the camera</div>
+  </div>
+
+  <!-- Webcam preview -->
+  <div id="jarvis-cam" class="jarvis-cam" style="display:none;">
+    <div class="cam-label">👁 JARVIS VISION</div>
+    <video id="jarvis-video" class="jarvis-video" autoplay muted playsinline></video>
+    <canvas id="jarvis-canvas" class="jarvis-canvas"></canvas>
+  </div>
+
+  <!-- Gesture guide (cheat sheet) -->
+  <div id="jarvis-guide" class="jarvis-guide" style="display:none;">
+    <div class="guide-title">✋ Gesture Controls</div>
+    <div class="guide-row"><span class="guide-gesture">☝️ Point</span><span class="guide-action">Move cursor</span></div>
+    <div class="guide-row"><span class="guide-gesture">🤏 Pinch</span><span class="guide-action">Click</span></div>
+    <div class="guide-row"><span class="guide-gesture">✌️ Peace</span><span class="guide-action">Scroll down</span></div>
+    <div class="guide-row"><span class="guide-gesture">🖐️ Open hand</span><span class="guide-action">Toggle menu</span></div>
+    <div class="guide-row"><span class="guide-gesture">✊ Fist</span><span class="guide-action">Go back</span></div>
+    <div class="guide-row"><span class="guide-gesture">👉 Swipe →</span><span class="guide-action">Next page</span></div>
+    <div class="guide-row"><span class="guide-gesture">👈 Swipe ←</span><span class="guide-action">Prev page</span></div>
+  </div>
+
   <script src="app.js"></script>
+  <script src="jarvis.js"></script>
 </body>
 </html>

@@ -87,6 +87,27 @@ function timeAgo(ts) {
 }
 
 // ─────────────────────────────────────────────
+// Neon Glow Plugin for Chart.js
+// ─────────────────────────────────────────────
+const neonGlowPlugin = {
+  id: 'neonGlow',
+  beforeDatasetsDraw(chart) {
+    const ctx = chart.ctx;
+    ctx.save();
+    // Pick glow color from first dataset border color, fallback cyan
+    const ds = chart.data.datasets[0];
+    const glowColor = (ds && ds.borderColor && typeof ds.borderColor === 'string')
+      ? ds.borderColor : '#00f3ff';
+    ctx.shadowBlur   = 18;
+    ctx.shadowColor  = glowColor;
+  },
+  afterDatasetsDraw(chart) {
+    chart.ctx.restore();
+  }
+};
+Chart.register(neonGlowPlugin);
+
+// ─────────────────────────────────────────────
 // Charts
 // ─────────────────────────────────────────────
 let timeseriesChart = null;
