@@ -1,83 +1,119 @@
-// jarvis.js — Hand Gesture Control Engine
+// jarvis.js — Hand Gesture Control Engine v2 (Smooth Edition)
 // Requires MediaPipe Hands loaded via CDN in index.html
 
 (function () {
   'use strict';
 
-  // ─── State ───────────────────────────────────────────────────────────────
-  let jarvisActive    = false;
-  let hands           = null;
-  let camera          = null;
-  let lastGesture     = '';
-  let gestureHoldMs   = 0;
-  let lastSwipeX      = null;
-  let swipeCooldown   = 0;
-  let pinchClickCooldown = 0;
+  // ─── Config (tweak these to taste) ───────────────────────────────────────
+  const LERP_FACTOR       = 0.14;   // cursor smoothing 0.0 (frozen) – 1.0 (instant)
+  const GESTURE_BUFFER    = 8;      // frames to vote on gesture stability
+  const PINCH_ENTER_DIST  = 0.055;  // distance to enter pinch state
+  const PINCH_EXIT_DIST   = 0.085;  // distance to exit pinch (hysteresis gap)
+  const SWIPE_VEL_THRESH  = 0.022;  // wrist velocity to trigger swipe
+  const SWIPE_COOLDOWN_MS = 900;
+  const CLICK_COOLDOWN_MS = 650;
+  const ACTION_HOLD_FRAMES= 18;     // frames gesture must hold before bulk actions
 
-  const PAGE_ORDER = ['dashboard', 'devices', 'policies', 'statistics', 'telemetry', 'connect'];
+  // ─── State ───────────────────────────────────────────────────────────────
+  let jarvisActive   = false;
+  let hands          = null;
+  let camera         = null;
+
+  // Cursor smoothing
+  let cursorX = window.innerWidth  / 2;
+  let cursorY = window.innerHeight / 2;
+  let targetX = cursorX;
+  let targetY = cursorY;
+  let rafId   = null;
+
+  // Gesture stability
+  const gestureBuffer = [];
+  let stableGesture   = '';
+  let gestureHoldCount= 0;
+
+  // Pinch hysteresis
+  let isPinching = false;
+
+  // Swipe velocity
+  let prevWristX      = null;
+  let prevWristTime   = null;
+  let lastSwipeTime   = 0;
+
+  // Cooldowns (timestamps)
+  let lastClickTime   = 0;
+  let lastActionTime  = 0;
+
+  const PAGE_ORDER = ['dashboard','devices','policies','statistics','telemetry','connect'];
 
   // ─── DOM refs ─────────────────────────────────────────────────────────────
-  const btnJarvis    = document.getElementById('btn-jarvis');
-  const cursor       = document.getElementById('jarvis-cursor');
-  const hud          = document.getElementById('jarvis-hud');
-  const hudGesture   = document.getElementById('hud-gesture');
-  const hudHint      = document.getElementById('hud-hint');
-  const camBox       = document.getElementById('jarvis-cam');
-  const video        = document.getElementById('jarvis-video');
-  const overlayCanvas= document.getElementById('jarvis-canvas');
-  const guide        = document.getElementById('jarvis-guide');
-  const octx         = overlayCanvas ? overlayCanvas.getContext('2d') : null;
+  const btnJarvis     = document.getElementById('btn-jarvis');
+  const cursorEl      = document.getElementById('jarvis-cursor');
+  const hud           = document.getElementById('jarvis-hud');
+  const hudGesture    = document.getElementById('hud-gesture');
+  const hudHint       = document.getElementById('hud-hint');
+  const camBox        = document.getElementById('jarvis-cam');
+  const video         = document.getElementById('jarvis-video');
+  const overlayCanvas = document.getElementById('jarvis-canvas');
+  const guide         = document.getElementById('jarvis-guide');
+  const octx          = overlayCanvas?.getContext('2d') ?? null;
 
   // ─── Toggle ───────────────────────────────────────────────────────────────
-  btnJarvis.addEventListener('click', () => {
-    jarvisActive ? deactivate() : activate();
-  });
+  btnJarvis.addEventListener('click', () => jarvisActive ? deactivate() : activate());
 
   function activate() {
     jarvisActive = true;
     btnJarvis.classList.add('active');
     document.body.classList.add('jarvis-active');
-
-    [cursor, hud, camBox, guide].forEach(el => { if (el) el.style.display = ''; });
-
-    if (!hands) initMediaPipe();
-    else startCamera();
+    [cursorEl, hud, camBox, guide].forEach(el => el && (el.style.display = ''));
+    startCursorLoop();
+    if (!hands) initMediaPipe(); else startCamera();
   }
 
   function deactivate() {
     jarvisActive = false;
     btnJarvis.classList.remove('active');
     document.body.classList.remove('jarvis-active');
-
-    [cursor, hud, camBox, guide].forEach(el => { if (el) el.style.display = 'none'; });
-
-    if (camera) { try { camera.stop(); } catch(e) {} }
-    // Release webcam
-    if (video && video.srcObject) {
+    [cursorEl, hud, camBox, guide].forEach(el => el && (el.style.display = 'none'));
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    if (camera) { try { camera.stop(); } catch(e) {} camera = null; }
+    if (video?.srcObject) {
       video.srcObject.getTracks().forEach(t => t.stop());
       video.srcObject = null;
     }
+    gestureBuffer.length = 0;
+    stableGesture = '';
+    isPinching = false;
   }
 
-  // ─── MediaPipe Hands ──────────────────────────────────────────────────────
+  // ─── Smooth cursor loop (runs on RAF, independent of MediaPipe framerate) ─
+  function startCursorLoop() {
+    function loop() {
+      if (!jarvisActive) return;
+      // Lerp current position toward target
+      cursorX += (targetX - cursorX) * LERP_FACTOR;
+      cursorY += (targetY - cursorY) * LERP_FACTOR;
+      cursorEl.style.left = cursorX + 'px';
+      cursorEl.style.top  = cursorY + 'px';
+      rafId = requestAnimationFrame(loop);
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+
+  // ─── MediaPipe Setup ─────────────────────────────────────────────────────
   function initMediaPipe() {
     if (typeof Hands === 'undefined') {
       showHUD('MEDIAPIPE NOT LOADED', 'Check internet connection', '');
       return;
     }
-
     hands = new Hands({
-      locateFile: file =>
-        `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+      locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
     });
-
     hands.setOptions({
       maxNumHands: 1,
       modelComplexity: 1,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.6,
+      minDetectionConfidence: 0.72,
+      minTrackingConfidence: 0.65,
     });
-
     hands.onResults(onResults);
     startCamera();
   }
@@ -85,24 +121,19 @@
   function startCamera() {
     if (typeof Camera === 'undefined') return;
     camera = new Camera(video, {
-      onFrame: async () => {
-        if (jarvisActive && hands) await hands.send({ image: video });
-      },
+      onFrame: async () => { if (jarvisActive && hands) await hands.send({ image: video }); },
       width: 200, height: 150,
     });
     camera.start();
   }
 
-  // ─── Landmark processing ──────────────────────────────────────────────────
+  // ─── Frame processor ─────────────────────────────────────────────────────
   function onResults(results) {
     if (!jarvisActive) return;
+    if (octx) octx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
-    // Clear skeleton overlay
-    if (octx) {
-      octx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-    }
-
-    if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+    if (!results.multiHandLandmarks?.length) {
+      pushGesture('none');
       showHUD('SCANNING...', 'Show your hand to the camera', '');
       return;
     }
@@ -110,36 +141,71 @@
     const lm = results.multiHandLandmarks[0];
     drawSkeleton(lm);
 
-    const gesture = classifyGesture(lm);
-    handleGesture(gesture, lm);
+    // Raw gesture classification
+    const raw = classifyGesture(lm);
+    // Push into stability buffer
+    const stable = pushGesture(raw);
+
+    // Update cursor target (not cursor position — RAF handles that)
+    const tip = lm[8]; // index fingertip
+    targetX = (1 - tip.x) * window.innerWidth;
+    targetY = tip.y * window.innerHeight;
+
+    // Swipe via wrist velocity
+    detectSwipe(lm[0]);
+
+    // Execute action only for stable gesture
+    executeGesture(stable, lm);
+  }
+
+  // ─── Gesture stability: majority vote over buffer ─────────────────────────
+  function pushGesture(g) {
+    gestureBuffer.push(g);
+    if (gestureBuffer.length > GESTURE_BUFFER) gestureBuffer.shift();
+
+    // Count occurrences
+    const counts = {};
+    gestureBuffer.forEach(x => counts[x] = (counts[x] || 0) + 1);
+    let winner = 'none', maxCount = 0;
+    for (const [k, v] of Object.entries(counts)) {
+      if (v > maxCount) { winner = k; maxCount = v; }
+    }
+
+    // Must win majority (>50%)
+    if (maxCount > GESTURE_BUFFER / 2) {
+      if (winner !== stableGesture) {
+        stableGesture = winner;
+        gestureHoldCount = 0;
+      } else {
+        gestureHoldCount++;
+      }
+    }
+    return stableGesture;
   }
 
   // ─── Gesture Classification ───────────────────────────────────────────────
   function classifyGesture(lm) {
+    const thumbTip  = lm[4];
+    const indexTip  = lm[8];
+    const pinchDist = dist(thumbTip, indexTip);
+
+    // Pinch with hysteresis
+    if (!isPinching && pinchDist < PINCH_ENTER_DIST) isPinching = true;
+    if (isPinching  && pinchDist > PINCH_EXIT_DIST)  isPinching = false;
+    if (isPinching) return 'pinch';
+
     const fingers = getFingersUp(lm);
     const [thumb, index, middle, ring, pinky] = fingers;
 
-    // Pinch: thumb tip close to index tip
-    const thumbTip = lm[4];
-    const indexTip = lm[8];
-    const pinchDist = dist(thumbTip, indexTip);
-    if (pinchDist < 0.06) return 'pinch';
-
-    const upCount = fingers.filter(Boolean).length;
-
     if (!thumb && !index && !middle && !ring && !pinky) return 'fist';
-    if (thumb && index && middle && ring && pinky)      return 'open';
-    if (!thumb && index && !middle && !ring && !pinky)  return 'point';
-    if (!thumb && index && middle && !ring && !pinky)   return 'peace';
-    if (!thumb && index && middle && ring && pinky)     return 'four';
-
+    if (thumb  &&  index &&  middle && ring  && pinky)  return 'open';
+    if (!thumb &&  index && !middle && !ring && !pinky)  return 'point';
+    if (!thumb &&  index &&  middle && !ring && !pinky)  return 'peace';
     return 'unknown';
   }
 
   function getFingersUp(lm) {
-    // Thumb: compare tip x vs IP x (mirrored)
-    const thumb  = lm[4].x  < lm[3].x;
-    // Other fingers: tip y < PIP y means up
+    const thumb  = lm[4].x  < lm[3].x;   // mirrored
     const index  = lm[8].y  < lm[6].y;
     const middle = lm[12].y < lm[10].y;
     const ring   = lm[16].y < lm[14].y;
@@ -151,154 +217,135 @@
     return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
   }
 
-  // ─── Gesture → Action ────────────────────────────────────────────────────
-  function handleGesture(gesture, lm) {
-    const now = Date.now();
-
-    // Move virtual cursor based on index fingertip (landmark 8)
-    const tip = lm[8];
-    // MediaPipe coords are [0,1] normalized, mirror X because webcam is mirrored
-    const screenX = (1 - tip.x) * window.innerWidth;
-    const screenY = tip.y * window.innerHeight;
-    moveCursor(screenX, screenY);
-
-    // Swipe detection: track wrist (lm[0]) horizontal movement
-    const wristX = lm[0].x;
-    if (lastSwipeX !== null && swipeCooldown < now) {
-      const dx = wristX - lastSwipeX;
-      if (Math.abs(dx) > 0.18) {
-        // dx positive = hand moved right on screen (mirrored = swipe left gesture)
-        navigatePage(dx > 0 ? -1 : 1);
-        swipeCooldown = now + 1000;
+  // ─── Swipe via wrist velocity ─────────────────────────────────────────────
+  function detectSwipe(wrist) {
+    const now = performance.now();
+    if (prevWristX !== null && prevWristTime !== null) {
+      const dt = now - prevWristTime;
+      if (dt > 0) {
+        const vel = (wrist.x - prevWristX) / dt * 1000; // units/s
+        const cooldown = now - lastSwipeTime;
+        if (Math.abs(vel) > SWIPE_VEL_THRESH * 1000 && cooldown > SWIPE_COOLDOWN_MS) {
+          // vel positive → hand moved right in normalized coords → after mirror: swipe left
+          navigatePage(vel > 0 ? 1 : -1);
+          lastSwipeTime = now;
+        }
       }
     }
-    lastSwipeX = wristX;
+    prevWristX    = wrist.x;
+    prevWristTime = now;
+  }
 
-    // Per-gesture actions
+  // ─── Execute action from stable gesture ──────────────────────────────────
+  function executeGesture(gesture, lm) {
+    const now = Date.now();
+    cursorEl.classList.remove('pinching', 'clicking');
+
     switch (gesture) {
       case 'point':
-        showHUD('☝️  POINTING', 'Pinch to click', '');
-        cursor.classList.remove('pinching', 'clicking');
-        hudGesture.className = 'hud-gesture';
+        setHUD('☝️  POINTING', 'Pinch to click', '');
         break;
 
       case 'pinch':
-        cursor.classList.add('pinching');
-        hudGesture.className = 'hud-gesture gesture-pinch';
-        showHUD('🤏  PINCH', 'Clicking...', 'gesture-pinch');
-        if (pinchClickCooldown < now) {
-          triggerClickAt(screenX, screenY);
-          pinchClickCooldown = now + 700;
+        cursorEl.classList.add('pinching');
+        setHUD('🤏  PINCH', 'Clicking...', 'gesture-pinch');
+        if (now - lastClickTime > CLICK_COOLDOWN_MS) {
+          triggerClickAt(cursorX, cursorY);
+          lastClickTime = now;
         }
         break;
 
       case 'peace':
-        cursor.classList.remove('pinching');
-        hudGesture.className = 'hud-gesture gesture-peace';
-        showHUD('✌️  PEACE', 'Scrolling...', 'gesture-peace');
-        window.scrollBy({ top: 60, behavior: 'smooth' });
+        setHUD('✌️  PEACE', 'Scrolling...', 'gesture-peace');
+        // Scroll speed proportional to how long held
+        const scrollAmt = Math.min(gestureHoldCount * 3, 80);
+        window.scrollBy({ top: scrollAmt, behavior: 'auto' });
         break;
 
       case 'open':
-        cursor.classList.remove('pinching');
-        hudGesture.className = 'hud-gesture gesture-open';
-        showHUD('🖐️  OPEN HAND', 'Refreshing page...', 'gesture-open');
-        if (gestureHoldMs < now) {
+        setHUD('🖐️  OPEN HAND', 'Hold to refresh...', 'gesture-open');
+        if (gestureHoldCount > ACTION_HOLD_FRAMES && now - lastActionTime > 2000) {
           document.getElementById('btn-refresh')?.click();
-          gestureHoldMs = now + 2000;
+          lastActionTime = now;
         }
         break;
 
       case 'fist':
-        cursor.classList.remove('pinching');
-        hudGesture.className = 'hud-gesture gesture-fist';
-        showHUD('✊  FIST', 'Deactivating Jarvis...', 'gesture-fist');
-        if (gestureHoldMs < now) {
+        setHUD('✊  FIST', 'Hold to deactivate...', 'gesture-fist');
+        if (gestureHoldCount > ACTION_HOLD_FRAMES && now - lastActionTime > 2000) {
           deactivate();
-          gestureHoldMs = now + 2000;
+          lastActionTime = now;
         }
         break;
 
+      case 'none':
+        setHUD('SCANNING...', 'Show your hand', '');
+        break;
+
       default:
-        cursor.classList.remove('pinching', 'clicking');
-        hudGesture.className = 'hud-gesture';
-        showHUD('🤖 JARVIS ACTIVE', 'Show a gesture', '');
+        setHUD('🤖 JARVIS ACTIVE', 'Waiting for gesture...', '');
     }
-
-    lastGesture = gesture;
   }
 
-  // ─── Cursor ───────────────────────────────────────────────────────────────
-  function moveCursor(x, y) {
-    cursor.style.left = x + 'px';
-    cursor.style.top  = y + 'px';
-  }
-
-  // ─── Fake click at coords ─────────────────────────────────────────────────
+  // ─── Click simulation ─────────────────────────────────────────────────────
   function triggerClickAt(x, y) {
-    cursor.classList.add('clicking');
-    setTimeout(() => cursor.classList.remove('clicking'), 200);
-
+    cursorEl.classList.add('clicking');
+    setTimeout(() => cursorEl.classList.remove('clicking'), 200);
     const el = document.elementFromPoint(x, y);
-    if (el) {
-      el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: x, clientY: y }));
-    }
+    if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: x, clientY: y }));
   }
 
   // ─── Page navigation ──────────────────────────────────────────────────────
   function navigatePage(direction) {
-    const activeNav = document.querySelector('.nav-item.active');
-    if (!activeNav) return;
-    const curPage = activeNav.dataset.page;
-    const curIdx  = PAGE_ORDER.indexOf(curPage);
-    const nextIdx = (curIdx + direction + PAGE_ORDER.length) % PAGE_ORDER.length;
-    const nextNav = document.querySelector(`.nav-item[data-page="${PAGE_ORDER[nextIdx]}"]`);
-    if (nextNav) nextNav.click();
+    const active = document.querySelector('.nav-item.active');
+    if (!active) return;
+    const idx    = PAGE_ORDER.indexOf(active.dataset.page);
+    const next   = (idx + direction + PAGE_ORDER.length) % PAGE_ORDER.length;
+    document.querySelector(`.nav-item[data-page="${PAGE_ORDER[next]}"]`)?.click();
   }
 
-  // ─── HUD update ───────────────────────────────────────────────────────────
-  function showHUD(gestureText, hintText, cls) {
+  // ─── HUD ─────────────────────────────────────────────────────────────────
+  function setHUD(gestureText, hintText, cls) {
     hudGesture.textContent = gestureText;
     hudHint.textContent    = hintText;
-    if (cls) hudGesture.className = 'hud-gesture ' + cls;
+    hudGesture.className   = 'hud-gesture' + (cls ? ' ' + cls : '');
   }
 
-  // ─── Draw hand skeleton on overlay canvas ────────────────────────────────
+  // ─── Skeleton overlay ────────────────────────────────────────────────────
   function drawSkeleton(lm) {
     if (!octx || !overlayCanvas) return;
     const W = overlayCanvas.width  = overlayCanvas.offsetWidth;
     const H = overlayCanvas.height = overlayCanvas.offsetHeight;
 
     const CONNECTIONS = [
-      [0,1],[1,2],[2,3],[3,4],     // thumb
-      [0,5],[5,6],[6,7],[7,8],     // index
-      [0,9],[9,10],[10,11],[11,12],// middle
-      [0,13],[13,14],[14,15],[15,16],// ring
-      [0,17],[17,18],[18,19],[19,20],// pinky
-      [5,9],[9,13],[13,17]         // palm
+      [0,1],[1,2],[2,3],[3,4],
+      [0,5],[5,6],[6,7],[7,8],
+      [0,9],[9,10],[10,11],[11,12],
+      [0,13],[13,14],[14,15],[15,16],
+      [0,17],[17,18],[18,19],[19,20],
+      [5,9],[9,13],[13,17]
     ];
 
     octx.clearRect(0, 0, W, H);
-    octx.strokeStyle = 'rgba(0, 243, 255, 0.7)';
-    octx.lineWidth = 1.5;
-    octx.shadowBlur = 6;
+    octx.lineWidth   = 1.5;
+    octx.strokeStyle = 'rgba(0,243,255,0.75)';
+    octx.shadowBlur  = 6;
     octx.shadowColor = '#00f3ff';
 
     CONNECTIONS.forEach(([a, b]) => {
       octx.beginPath();
-      // Mirror X (canvas is also CSS-mirrored, so coords are already mirrored back)
       octx.moveTo(lm[a].x * W, lm[a].y * H);
       octx.lineTo(lm[b].x * W, lm[b].y * H);
       octx.stroke();
     });
 
-    // Draw landmark dots
     lm.forEach((pt, i) => {
+      const isIndexTip = i === 8;
       octx.beginPath();
-      octx.arc(pt.x * W, pt.y * H, i === 8 ? 4 : 2, 0, Math.PI * 2);
-      octx.fillStyle = i === 8 ? '#ff2d9b' : 'rgba(0, 243, 255, 0.9)';
-      octx.shadowColor = i === 8 ? '#ff2d9b' : '#00f3ff';
-      octx.shadowBlur  = i === 8 ? 10 : 4;
+      octx.arc(pt.x * W, pt.y * H, isIndexTip ? 4 : 2, 0, Math.PI * 2);
+      octx.fillStyle   = isIndexTip ? '#ff2d9b' : 'rgba(0,243,255,0.9)';
+      octx.shadowColor = isIndexTip ? '#ff2d9b' : '#00f3ff';
+      octx.shadowBlur  = isIndexTip ? 10 : 4;
       octx.fill();
     });
   }
