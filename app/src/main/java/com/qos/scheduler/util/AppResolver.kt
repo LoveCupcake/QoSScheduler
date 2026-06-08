@@ -44,7 +44,7 @@ class AppResolver(private val context: Context) {
 
     // Per-instance caches (cleared when service restarts)
     private val uidCache      = ConcurrentHashMap<String, Int>()   // cacheKey -> uid (positive only)
-    private val negativeCache = ConcurrentHashMap<String, Boolean>() // cacheKey -> true = "definitely not found"
+    private val negativeCache = ConcurrentHashMap<String, Long>()  // cacheKey -> expiration timestamp
     private val failCountCache = ConcurrentHashMap<String, Int>()
 
     data class AppInfo(
@@ -74,8 +74,14 @@ class AppResolver(private val context: Context) {
         // Positive cache hit
         uidCache[cacheKey]?.let { return it }
 
-        // Negative cache hit — we've retried 3 times and it's genuinely unresolvable
-        if (negativeCache.containsKey(cacheKey)) return null
+        // Negative cache hit — if it hasn't expired yet
+        negativeCache[cacheKey]?.let { expirationTime ->
+            if (System.currentTimeMillis() < expirationTime) {
+                return null // Still negative cached
+            } else {
+                negativeCache.remove(cacheKey) // Expired, let's retry
+            }
+        }
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             try {
@@ -92,17 +98,18 @@ class AppResolver(private val context: Context) {
                     // uid == -1: kernel socket or not yet bound — transient state, do NOT cache permanently
                     // FIX: atomic increment to avoid lost-update under concurrent calls
                     val failCount = failCountCache.compute(cacheKey) { _, v -> (v ?: 0) + 1 } ?: 1
-                    if (failCount >= 3) {
-                        // Give up retrying — move to negative cache
-                        negativeCache[cacheKey] = true
+                    // Increase threshold to 20 for aggressive UDP/QUIC handshakes
+                    if (failCount >= 20) {
+                        // Give up temporarily — negative cache for 10 seconds
+                        negativeCache[cacheKey] = System.currentTimeMillis() + 10_000L
                         failCountCache.remove(cacheKey)
                     }
                     return null // Never return -1 to callers
                 }
             } catch (e: Exception) {
                 val failCount = failCountCache.compute(cacheKey) { _, v -> (v ?: 0) + 1 } ?: 1
-                if (failCount >= 3) {
-                    negativeCache[cacheKey] = true
+                if (failCount >= 20) {
+                    negativeCache[cacheKey] = System.currentTimeMillis() + 10_000L
                     failCountCache.remove(cacheKey)
                 }
             }

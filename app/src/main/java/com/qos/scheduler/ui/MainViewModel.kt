@@ -65,6 +65,37 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
 
+        // ── Background loop: Auto-sync policies from server every 5 seconds ──
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            while (isActive) {
+                kotlinx.coroutines.delay(5000) // Wait 5s between polls
+                val url = qosApp.getServerUrl()
+                if (url.isNotBlank() && _isConnectedToServer.value) {
+                    val deviceId = android.provider.Settings.Secure.getString(
+                        getApplication<android.app.Application>().contentResolver,
+                        android.provider.Settings.Secure.ANDROID_ID
+                    )
+                    // Silently fetch & apply — no UI update, no status message
+                    when (val result = CloudSyncManager.fetchPolicies(url, deviceId)) {
+                        is SyncResult.Success -> {
+                            // Process newest policies first (since ordered DESC), ignore older duplicates
+                            result.policies.distinctBy { it.packageName }.forEach { policy ->
+                                val app = qosApp.appsFlow.value.find { it.packageName == policy.packageName }
+                                if (app != null) {
+                                    onAppPriorityChanged(app.uid, policy.priority)
+                                    onAppManualCapChanged(app.uid, policy.maxBps)
+                                }
+                            }
+                        }
+                        is SyncResult.Error -> {
+                            // Connection lost — mark as disconnected so loop stops until user re-syncs
+                            _isConnectedToServer.value = false
+                        }
+                    }
+                }
+            }
+        }
+
         // ── Background loop: Push Telemetry every 3 seconds ──
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             while (isActive) {
@@ -104,7 +135,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         CloudSyncManager.pushTelemetry(url, deviceId, telemetry)
                     }
                 }
-                kotlinx.coroutines.delay(2000)
+                kotlinx.coroutines.delay(1000) // Changed to 1s for smoother charts
             }
         }
     }
@@ -255,7 +286,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             when (val result = CloudSyncManager.fetchPolicies(url, deviceId)) {
                 is SyncResult.Success -> {
                     _isConnectedToServer.value = true
-                    result.policies.forEach { policy ->
+                    // Process newest policies first (since ordered DESC), ignore older duplicates
+                    result.policies.distinctBy { it.packageName }.forEach { policy ->
                         // Match by package name against tracked apps
                         val app = qosApp.appsFlow.value.find { it.packageName == policy.packageName }
                         if (app != null) {

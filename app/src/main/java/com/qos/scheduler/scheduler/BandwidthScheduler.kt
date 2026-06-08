@@ -87,12 +87,14 @@ class BandwidthScheduler {
 
     /**
      * FIX: Create the bucket if it doesn't exist yet so the cap is never silently dropped.
-     * Previously if the bucket was absent, manualCaps was stored but never applied.
+     * RUTHLESS MODE: Shrink the burst bits immediately so previously accumulated tokens
+     * are destroyed, enforcing the new manual cap instantly.
      */
     fun setManualCap(key: String, rateBps: Long) {
         manualCaps[key] = rateBps
-        val bucket = buckets[key] ?: TokenBucket(rateBps, rateBps).also { buckets[key] = it }
-        bucket.setRate(rateBps) // manual caps only control rate, burst stays as-is
+        val burst = (rateBps / 2).coerceAtLeast(1L)
+        val bucket = buckets[key] ?: TokenBucket(rateBps, burst).also { buckets[key] = it }
+        bucket.setRateAndBurst(rateBps, burst)
     }
 
     /**
@@ -114,7 +116,13 @@ class BandwidthScheduler {
                 TrafficClass.MEDIUM -> 2
                 TrafficClass.LOW    -> 1
             }
-            val rate = (uplinkBps * weight) / totalWeight
+            val standardRate = (uplinkBps * weight) / totalWeight
+            val rate = if (device.priorityClass == TrafficClass.LOW) {
+                // RUTHLESS MODE: Force LOW priority to a maximum of 1 Mbps (1,000,000 bps)
+                minOf(standardRate, 1_000_000L)
+            } else {
+                standardRate
+            }
             val burst = when (device.priorityClass) {
                 TrafficClass.HIGH   -> (rate * 2).coerceAtLeast(1L)
                 TrafficClass.MEDIUM -> rate.coerceAtLeast(1L)
@@ -148,7 +156,13 @@ class BandwidthScheduler {
                 TrafficClass.MEDIUM -> 2
                 TrafficClass.LOW    -> 1
             }
-            val rate = (uplinkBps * weight) / totalWeight
+            val standardRate = (uplinkBps * weight) / totalWeight
+            val rate = if (app.priorityClass == TrafficClass.LOW) {
+                // RUTHLESS MODE: Force LOW priority to a maximum of 1 Mbps (1,000,000 bps)
+                minOf(standardRate, 1_000_000L)
+            } else {
+                standardRate
+            }
             val burst = when (app.priorityClass) {
                 TrafficClass.HIGH   -> (rate * 5).coerceAtLeast(1L)  // large burst for high-priority
                 TrafficClass.MEDIUM -> (rate * 2).coerceAtLeast(1L)
@@ -170,7 +184,7 @@ class BandwidthScheduler {
         val rate = when (cls) {
             TrafficClass.HIGH   -> (uplinkBps * 0.8).toLong()
             TrafficClass.MEDIUM -> (uplinkBps * 0.5).toLong()
-            TrafficClass.LOW    -> (uplinkBps * 0.2).toLong()
+            TrafficClass.LOW    -> minOf((uplinkBps * 0.2).toLong(), 5_000_000L) // RUTHLESS MODE: 5 Mbps cap
         }
         val burst = when (cls) {
             TrafficClass.HIGH   -> (rate * 2).coerceAtLeast(1L)
