@@ -185,6 +185,25 @@ iperf3 -c YOUR_SERVER_IP -t 60 -i 1 -J > qos_3dev_medium.json
 iperf3 -c YOUR_SERVER_IP -t 60 -i 1 -J > qos_3dev_low.json
 ```
 
+### 3.5 Run On-Device App QoS Test (Termux)
+
+This demonstrates the App-level QoS (shaping bandwidth for specific Android applications).
+
+1. **Setup Rule:** Open the Web Admin Dashboard and create a new rule:
+   - App Name: `Termux`
+   - Package Name: `com.termux`
+   - Max Bandwidth: `5000` (Kbps)
+2. **Run TCP Test (Smooth Shaping):** Open Termux on the phone and run:
+   ```bash
+   iperf3 -c speedtest.serverius.net -p 5002 -t 30
+   ```
+   *(Note: You must test against a public server. Android VpnService naturally bypasses local LAN subnets like 192.168.x.x, so local testing won't be shaped).*
+3. **Run UDP Test (To see High Drop Rate):**
+   ```bash
+   iperf3 -c speedtest.serverius.net -p 5002 -u -b 100M -t 30
+   ```
+   *Expected: In the TCP test, the congestion control adapts, leading to a low drop rate but capped speed. In the UDP test, Termux blasts at 100 Mbps and the Token Bucket drops 95%+ packets, showcasing a massive Drop Rate on the Android App UI!*
+
 ---
 
 ## Step 4: Wireshark Capture (30 minutes)
