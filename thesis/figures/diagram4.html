@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; padding: 40px; background: white; display: flex; justify-content: center; gap: 60px; }
+  .diagram-container { text-align: center; }
+  .diagram-container h3 { font-family: "Times New Roman", serif; font-size: 16px; margin-bottom: 20px; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#ffffff',
+    primaryBorderColor: '#000000',
+    primaryTextColor: '#000000',
+    lineColor: '#000000',
+    secondaryColor: '#ffffff',
+    tertiaryColor: '#f8f8f8',
+    fontSize: '14px',
+    fontFamily: '"Times New Roman", serif'
+  },
+  flowchart: { curve: 'linear', padding: 15, nodeSpacing: 20, rankSpacing: 40 }
+});
+</script>
+</head>
+<body>
+
+<div class="diagram-container">
+<h3>(a) Problem: Infinite Routing Loop</h3>
+<div class="mermaid">
+graph TB
+    APP1["Application"] --> TUN1["TUN Interface"]
+    TUN1 --> QOS1["QoS Scheduler App"]
+    QOS1 --> SOCK1["Relay Socket"]
+    SOCK1 -->|"✗ Recaptured by VPN"| TUN1
+
+    style APP1 fill:#fff,stroke:#000,stroke-width:1px
+    style TUN1 fill:#fff,stroke:#000,stroke-width:1px
+    style QOS1 fill:#fff,stroke:#000,stroke-width:1px
+    style SOCK1 fill:#fff,stroke:#000,stroke-width:1px
+</div>
+</div>
+
+<div class="diagram-container">
+<h3>(b) Solution: protect() Bypass</h3>
+<div class="mermaid">
+graph TB
+    APP2["Application"] --> TUN2["TUN Interface"]
+    TUN2 --> QOS2["QoS Scheduler App"]
+    QOS2 --> SOCK2["protect(socket)"]
+    SOCK2 -->|"✓ Bypasses VPN"| NIC["Physical NIC"]
+    NIC --> INT(("Internet"))
+
+    style APP2 fill:#fff,stroke:#000,stroke-width:1px
+    style TUN2 fill:#fff,stroke:#000,stroke-width:1px
+    style QOS2 fill:#fff,stroke:#000,stroke-width:1px
+    style SOCK2 fill:#fff,stroke:#000,stroke-width:1px
+    style NIC fill:#fff,stroke:#000,stroke-width:1px
+    style INT fill:#fff,stroke:#000,stroke-width:1px
+</div>
+</div>
+
+</body></html>

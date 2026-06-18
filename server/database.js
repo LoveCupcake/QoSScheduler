@@ -85,8 +85,12 @@ async function getDb() {
 // Persist in-memory DB to disk after every write
 function save() {
   if (!db) return;
-  const data = db.export();
-  fs.writeFileSync(DB_PATH, Buffer.from(data));
+  try {
+    const data = db.export();
+    fs.writeFileSync(DB_PATH, Buffer.from(data));
+  } catch (err) {
+    console.error('[DB] Error saving database to disk:', err.message);
+  }
 }
 
 // Helper: run a query that modifies data and auto-save
@@ -97,12 +101,16 @@ function run(sql, params = []) {
 
 // Helper: return all rows as array of objects
 function all(sql, params = []) {
-  const stmt = db.prepare(sql);
-  if (params.length) stmt.bind(params);
-  const rows = [];
-  while (stmt.step()) rows.push(stmt.getAsObject());
-  stmt.free();
-  return rows;
+  let stmt;
+  try {
+    stmt = db.prepare(sql);
+    if (params.length) stmt.bind(params);
+    const rows = [];
+    while (stmt.step()) rows.push(stmt.getAsObject());
+    return rows;
+  } finally {
+    if (stmt) stmt.free();
+  }
 }
 
 // Helper: return first row as object or null

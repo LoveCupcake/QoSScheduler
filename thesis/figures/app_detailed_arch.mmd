@@ -1,0 +1,55 @@
+graph TB
+    subgraph UI["UI Layer (Jetpack Compose)"]
+        MA[MainActivity]
+        DS[DashboardScreen]
+        AD[AppDetailScreen]
+        SS[SettingsScreen]
+        SC[ServerConnectScreen]
+        VM[MainViewModel]
+    end
+
+    subgraph APP["Application Layer"]
+        QA[QosApplication<br/>Global State Bus]
+    end
+
+    subgraph SERVICE["VPN Service Layer"]
+        VS[QosVpnService<br/>Orchestrator]
+        DP[DataPlaneProcessor<br/>Pipeline]
+        DC[DpiClassifier<br/>Traffic ID]
+        BS[BandwidthScheduler<br/>Token Bucket + WFQ]
+        TR[TcpRelayManager<br/>TCP Proxy]
+        UR[UdpRelayManager<br/>UDP Proxy]
+    end
+
+    subgraph MODEL["Data Model"]
+        RP[RawPacket Parser]
+        PC[PacketComposer Builder]
+        AT[AppTraffic]
+        FK[FlowKey + PacketFlow]
+    end
+
+    subgraph UTIL["Utilities"]
+        AR[AppResolver<br/>UID Lookup]
+        HM[HotspotManager]
+        HR[HostnameResolver]
+        PL[PacketLogger]
+    end
+
+    subgraph CLOUD["Cloud Sync"]
+        CS[CloudSyncManager]
+        TE[TelemetryEntry]
+    end
+
+    MA --> VM
+    VM --> QA
+    QA --> VS
+    VS --> DP
+    DP --> DC
+    DP --> BS
+    DP --> AR
+    VS --> TR
+    VS --> UR
+    TR --> PC
+    UR --> PC
+    DP --> RP
+    VM --> CS

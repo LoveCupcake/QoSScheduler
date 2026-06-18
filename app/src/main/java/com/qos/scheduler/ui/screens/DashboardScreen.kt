@@ -395,10 +395,21 @@ private fun CyberAppCard(app: com.qos.scheduler.model.AppTraffic, onClick: () ->
                     fontSize = 14.sp
                 )
                 val dataMB = (app.bytesOut + app.bytesIn) / (1024.0 * 1024.0)
+                
+                val bps = app.currentThroughputBps
+                val speedStr = when {
+                    bps >= 1_000_000 -> "%.2f Mbps".format(bps / 1_000_000.0)
+                    bps >= 1_000 -> "%.0f Kbps".format(bps / 1000.0)
+                    else -> "$bps Bps"
+                }
+                
+                val dropRate = app.getQosDropRatePercent()
+                val dropStr = if (dropRate > 0.0) "  •  Drop: %.1f%%".format(dropRate) else ""
+                
                 Text(
-                    "%.2f MB  •  %.2f Mbps".format(dataMB, app.currentThroughputBps / 1_000_000.0),
+                    "%.2f MB  •  %s%s".format(dataMB, speedStr, dropStr),
                     fontSize = 11.sp,
-                    color = NeonCyan
+                    color = if (dropRate > 2.0) CyberPink else NeonCyan
                 )
                 Text(
                     "${app.getDominantCategory().displayName}  •  ${app.getConnectionSummary()}",

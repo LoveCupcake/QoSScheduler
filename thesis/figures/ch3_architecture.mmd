@@ -1,0 +1,40 @@
+graph TB
+    DEV["Android Device"] --> TUN
+
+    subgraph DP["Data Plane"]
+        direction LR
+        TUN["TUN Interface"] --> PARSE["IP Parser"]
+        PARSE --> UIDR["UID Resolver"]
+        UIDR --> DPIC["DPI Classifier"]
+        DPIC --> RELAY["TCP/UDP Relay"]
+    end
+
+    subgraph CP["Control Plane"]
+        direction LR
+        TBK["Token Bucket - CAS Lock-Free"]
+        WFQ["WFQ Scheduler - Weights 4:2:1"]
+        BS["BandwidthScheduler"]
+    end
+
+    subgraph TP["Management Plane"]
+        direction LR
+        PUSH["HTTP Telemetry Push"]
+        POLL["HTTP Polling"]
+        PSYNC["Policy Sync"]
+    end
+
+    DP -->|"packet metadata"| CP
+    CP -->|"allow/drop verdict"| DP
+    CP -->|"statistics"| TP
+    TP -->|"policy updates"| CP
+
+    RELAY --> INT(("Internet"))
+
+    TP <-.->|"REST API"| NS
+
+    subgraph NS["Node.js Server"]
+        direction TB
+        RAPI["REST API"]
+        SQDB["SQLite DB"]
+        WADM["Web Admin"]
+    end

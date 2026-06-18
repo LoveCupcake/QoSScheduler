@@ -109,8 +109,17 @@ fun AppDetailScreen(
                             horizontalArrangement = Arrangement.SpaceAround
                         ) {
                             ThroughputItem("Downloaded", formatTraffic(app.bytesIn))
-                            ThroughputItem("Uploaded",   formatTraffic(app.bytesOut))
-                            ThroughputItem("Current",    "%.2f Mbps".format(app.currentThroughputBps / 1_000_000.0))
+                            
+                            val bps = app.currentThroughputBps
+                            val speedStr = when {
+                                bps >= 1_000_000 -> "%.2f Mbps".format(bps / 1_000_000.0)
+                                bps >= 1_000 -> "%.0f Kbps".format(bps / 1000.0)
+                                else -> "$bps Bps"
+                            }
+                            ThroughputItem("Speed", speedStr)
+                            
+                            val dropRate = app.getQosDropRatePercent()
+                            ThroughputItem("Drop Rate", "%.1f%%".format(dropRate))
                         }
                     }
                 }

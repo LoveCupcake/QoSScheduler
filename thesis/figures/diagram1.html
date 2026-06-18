@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; padding: 40px; background: white; display: flex; justify-content: center; }
+  .mermaid { font-family: "Times New Roman", serif; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#ffffff',
+    primaryBorderColor: '#000000',
+    primaryTextColor: '#000000',
+    lineColor: '#000000',
+    secondaryColor: '#ffffff',
+    tertiaryColor: '#f8f8f8',
+    fontSize: '15px',
+    fontFamily: '"Times New Roman", serif'
+  },
+  flowchart: { curve: 'linear', padding: 20, nodeSpacing: 30, rankSpacing: 50 }
+});
+</script>
+</head>
+<body>
+<div class="mermaid">
+graph TB
+    subgraph AD["Android Device"]
+        direction TB
+        A1["Gaming App"] & A2["Browser"] & A3["Cloud Sync"] --> TUN["VPN TUN Interface"]
+        TUN --> PP["Packet Parser"]
+        PP --> UID["UID Resolver"]
+        UID --> DPI["DPI Classifier"]
+        DPI --> TB["Token Bucket + WFQ Scheduler"]
+    end
+
+    TB -->|"Shaped Traffic"| INT(("Internet"))
+    TB <-->|"Telemetry / Policies"| SRV
+
+    subgraph SRV["Node.js Web Admin Server"]
+        direction TB
+        API["REST API"]
+        DB["SQLite DB"]
+        DASH["Dashboard - Chart.js"]
+    end
+
+    style AD fill:#fff,stroke:#000,stroke-width:2px
+    style SRV fill:#fff,stroke:#000,stroke-width:2px
+    style INT fill:#fff,stroke:#000,stroke-width:2px
+</div>
+</body></html>

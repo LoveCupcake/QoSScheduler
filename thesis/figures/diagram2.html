@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; padding: 40px; background: white; display: flex; justify-content: center; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#ffffff',
+    primaryBorderColor: '#000000',
+    primaryTextColor: '#000000',
+    lineColor: '#000000',
+    secondaryColor: '#ffffff',
+    tertiaryColor: '#f8f8f8',
+    fontSize: '14px',
+    fontFamily: '"Times New Roman", serif'
+  },
+  flowchart: { curve: 'linear', padding: 15, nodeSpacing: 25, rankSpacing: 40 }
+});
+</script>
+</head>
+<body>
+<div class="mermaid">
+graph TB
+    DEV["Android Device"] --> TUN
+
+    subgraph DP["Data Plane"]
+        direction LR
+        TUN["TUN Interface"] --> PARSE["IP Parser"]
+        PARSE --> UIDR["UID Resolver"]
+        UIDR --> DPIC["DPI Classifier"]
+        DPIC --> RELAY["TCP/UDP Relay"]
+    end
+
+    subgraph CP["Control Plane"]
+        direction LR
+        TBK["Token Bucket<br/>CAS Lock-Free"]
+        WFQ["WFQ Scheduler<br/>Weights 4:2:1"]
+        BS["BandwidthScheduler"]
+    end
+
+    subgraph TP["Telemetry Plane"]
+        direction LR
+        PUSH["HTTP Telemetry Push"]
+        POLL["HTTP Polling"]
+        PSYNC["Policy Sync"]
+    end
+
+    DP -->|"packet metadata"| CP
+    CP -->|"allow / drop verdict"| DP
+    CP -->|"statistics"| TP
+    TP -->|"policy updates"| CP
+
+    RELAY --> INT(("Internet"))
+
+    TP <-->|"REST API"| NS
+
+    subgraph NS["Node.js Server"]
+        direction TB
+        RAPI["REST API"]
+        SQDB["SQLite DB"]
+        WADM["Web Admin"]
+    end
+
+    style DP fill:#fff,stroke:#000,stroke-width:2px
+    style CP fill:#fff,stroke:#000,stroke-width:2px
+    style TP fill:#fff,stroke:#000,stroke-width:2px
+    style NS fill:#fff,stroke:#000,stroke-width:2px
+</div>
+</body></html>

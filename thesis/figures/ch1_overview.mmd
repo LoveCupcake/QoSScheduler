@@ -1,0 +1,19 @@
+graph TB
+    subgraph AD["Android Device"]
+        direction TB
+        A1["Gaming App"] & A2["Browser"] & A3["Cloud Sync"] --> TUN["VPN TUN Interface"]
+        TUN --> PP["Packet Parser"]
+        PP --> UID["UID Resolver"]
+        UID --> DPI["DPI Classifier"]
+        DPI --> TB["Token Bucket + WFQ Scheduler"]
+    end
+
+    TB -->|"Shaped Traffic"| INT(("Internet"))
+    TB <-.->|"Telemetry / Policies"| SRV
+
+    subgraph SRV["Node.js Web Admin Server"]
+        direction TB
+        API["REST API"]
+        DB["SQLite DB"]
+        DASH["Dashboard Chart.js"]
+    end

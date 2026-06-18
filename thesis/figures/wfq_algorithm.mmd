@@ -1,0 +1,31 @@
+graph LR
+    classDef pktH fill:#f38ba8,stroke:#1e1e2e,color:#1e1e2e,stroke-width:2px;
+    classDef pktM fill:#f9e2af,stroke:#1e1e2e,color:#1e1e2e,stroke-width:2px;
+    classDef pktL fill:#89b4fa,stroke:#1e1e2e,color:#1e1e2e,stroke-width:2px;
+    classDef qH fill:#1e1e2e,stroke:#f38ba8,stroke-width:3px,color:#cdd6f4;
+    classDef qM fill:#1e1e2e,stroke:#f9e2af,stroke-width:3px,color:#cdd6f4;
+    classDef qL fill:#1e1e2e,stroke:#89b4fa,stroke-width:3px,color:#cdd6f4;
+    classDef sched fill:#cba6f7,stroke:#1e1e2e,color:#1e1e2e,stroke-width:3px;
+    classDef out fill:#a6e3a1,stroke:#1e1e2e,color:#1e1e2e,stroke-width:3px;
+
+    IN(("Incoming<br>Traffic")) --> CLASSIFIER{"Traffic<br>Classifier"}
+
+    subgraph Queues["Weighted Fair Queuing (WFQ) Buffers"]
+        direction LR
+        CLASSIFIER -->|"Game/VoIP"| QH["[High Priority Queue]<br>Weight: 4"]
+        CLASSIFIER -->|"Web/App"| QM["[Normal Priority Queue]<br>Weight: 2"]
+        CLASSIFIER -->|"Background"| QL["[Low Priority Queue]<br>Weight: 1"]
+        
+        class QH qH;
+        class QM qM;
+        class QL qL;
+    end
+
+    QH -->|"(Extract 4 Packets)"| SCHED(("WFQ<br>Scheduler"))
+    QM -->|"(Extract 2 Packets)"| SCHED
+    QL -->|"(Extract 1 Packet)"| SCHED
+    
+    class SCHED sched;
+
+    SCHED --> OUT[["Outgoing Interface<br>(To Internet)"]]
+    class OUT out;

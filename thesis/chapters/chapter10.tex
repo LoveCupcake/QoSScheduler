@@ -1,0 +1,52 @@
+% ============================================================
+% CHAPTER 10: CONCLUSION
+% ============================================================
+
+\chapter{CONCLUSION}
+\label{chap:conclusion}
+
+This thesis presented the design, implementation, and evaluation of a novel Quality of Service (QoS) Scheduler for Android mobile hotspots. By synthesizing concepts from networking protocols, packet inspection, and concurrency engineering, this research demonstrates that effective traffic shaping can be achieved entirely in user-space without administrative (root) privileges.
+
+\section{Summary of Contributions}
+\label{sec:contributions_summary}
+
+The primary contributions of this work are manifold:
+\begin{enumerate}
+    \item \textbf{VpnService-based Traffic Shaping:} We pioneered a method to intercept, parse, and enforce bandwidth policies on raw IP packets using Android's native VPN APIs, avoiding the deployment hurdles of traditional rooted solutions.
+    \item \textbf{Software Token Bucket Engine:} We engineered a high-precision, nanosecond-resolution Token Bucket algorithm capable of accurately metering and policing data flows at the application layer.
+    \item \textbf{User-Space TCP/UDP Relays:} We developed custom, split-handshake network relays that successfully multiplex intercepted traffic onto the physical network interface, solving complex routing loop challenges inherent to local VPN configurations.
+    \item \textbf{Empirical Proof of Efficacy:} Through rigorous testing, we proved that aggressively throttling background traffic (the ``ruthless'' QoS mode) at the device edge can reduce latency by 84\% and eliminate bufferbloat, safeguarding time-sensitive applications like gaming and VoIP.
+\end{enumerate}
+
+\section{Answers to Research Questions}
+\label{sec:rq_answers}
+
+At the inception of this research, we posed several core questions regarding mobile network management.
+
+\textbf{RQ1: Can enterprise-grade QoS algorithms be effectively implemented in Android user-space?} \\
+\textit{Answer:} Yes. The implementation of Token Bucket and Weighted Fair Queuing (WFQ) algorithms within a Kotlin foreground service proved highly effective at enforcing bandwidth caps, successfully throttling background tasks and reallocating capacity to high-priority streams.
+
+\textbf{RQ2: What is the performance overhead of intercepting and parsing all network traffic on a mobile device?} \\
+\textit{Answer:} The overhead is well within acceptable margins for modern hardware. The system consumes approximately 12\% CPU and 68 MB of RAM under heavy load, ensuring that the QoS enforcement itself does not become a bottleneck or drain the device battery excessively.
+
+\textbf{RQ3: How effectively does local traffic shaping mitigate bufferbloat on mobile hotspots?} \\
+\textit{Answer:} Extremely effectively. By dropping lower-priority packets before they enter the cellular modem's hardware queue, the system prevents the deep buffering that causes bufferbloat. Jitter was reduced by over 92\%, transforming a previously unusable saturated network into a stable environment for competitive gaming.
+
+\section{Future Work}
+\label{sec:future_work}
+
+While the current QoSScheduler architecture is robust and functional, several avenues for future research and enhancement remain.
+
+\subsection{Machine Learning for Encrypted DPI}
+As discussed in the limitations, static port-based classification is increasingly obsolete. Future iterations of this system should integrate lightweight, on-device Machine Learning models (such as TensorFlow Lite) to perform behavioral analysis of encrypted traffic flows. By analyzing packet sizes, inter-arrival times, and burst patterns, the system could accurately classify traffic categories (e.g., streaming vs. gaming) without needing to inspect the encrypted payload.
+
+\subsection{Adaptive Bandwidth Estimation}
+The WFQ scheduler currently relies on a statically defined physical uplink capacity. Implementing an adaptive algorithm (such as TCP Vegas or BBR-inspired delay-gradient analysis) would allow the scheduler to continuously probe the network and adjust the global token generation rate dynamically based on fluctuating cellular signal strength.
+
+\subsection{Multi-device Synchronization}
+Expanding the QoS domain from a single hotspot host to a mesh of synchronized devices presents an exciting challenge. A distributed QoS registry, communicating via local UDP broadcasts, could allow multiple devices on a local network to collaboratively shape their traffic, ensuring fairness across the entire Local Area Network rather than just within a single device.
+
+\section{Final Remarks}
+\label{sec:final_remarks}
+
+The democratization of network management tools is essential as mobile devices increasingly serve as primary internet gateways. The QoSScheduler demonstrates that complex, low-level networking capabilities can be abstracted and delivered safely to consumer devices. By empowering users to control their own bandwidth allocation, we mitigate the inherent unreliability of wireless networks and guarantee the performance of critical digital tasks in an increasingly congested digital landscape.

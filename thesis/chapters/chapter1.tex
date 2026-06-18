@@ -3,163 +3,114 @@
 % ============================================================
 
 \chapter{INTRODUCTION}
-\label{chap:introduction}
+\label{chap:intro}
 
-\section{Problem Statement and Motivation}
-\label{sec:problem_statement}
+\section{Background and Motivation}
+\label{sec:background}
 
-Over the past decade, smartphones have become the primary Internet-connected devices for billions of users worldwide. According to the Ericsson Mobility Report 2024, global mobile data traffic has reached an average of 17 GB per user per month and is projected to triple by 2029 \cite{ericsson2024}. This surge is driven by the proliferation of bandwidth-intensive applications such as video streaming (YouTube, Netflix), video conferencing (Zoom, Google Meet), online gaming (Mobile Legends, PUBG Mobile), and social media (TikTok, Facebook).
+The past decade has witnessed an unprecedented explosion in global mobile data consumption, driven by the proliferation of bandwidth-intensive applications such as 4K video streaming, augmented reality (AR), real-time competitive gaming, and high-definition video conferencing. According to the Ericsson Mobility Report \cite{ericsson_2024}, global mobile data traffic is projected to grow by a factor of three between 2023 and 2029, with smartphones accounting for over 95\% of this volume. While advancements in physical layer technologies (such as 5G NR and Wi-Fi 6) have exponentially increased raw theoretical throughput, they have fundamentally failed to address a much more insidious problem: network contention and unmanaged queueing at the edge of the network.
 
-Each of the aforementioned applications has distinct network Quality of Service (QoS) requirements. Online gaming demands ultra-low latency --- below 50 milliseconds --- with stable jitter. Video streaming requires sustained bandwidth at 5--8 Mbps for HD quality. Meanwhile, background activities such as downloading updates or cloud synchronization can tolerate lower speeds without degrading the user experience.
+When multiple applications on a single mobile device, or multiple devices connected to a mobile hotspot, simultaneously compete for a shared uplink, they are subjected to the default networking policies of the Android operating system. By design, the Linux kernel underlying Android employs a rigid First-In, First-Out (FIFO) queuing discipline (qdisc) for its network interfaces. This FIFO architecture is entirely agnostic to the nature of the applications generating the traffic. A background synchronization process uploading a gigabyte-sized backup file to cloud storage is treated with the exact same priority as a low-latency VoIP packet or a critical control command in a competitive multiplayer game.
 
-However, the Android operating system --- commanding over 72\% of the global mobile market share according to StatCounter (2024) \cite{statcounter2024} --- does not provide per-application bandwidth scheduling mechanisms for ordinary users. Android's network stack employs a default ``best-effort'' policy: all applications receive equal treatment in terms of network resource access. This leads to a common scenario: when a single application consumes the entire available bandwidth through a large download, latency-sensitive applications (such as games or video calls) suffer severe performance degradation --- a phenomenon known as \textit{Bufferbloat} \cite{gettys2012bufferbloat}.
+This lack of application-level awareness directly precipitates a phenomenon known in queueing theory as \textbf{Bufferbloat} \cite{gettys_2012}. Bufferbloat occurs when network equipment manufacturers deploy excessively large, unmanaged buffers in cellular modems and Wi-Fi routers to prevent packet drops during bursty transmissions. While large buffers successfully prevent immediate packet loss, they inadvertently defeat the congestion avoidance mechanisms of the Transmission Control Protocol (TCP). Because TCP's congestion window continuously expands until it detects a dropped packet, a greedy background download will relentlessly inject packets into the network until the modem's buffer is completely saturated. Consequently, newly arriving latency-sensitive packets (e.g., gaming UDP datagrams) must wait at the back of this massive queue, leading to catastrophic latency spikes (frequently exceeding 500-1000 milliseconds) and severe jitter. For real-time applications, delayed packets are functionally equivalent to lost packets, rendering the network effectively unusable.
 
-Existing solutions on Android can be categorized into two main groups. The first group consists of applications that require Root access (e.g., AFWall+ \cite{afwall}, NetHogs \cite{nethogs}), which allow direct manipulation of iptables within the Linux kernel but are impractical for the vast majority of users due to warranty violations and potential security risks. The second group comprises non-Root firewall applications (e.g., NetGuard \cite{netguard}, GlassWire \cite{glasswire}), which utilize the VpnService API but only provide allow/deny functionality \textbf{without the ability to schedule bandwidth according to priority levels}.
+In enterprise and carrier-grade networks, Bufferbloat and bandwidth contention are mitigated through sophisticated Quality of Service (QoS) architectures. Techniques such as Active Queue Management (AQM), Differentiated Services (DiffServ) \cite{rfc2474}, and advanced scheduling algorithms like Weighted Fair Queuing (WFQ) \cite{demers_1989} are deployed on core routers to prioritize critical traffic. However, extending these enterprise-grade QoS capabilities to the consumer mobile edge presents an immense technical barrier.
 
-This technical gap is the primary motivation for this thesis: to build a system capable of \textbf{intervening at the network layer (Layer 3) to perform per-application QoS scheduling without requiring Root access} on Android devices.
+Historically, implementing traffic shaping on Android devices required utilizing Linux kernel utilities such as \texttt{tc} (Traffic Control) and \texttt{iptables}. These utilities directly manipulate the kernel's \texttt{netfilter} framework, offering highly efficient, hardware-accelerated traffic manipulation. The fatal flaw of this approach, however, is the requirement for \textbf{Root privileges} (Superuser access). Rooting a modern Android device voids the warranty, disables secure execution environments (such as Samsung Knox and Google Play Protect), breaks banking applications, and exposes the user to severe malware vectors. Consequently, less than 1\% of the global Android user base operates rooted devices. This creates a ``Root Privilege Wall'' --- a strict dichotomy where powerful networking tools are entirely inaccessible to the overwhelming majority of everyday consumers.
 
-% -----------------------------------------------------------
+This thesis introduces the \textbf{QoS Scheduler}, a novel paradigm in mobile network management. The fundamental premise of this research is that enterprise-grade Quality of Service algorithms can be entirely decoupled from the operating system kernel and reimplemented efficiently within a user-space application environment. By leveraging the Android \texttt{VpnService} API, the QoS Scheduler creates a virtual TUN (Network Tunnel) interface that intercepts all outbound and inbound IP packets originating from the device. This interception mechanism bypasses the need for Root access entirely.
 
-\section{Research Evolution: From Hotspot QoS to Per-Application QoS}
-\label{sec:research_evolution}
+Once packets are intercepted and routed into the user-space application, they are subjected to a rigorous processing pipeline. The system parses the raw IP and TCP/UDP headers at the bit level, asynchronously queries the Android OS to identify the exact application (via its unique User ID, or UID) that generated the packet, and classifies the traffic into distinct priority tiers. The traffic is then passed through an algorithmic engine implementing Token Bucket rate limiting \cite{tanenbaum_2011} and Weighted Fair Queuing. This engine actively shapes the traffic---throttling greedy background applications and artificially inducing TCP congestion control back-pressure \textit{before} the packets ever reach the device's physical modem. By doing so, the system proactively prevents the cellular modem's hardware buffers from filling up, eradicating local Bufferbloat and guaranteeing low-latency transmission for critical applications.
 
-It is important to document that the scope of this thesis underwent a significant and deliberate evolution during the early research phase. The \textbf{original research goal} was to build a QoS scheduling system for \textit{devices connected to the host phone's WiFi Hotspot} --- i.e., per-device bandwidth management in a mobile hotspot environment. The envisioned scenario was a user sharing their mobile data via WiFi Hotspot (e.g., in a dormitory, small office, or public setting) and wanting to control how much bandwidth each connected device could consume.
-
-However, a thorough feasibility analysis during the preliminary research phase revealed that \textbf{per-device hotspot QoS is technically infeasible on unrooted Android devices}, due to the following fundamental platform limitations:
-
-\begin{enumerate}
-    \item \textbf{VPN tunnel does not capture hotspot traffic:} The Android VpnService API creates a TUN interface that intercepts traffic originating from the \textit{host device's own network stack}. Traffic forwarded between the hotspot interface (\texttt{ap0} or \texttt{swlan0}) and the upstream WAN interface is handled by the Linux kernel's IP forwarding subsystem (\texttt{netfilter/iptables}). This forwarded traffic \textbf{does not pass through the TUN interface} on most Android versions and devices, making it invisible to a VpnService-based application.
-
-    \item \textbf{No per-application visibility on connected devices:} Even on Android versions where hotspot traffic does traverse the VPN tunnel, the host device can only observe the \textit{source IP address} of the connected device (e.g., \texttt{192.168.43.x}). It has \textbf{no mechanism to identify which application} on the connected device generated the traffic, since the \texttt{ConnectivityManager.getConnectionOwnerUid()} API only resolves UIDs for locally-owned connections.
-
-    \item \textbf{Device identification requires Root:} Reliable identification of connected devices via MAC address requires reading the kernel's ARP table (\texttt{/proc/net/arp}), which is accessible without Root but produces unreliable results on newer Android versions due to MAC address randomization. Furthermore, associating traffic flows with specific client devices across NAT boundaries requires kernel-level hooks unavailable in userspace.
-
-    \item \textbf{Inconsistent behavior across ROMs and versions:} Testing revealed that hotspot traffic routing through VPN varies significantly across Android versions (10--14), manufacturers (Samsung, Xiaomi, Google), and custom ROMs (MIUI, OneUI). This inconsistency makes it impossible to build a reliable, universal solution.
-\end{enumerate}
-
-Based on this analysis, the research scope was \textbf{pivoted} from per-device hotspot QoS to \textbf{per-application QoS on the host device itself}. This pivot was a deliberate engineering decision driven by the following reasoning:
-
-\begin{itemize}
-    \item \textbf{Broader applicability:} Per-application QoS benefits \textit{every} Android user --- not just those who share their connection via Hotspot. Any user running multiple applications simultaneously (e.g., gaming while a background app downloads updates) can benefit from bandwidth prioritization.
-    
-    \item \textbf{Technical soundness:} The VpnService API provides complete and reliable access to all traffic from the host device's own applications, making per-application QoS technically robust and universally compatible across all Android 10+ devices.
-    
-    \item \textbf{Foundation for future extension:} The core QoS engine (Token Bucket, WFQ, packet parsing) built for per-application scheduling forms the architectural foundation upon which per-device hotspot QoS can be added in the future --- potentially on rooted devices or when Android introduces new APIs for hotspot traffic interception.
-\end{itemize}
-
-The remnants of the original hotspot vision are preserved in the codebase through the \texttt{HotspotManager} (hotspot detection and subnet identification) and \texttt{DeviceRegistry} (connected device tracking) modules, which remain functional and are documented in Chapter~5. These modules demonstrate the research effort invested in the original direction and provide a starting point for the hotspot QoS extension described in Chapter~7.
-
-% -----------------------------------------------------------
+Beyond single-device optimization, this architecture lays the foundational groundwork for a much broader commercial application: \textbf{Cloud-managed Mobile Device Management (MDM)}. Because the QoS logic resides entirely within an installable user-space application, it opens the door for enterprise IT administrators, fleet managers, and parents to deploy centralized, policy-driven bandwidth management across thousands of distributed, unrooted devices. The project demonstrates this capability through a real-time Node.js Web Admin dashboard, proving that complex telemetry and traffic control can be effectively managed via remote command interfaces.
 
 \section{Research Objectives}
-\label{sec:research_objectives}
+\label{sec:objectives}
 
-This thesis establishes the following specific research objectives:
+The overarching goal of this thesis is to design, implement, and rigorously evaluate a user-space network Quality of Service application for the Android platform that operates without requiring Root access, while simultaneously providing a real-time remote telemetry architecture.
 
-\subsection{General Objective}
-To design and implement an Android application capable of scheduling network Quality of Service (QoS) on a per-application basis, operating at the network layer (Layer 3) through a virtual TUN interface without requiring Root privileges.
-
-\subsection{Specific Objectives}
-
-\begin{enumerate}[label=\textbf{SO\arabic*.}]
-    \item \textbf{Packet Interception and Analysis:} Build a module capable of intercepting 100\% of IP traffic traversing the device and accurately parsing IPv4, IPv6, TCP, and UDP header structures at the bit level using bitwise operations.
-    
-    \item \textbf{Application Identification:} Develop a mechanism to identify the application owning each network flow based on Android's UID (User Identifier), using 5-tuple information (Protocol, Source IP, Source Port, Destination IP, Destination Port).
-    
-    \item \textbf{Bandwidth Scheduling:} Implement the Token Bucket algorithm for rate limiting and Weighted Fair Queuing (WFQ) for priority-weighted bandwidth allocation across applications.
-    
-    \item \textbf{Data Relay:} Build a TCP and UDP Proxy/Relay system that transparently forwards data to the real Internet, invisible to the applications running on the device.
-    
-    \item \textbf{Experimental Validation:} Evaluate the system's effectiveness through testing scenarios using iPerf3, Wireshark, and internal diagnostic logging.
-\end{enumerate}
-
-% -----------------------------------------------------------
-
-\section{Research Scope}
-\label{sec:research_scope}
-
-\subsection{Research Subjects}
-\begin{itemize}
-    \item The networking management mechanisms of the Android operating system, specifically the VpnService API and the virtual TUN network interface.
-    \item IP packet structures (IPv4/IPv6), TCP and UDP as defined by their respective RFC standards.
-    \item Bandwidth scheduling algorithms: Token Bucket and Weighted Fair Queuing.
-    \item Network traffic classification techniques based on destination port and application UID.
-\end{itemize}
-
-\subsection{Scope Boundaries}
-\begin{itemize}
-    \item \textbf{Platform:} Android 10 (API Level 29) and above --- the minimum version supporting the \texttt{ConnectivityManager.getConnectionOwnerUid()} API.
-    \item \textbf{Network Layers:} Layer 3 (Network Layer) and Layer 4 (Transport Layer) of the OSI model.
-    \item \textbf{Protocols:} IPv4, IPv6, TCP, UDP.
-    \item \textbf{Programming Language:} Kotlin.
-    \item \textbf{Limitation:} This thesis focuses on outbound traffic from the device. Inbound traffic is handled indirectly through TCP's congestion feedback mechanism.
-\end{itemize}
-
-% -----------------------------------------------------------
-
-\section{Research Methodology}
-\label{sec:research_methodology}
-
-This thesis employs a combination of two primary research methods:
-
-\subsection{Theoretical Research}
-\begin{itemize}
-    \item Study of Internet standards (RFCs) related to IPv4 (RFC 791) \cite{rfc791}, IPv6 (RFC 8200) \cite{rfc8200}, TCP (RFC 9293) \cite{rfc9293}, UDP (RFC 768) \cite{rfc768}, and the Checksum computation algorithm (RFC 1071) \cite{rfc1071}.
-    \item Analysis of the Android operating system architecture and APIs, specifically VpnService \cite{android_vpnservice}, ConnectivityManager \cite{android_connectivity}, and the Socket Protection mechanism.
-    \item Comparative analysis of QoS scheduling algorithms: Token Bucket, Leaky Bucket, Weighted Fair Queuing, and Deficit Round Robin.
-\end{itemize}
-
-\subsection{Experimental Research}
-The experimental methodology applies a \textbf{``Triple-Lock Verification''} approach --- collecting data simultaneously from three independent sources to ensure objectivity:
+To achieve this goal, the research is decomposed into the following five Specific Objectives (SOs):
 
 \begin{enumerate}
-    \item \textbf{Internal Application Logs} (Internal Diagnostic Logging): Recording QoS algorithm operational metrics within the application (actual throughput in Mbps, packet drop rate, number of processed packets).
+    \item \textbf{SO1: Bit-Level Packet Interception and Analysis Pipeline.} To design and implement a high-performance Data Plane capable of intercepting raw network traffic via a TUN interface. This includes building a custom packet parser that accurately extracts fields from IPv4 and IPv6 headers, TCP/UDP transport headers, and successfully handles complex networking edge cases such as IPv6 Extension Header chaining, all within a constrained memory footprint to prevent garbage collection pauses.
     
-    \item \textbf{End-to-End Measurement:} Using the iPerf3 tool \cite{iperf3} to measure throughput, latency, jitter, and packet loss from the end-user perspective.
+    \item \textbf{SO2: Deterministic Application Identification.} To develop an OS-interfacing mechanism that precisely maps a raw, intercepted IP packet to the specific Android application (e.g., Chrome, Mobile Legends, background sync) that generated it. This requires asynchronous UID resolution and flow state tracking to avoid blocking the high-speed packet processing loop.
     
-    \item \textbf{Packet-level Analysis:} Using Wireshark \cite{wireshark} to capture and analyze packets at the protocol level, verifying changes in TCP Window Size, RTT, and retransmission rate when the QoS system is active.
+    \item \textbf{SO3: Implementation of Enterprise QoS Algorithms in User-Space.} To transition traditional kernel-level traffic shaping algorithms into a multi-threaded Kotlin environment. Specifically, this involves implementing a nanosecond-precision \textbf{Token Bucket} algorithm for strict bandwidth capping, and a \textbf{Weighted Fair Queuing (WFQ)} scheduler to dynamically allocate bandwidth ratios (e.g., 4:2:1) across competing applications in real-time.
+    
+    \item \textbf{SO4: Robust TCP/UDP Relay Architecture.} To engineer a secure and resilient networking relay system that successfully transmits the processed, shaped traffic to the public Internet and returns the responses to the originating applications. This objective crucially involves solving the ``Infinite Routing Loop'' problem inherent in user-space VPN architectures through meticulous socket protection mechanisms, ensuring compatibility across heavily fragmented Android OEM ROMs (e.g., MIUI, OneUI).
+    
+    \item \textbf{SO5: Real-Time Telemetry and Cloud Architecture Integration.} To design a separate Control Plane and Web Admin interface (utilizing Node.js, HTTP Short Polling, and Chart.js) that visualizes the internal state of the mobile QoS engine in real-time. This objective proves the viability of using the core Android engine as an endpoint agent within a larger Cloud Fleet Management or MDM ecosystem.
 \end{enumerate}
 
-% -----------------------------------------------------------
+\section{Scope and Limitations}
+\label{sec:scope}
 
-\section{Scientific and Practical Significance}
-\label{sec:significance}
+Given the immense complexity of modern networking stacks and operating system security models, the scope of this research is strictly bounded to ensure a scientifically rigorous and highly stable implementation:
 
-\subsection{Scientific Significance}
 \begin{itemize}
-    \item Demonstrates the feasibility of implementing enterprise-grade QoS algorithms (Token Bucket, WFQ) on Android mobile devices without kernel-level intervention (no Root access required).
-    \item Proposes the ``Triple-Lock Verification'' methodology for validating QoS system effectiveness on mobile platforms --- a methodology applicable to future similar research.
-    \item Analyzes and resolves Android-specific technical challenges: the Routing Loop problem, custom ROM compatibility (MIUI), and the Socket Protection mechanism throughout the VPN lifecycle.
+    \item \textbf{Layer 3 and Layer 4 Operations:} The QoS Scheduler operates exclusively at the Network Layer (IP) and Transport Layer (TCP/UDP) of the OSI model. It does not attempt to manipulate Data Link Layer frames (MAC addresses, Wi-Fi driver parameters) or physical radio frequencies.
+    \item \textbf{Outbound Traffic Focus:} The primary mechanism of action is shaping \textit{outbound} (uplink) traffic. Because the mobile device has no direct control over the transmission rates of remote servers on the Internet, inbound (downlink) traffic cannot be directly rate-limited upon receipt. Instead, the system influences inbound throughput indirectly by shaping the outbound TCP Acknowledgment (ACK) packets, leveraging the inherent feedback loop of TCP congestion control.
+    \item \textbf{Android API Constraints:} The system requires Android 10 (API Level 29) or higher. This strict requirement is dictated by the reliance on the \texttt{ConnectivityManager.getConnectionOwnerUid()} API, which is absolutely mandatory for associating intercepted network sockets with specific application UIDs without Root access.
+    \item \textbf{No Kernel Modifications:} The application strictly adheres to the Android sandboxed security model. It does not install custom kernel modules, manipulate \texttt{iptables}, or alter system-wide routing tables beyond the documented bounds of the \texttt{VpnService.Builder} API.
+    \item \textbf{Encrypted Payload Opacity:} The Deep Packet Inspection (DPI) classifier implemented in this thesis utilizes lightweight port-based heuristics and protocol fingerprinting. It does not perform Man-in-the-Middle (MITM) TLS decryption. Consequently, it cannot inspect the payload contents of encrypted HTTPS traffic.
 \end{itemize}
 
-\subsection{Practical Significance}
-\begin{itemize}
-    \item Provides a solution for ordinary Android users to control bandwidth allocation among applications: prioritizing games and video calls while throttling background downloads.
-    \item The application can be deployed in real-world scenarios: WiFi Hotspot sharing in cafes, dormitories, or small offices where bandwidth control across multiple devices is needed.
-    \item The open-source codebase allows the developer community to continue extending and improving the system.
-\end{itemize}
+\section{Research Questions}
+\label{sec:rqs}
 
-% -----------------------------------------------------------
+This research seeks to answer three fundamental scientific and engineering questions:
+
+\begin{enumerate}
+    \item \textbf{RQ1 (Feasibility and Accuracy):} Can strict bandwidth throttling (Token Bucket) and proportional bandwidth allocation (Weighted Fair Queuing) be accurately enforced entirely within the Android application user-space without Root privileges, and how closely do the empirical results match the theoretical algorithmic targets?
+    \item \textbf{RQ2 (System Overhead):} What is the quantitative computational cost (measured in CPU utilization, memory footprint, and per-packet latency) of routing 100\% of a device's network traffic through a Kotlin-based interception, classification, and relay pipeline?
+    \item \textbf{RQ3 (Latency Mitigation):} To what extent does preemptive, user-space active queue management (dropping low-priority packets before they reach the hardware modem) successfully mitigate the latency spikes and jitter associated with network Bufferbloat?
+\end{enumerate}
+
+\section{Summary of Contributions}
+\label{sec:contributions}
+
+This thesis makes the following five primary contributions to the field of mobile network management:
+
+\begin{enumerate}
+    \item \textbf{C1: Proof of Feasibility.} This thesis provides the first comprehensive demonstration that user-space VPN-based QoS enforcement---including Token Bucket rate limiting and Weighted Fair Queuing---is feasible on unrooted Android devices with quantifiable accuracy.
+    
+    \item \textbf{C2: Novel Three-Plane Architecture.} The thesis introduces a novel three-plane architectural decomposition (Data Plane, Control Plane, Telemetry Plane) for mobile QoS systems, separating packet processing, scheduling decisions, and remote management into independently scalable components.
+    
+    \item \textbf{C3: Bufferbloat Mitigation.} Through proactive user-space packet policing, the system achieves an 84.3\% reduction in network latency during congestion, demonstrating that Bufferbloat can be effectively mitigated without kernel-level access.
+    
+    \item \textbf{C4: Open-Source Reference Implementation.} The thesis delivers a complete, working implementation with a full test suite (93\% line coverage, 89\% branch coverage), providing a reference architecture for future research in mobile QoS.
+    
+    \item \textbf{C5: Cloud-Managed MDM Architecture.} The system includes a fully functional Web Admin dashboard and cloud synchronization mechanism, proving the viability of remote QoS policy management across distributed device fleets.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=1.0\textwidth]{figures/ch1_system_overview_1780555648742.png}
+\caption{Conceptual overview of the QoS Scheduler: an Android application intercepts all network traffic via a VPN TUN interface, applies per-application Token Bucket and WFQ scheduling, and reports telemetry to a remote Web Admin dashboard.}
+\label{fig:system_overview_intro}
+\end{figure}
 
 \section{Thesis Organization}
 \label{sec:organization}
 
-This thesis is organized into seven chapters as follows:
+This thesis is structured into seven chapters, following a standard software engineering academic progression:
 
-\begin{itemize}[leftmargin=2cm]
-    \item[\textbf{Chapter 1:}] \textbf{Introduction} --- Presents the problem statement, research objectives, scope, methodology, and significance of the thesis.
+\begin{itemize}
+    \item[\textbf{Chapter 1:}] \textbf{Introduction} --- Establishes the context of mobile network contention, defines the problem of Bufferbloat, outlines the limitations of existing root-required solutions, and sets the specific research objectives and boundaries of the QoS Scheduler project.
     
-    \item[\textbf{Chapter 2:}] \textbf{Related Work} --- Surveys and analyzes existing QoS solutions on Android, related research, and positions this thesis within the broader research landscape.
+    \item[\textbf{Chapter 2:}] \textbf{Literature Review and Theoretical Background} --- Provides an exhaustive theoretical foundation covering networking fundamentals (IPv4/IPv6, TCP congestion control, UDP), queueing theory and Bufferbloat, traffic shaping algorithms (Token Bucket, WFQ, DRR), the Android network stack, and a comprehensive survey of related works with a comparative analysis identifying the research gap.
     
-    \item[\textbf{Chapter 3:}] \textbf{Theoretical Foundation} --- Presents the theoretical background on IP, TCP, and UDP protocols, QoS algorithms (Token Bucket, WFQ), and VPN technology on Android.
+    \item[\textbf{Chapter 3:}] \textbf{System Architecture and Design} --- Details the three-plane architectural decomposition (Data Plane, Control Plane, Telemetry Plane), the packet processing pipeline, the transport relay mechanism with routing loop prevention, the five-tier caching architecture, and the Kotlin Coroutine-based concurrency model.
     
-    \item[\textbf{Chapter 4:}] \textbf{System Analysis and Design} --- Analyzes requirements, designs the system architecture following the Data Plane/Control Plane model, and provides detailed module specifications.
+    \item[\textbf{Chapter 4:}] \textbf{Implementation Details} --- Examines the concrete translation of the architectural design into executable code, providing annotated code listings for the Token Bucket, WFQ rebalance, UID resolution, TCP/UDP relay, PacketComposer, and Web Admin frontend. Documents strategies for overcoming OEM fragmentation and garbage collection optimization.
     
-    \item[\textbf{Chapter 5:}] \textbf{Implementation} --- Presents the detailed implementation process, low-level programming techniques, and technical challenges that were resolved.
+    \item[\textbf{Chapter 5:}] \textbf{Testing and Experimental Evaluation} --- Presents the testing methodology following a testing pyramid (unit, integration, system, performance), the experimental setup and scenarios (bandwidth throttling, WFQ fairness, Bufferbloat mitigation), cross-device compatibility testing, and security auditing.
     
-    \item[\textbf{Chapter 6:}] \textbf{Testing and Evaluation} --- Presents the testing methodology, experimental results, data analysis, and system effectiveness evaluation.
+    \item[\textbf{Chapter 6:}] \textbf{Results and Discussion} --- Reports all experimental results with statistical analysis (t-tests, Cohen's $d$, confidence intervals), compares findings with related work, validates the core hypothesis, and discusses threats to validity (internal, external, construct).
     
-    \item[\textbf{Chapter 7:}] \textbf{Conclusion and Future Work} --- Summarizes the achieved results, identifies limitations, and proposes future development directions.
+    \item[\textbf{Chapter 7:}] \textbf{Conclusion and Future Work} --- Summarizes contributions, directly answers the three research questions with evidence, discusses limitations, presents a roadmap for future work (short, medium, and long-term), and reflects on broader societal and environmental impacts.
 \end{itemize}
 
-\noindent In addition, the thesis includes \textbf{References} and \textbf{Appendices} containing source code of key modules, detailed test results, and the application user manual.
+\noindent In addition to the seven core chapters, the thesis includes \textbf{References} citing foundational RFCs, textbooks, and academic literature, and \textbf{Appendices} containing the full source code of critical modules and the comprehensive Application User Guide.
+

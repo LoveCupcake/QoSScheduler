@@ -1,392 +1,347 @@
 % ============================================================
-% CHAPTER 3: THEORETICAL FOUNDATION
+% CHAPTER 3: SYSTEM ARCHITECTURE AND DESIGN
 % ============================================================
 
-\chapter{THEORETICAL FOUNDATION}
-\label{chap:theory}
+\chapter{SYSTEM ARCHITECTURE AND DESIGN}
+\label{chap:architecture}
 
-This chapter presents the theoretical background underpinning the design and implementation of the QoS Scheduler system. It covers the relevant network protocols, QoS algorithms, and Android platform technologies.
+This chapter presents the architectural design of the QoS Scheduler system. The system is decomposed into three distinct planes---Data Plane, Control Plane, and Telemetry Plane---following established network engineering principles. Each plane is described in terms of its responsibilities, internal components, data flows, and design rationale. The chapter also documents the caching architecture, concurrency model, and transport relay mechanisms that are critical to the system's performance and correctness.
 
-\section{The TCP/IP Layered Model}
-\label{sec:tcpip_model}
+% ────────────────────────────────────────────────────────────
+\section{System Overview}
+\label{sec:system_overview}
 
-The Internet Protocol Suite (TCP/IP model) organizes network communication into four abstraction layers, each with distinct responsibilities \cite{tanenbaum2021}:
+The QoS Scheduler is a software system consisting of two primary components: an Android application that performs real-time packet interception and scheduling, and a Node.js web server that provides remote monitoring and policy management. Figure~\ref{fig:system_architecture} illustrates the high-level architecture.
 
-\begin{enumerate}
-    \item \textbf{Link Layer:} Handles physical transmission of frames over a single network segment (e.g., Ethernet, WiFi 802.11).
-    \item \textbf{Network Layer (Layer 3):} Responsible for routing packets from source to destination across intermediate routers. The Internet Protocol (IP) operates at this layer.
-    \item \textbf{Transport Layer (Layer 4):} Provides end-to-end communication channels between applications. TCP and UDP operate at this layer.
-    \item \textbf{Application Layer:} Encompasses application-specific protocols such as HTTP, DNS, and SMTP.
+\begin{figure}[H]
+\centering
+\includegraphics[width=1.0\textwidth]{figures/ch3_three_plane_arch_1780555671580.png}
+\caption{High-level system architecture showing the three-plane decomposition: Data Plane (packet processing), Control Plane (QoS scheduling), and Telemetry Plane (monitoring and management).}
+\label{fig:system_architecture}
+\end{figure}
+
+The architecture is organized around three planes, a decomposition inspired by Software-Defined Networking (SDN) principles:
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{Data Plane:} Responsible for the high-speed processing of individual packets. This includes interception via the TUN interface, header parsing, application identification (UID resolution), and traffic classification via Deep Packet Inspection (DPI). The Data Plane operates on the critical ``hot path'' and must process each packet in microseconds to avoid becoming a bottleneck.
+    \item \textbf{Control Plane:} Responsible for making scheduling decisions. This includes the Token Bucket rate limiter (which enforces bandwidth caps) and the Weighted Fair Queuing engine (which distributes bandwidth proportionally among applications based on priority weights). The Control Plane receives packet metadata from the Data Plane and returns an allow/drop verdict.
+    \item \textbf{Telemetry Plane:} Responsible for monitoring, reporting, and remote management. This includes the periodic telemetry push from the Android app to the Node.js server, the Web Admin dashboard for real-time visualization, and the policy synchronization mechanism for remote QoS configuration.
 \end{enumerate}
 
-The QoS Scheduler system operates primarily at \textbf{Layers 3 and 4}. It intercepts IP packets through a TUN virtual interface at Layer 3, extracts transport-layer (Layer 4) header information to identify flows and applications, and applies scheduling decisions before forwarding packets to the real network.
+\subsection{Android Application Architecture}
 
-% -----------------------------------------------------------
+Focusing specifically on the Android client, the system follows a layered architecture utilizing modern Android development paradigms. Figure~\ref{fig:app_detailed_arch} illustrates the internal component hierarchy, from the Jetpack Compose UI down to the network packet parsers.
 
-\section{Internet Protocol version 4 (IPv4) --- RFC 791}
-\label{sec:ipv4}
+\begin{figure}[H]
+\centering
+\includegraphics[width=1.0\textwidth]{figures/app_detailed_arch.png}
+\caption{Detailed component architecture of the Android application, illustrating the data flow from the VpnService to the Compose UI and Cloud Telemetry modules.}
+\label{fig:app_detailed_arch}
+\end{figure}
 
-IPv4 \cite{rfc791} is the fourth version of the Internet Protocol and remains the dominant protocol for routing packets across the Internet. Each IPv4 packet begins with a header of at least 20 bytes.
+\subsection{Design Philosophy}
 
-\subsection{IPv4 Header Structure}
+The system's design is guided by three core principles:
 
-The IPv4 header format is defined as follows:
-
-\begin{verbatim}
- 0                   1                   2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|Version|  IHL  |    DSCP   |ECN|         Total Length          |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|         Identification        |Flags|     Fragment Offset     |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|  Time to Live |    Protocol   |        Header Checksum        |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                       Source IP Address                       |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                    Destination IP Address                     |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-\end{verbatim}
-
-The fields relevant to this project are:
-
-\begin{itemize}
-    \item \textbf{Version (4 bits):} Identifies the IP version. Value is 4 for IPv4 or 6 for IPv6. In the implementation, this is extracted via bit-shifting: \texttt{(byte[0] >> 4)}.
-    
-    \item \textbf{IHL --- Internet Header Length (4 bits):} Specifies the header length in 32-bit words. The minimum value is 5 (corresponding to 20 bytes). The conversion formula is: $\text{Header Length (bytes)} = \text{IHL} \times 4$. This value is critical as it determines the byte offset where the TCP/UDP header begins.
-    
-    \item \textbf{Protocol (8 bits, byte offset 9):} Identifies the upper-layer protocol encapsulated within the IP packet. A value of 6 indicates TCP, and 17 indicates UDP. The system uses this field to determine whether to route the packet to the TCP or UDP relay module.
-    
-    \item \textbf{Source IP Address (32 bits, bytes 12--15):} The sender's IP address. The system reads these 4 bytes and converts them to dotted-decimal notation using the bitmask \texttt{AND 0xFF} to handle Java/Kotlin's signed byte type.
-    
-    \item \textbf{Destination IP Address (32 bits, bytes 16--19):} The recipient's IP address, processed identically to the source address.
+\begin{itemize}[noitemsep]
+    \item \textbf{User-space Policing, Not Shaping:} The system operates as a \textit{policer} (immediately dropping non-conforming packets) rather than a \textit{shaper} (buffering packets for later transmission). This deliberate choice avoids creating bufferbloat within the VPN itself. Dropping packets delegates congestion management to TCP's built-in congestion control mechanisms, which are already optimized for this exact scenario.
+    \item \textbf{Exploiting Protocol Nature:} Rather than attempting to directly control remote servers (which is impossible from a client device), the system exploits the inherent congestion response mechanisms of transport protocols. TCP and QUIC respond to packet loss by reducing their sending rate, effectively allowing the QoS Scheduler to indirectly control remote server throughput through local packet drops.
+    \item \textbf{Zero Root, Zero Infrastructure:} The system requires no root access, no custom firmware, and no network infrastructure modifications. It operates entirely within Android's standard application sandbox using the VpnService API, making it deployable on any stock Android device running API level 29 or higher.
 \end{itemize}
 
-\subsection{Bitwise Operations in Packet Parsing}
-\label{sec:bitwise}
+\subsection{Design Constraints}
 
-Low-level network programming requires bitwise operations because header fields do not align with byte boundaries. For example, the first byte of an IPv4 header encodes both the Version (upper 4 bits) and IHL (lower 4 bits):
+The Android platform imposes several constraints that shaped the architecture:
 
-\begin{verbatim}
-Byte[0] = 0x45 = 0100 0101 (binary)
-           ^^^^------------ Version = 4 (IPv4)
-                ^^^^-------- IHL = 5 (Header is 20 bytes)
-\end{verbatim}
-
-The bitwise operations used throughout the implementation are:
-
-\begin{itemize}
-    \item \texttt{AND 0xFF}: Converts a signed byte ($-128$ to $127$) to an unsigned value ($0$ to $255$). This is necessary because Java/Kotlin uses signed byte types.
-    \item \texttt{SHR 4} (Shift Right 4): Extracts the upper 4 bits (Version field).
-    \item \texttt{AND 0x0F}: Extracts the lower 4 bits (IHL field).
-    \item \texttt{SHL 8 OR byte2}: Combines two bytes into a 16-bit value (used when reading port numbers).
+\begin{itemize}[noitemsep]
+    \item \textbf{No Kernel Access:} The system cannot modify network qdiscs, iptables rules, or eBPF programs. All packet processing must occur in user-space.
+    \item \textbf{ANR Prevention:} Android terminates applications that block the main (UI) thread for more than 5 seconds with an ``Application Not Responding'' (ANR) dialog. All I/O operations must be offloaded to background threads.
+    \item \textbf{Battery Optimization:} Android aggressively restricts background processing. The VPN service must run as a foreground service with a persistent notification to prevent the OS from killing it.
+    \item \textbf{Single VPN Slot:} Android allows only one active VPN connection at a time. The QoS Scheduler cannot coexist with other VPN applications.
 \end{itemize}
 
-% -----------------------------------------------------------
+% ────────────────────────────────────────────────────────────
+\section{The Data Plane: Packet Pipeline}
+\label{sec:data_plane}
 
-\section{Internet Protocol version 6 (IPv6) --- RFC 8200}
-\label{sec:ipv6}
+The Data Plane is responsible for intercepting, parsing, classifying, and routing every IP packet that traverses the device. Figure~\ref{fig:packet_pipeline} illustrates the complete packet processing pipeline.
 
-IPv6 \cite{rfc8200} was designed to address the exhaustion of the IPv4 address space and introduces a simplified, fixed-length header structure.
+\begin{figure}[H]
+\centering
+\includegraphics[width=1.0\textwidth]{figures/ch3_packet_pipeline_1780555699111.png}
+\caption{Packet processing pipeline: TUN Read $\rightarrow$ IP Parse $\rightarrow$ UID Resolve $\rightarrow$ DPI Classify $\rightarrow$ Token Bucket Check $\rightarrow$ Allow/Drop $\rightarrow$ Relay to Internet.}
+\label{fig:packet_pipeline}
+\end{figure}
 
-\subsection{IPv6 Fixed Header (40 Bytes)}
+\subsection{TUN Interface Interception}
 
-Unlike IPv4, the IPv6 header has a \textbf{fixed length of 40 bytes} with no variable-length options in the base header:
+The entry point of the Data Plane is the TUN interface, configured via the \texttt{VpnService.Builder} API. The builder specifies:
 
-\begin{verbatim}
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|Version| Traffic Class |           Flow Label                  |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|         Payload Length        |  Next Header  |   Hop Limit   |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                                                               |
-+                     Source Address (128 bits)                  +
-|                                                               |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                                                               |
-+                  Destination Address (128 bits)                +
-|                                                               |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-\end{verbatim}
+\begin{itemize}[noitemsep]
+    \item \textbf{Routes:} \texttt{addRoute("0.0.0.0", 0)} and \texttt{addRoute("::", 0)} capture all IPv4 and IPv6 traffic respectively.
+    \item \textbf{DNS Servers:} \texttt{addDnsServer("8.8.8.8")} configures DNS resolution to pass through the VPN tunnel.
+    \item \textbf{MTU:} \texttt{setMtu(1500)} sets the Maximum Transmission Unit to the standard Ethernet frame size, preventing fragmentation.
+    \item \textbf{Session Name:} \texttt{setSession("QoS Scheduler")} provides a user-visible label in Android's VPN notification.
+\end{itemize}
 
-Key differences from IPv4: there is no IHL field (the header is always 40 bytes), and the \textbf{Next Header} field (byte 6) replaces IPv4's Protocol field, serving as a chain link to extension headers or the upper-layer protocol.
+Upon calling \texttt{establish()}, the builder returns a \texttt{ParcelFileDescriptor} whose file descriptor is used for reading outbound packets and writing inbound response packets. The main interception loop runs on a dedicated coroutine bound to \texttt{Dispatchers.IO}, reading packets in a tight \texttt{while(isActive)} loop.
 
-\subsection{Extension Header Chaining}
+\subsection{Raw Packet Parsing}
 
-IPv6 uses a mechanism called \textit{Extension Header Chaining} to handle optional functionality. According to RFC 8200:
+Each byte array read from the TUN file descriptor represents a complete IP datagram. The \texttt{RawPacket} parser extracts the following information through bitwise operations:
 
-\begin{quote}
-``Extension headers are not examined or processed by any node along a packet's delivery path, until the packet reaches the node identified in the Destination Address field.''
-\end{quote}
+\begin{enumerate}[noitemsep]
+    \item \textbf{IP Version:} The first nibble (4 bits) of byte 0 determines whether the packet is IPv4 (value 4) or IPv6 (value 6).
+    \item \textbf{Header Length:} For IPv4, the IHL field (second nibble of byte 0) specifies the header length in 32-bit words. For IPv6, the header is fixed at 40 bytes.
+    \item \textbf{Protocol:} For IPv4, byte 9 contains the protocol number (6=TCP, 17=UDP). For IPv6, byte 6 contains the ``Next Header'' field.
+    \item \textbf{IP Addresses:} Source and destination addresses are extracted from bytes 12--19 (IPv4) or bytes 8--39 (IPv6).
+    \item \textbf{Transport Header:} Source port (2 bytes), destination port (2 bytes), and protocol-specific fields (TCP flags, sequence/ACK numbers) are extracted from the transport header that follows the IP header.
+\end{enumerate}
 
-The \textbf{Next Header} field links headers in a chain. If Next Header = 6 (TCP), the transport header begins immediately after the 40-byte fixed header. If Next Header = 0 (Hop-by-Hop Options), the system must traverse that extension header before locating the TCP/UDP header.
+The parser must handle malformed packets gracefully---returning \texttt{null} for packets that fail validation (e.g., truncated headers, unsupported protocols like ICMP). This defensive parsing prevents a single malformed packet from crashing the entire VPN service.
+
+\subsection{UID Resolution (Application Identification)}
+
+Once the 5-tuple (source IP, source port, destination IP, destination port, protocol) is extracted, the system must determine which application owns the connection. This is accomplished through the \texttt{AppResolver} class, which queries \texttt{ConnectivityManager.getConnectionOwnerUid()} and implements a sophisticated multi-tier caching strategy (detailed in Section~\ref{sec:caching}).
+
+For connections that cannot be immediately resolved (e.g., the UID lookup returns $-1$ because the kernel socket table has not yet been populated), the system temporarily assigns the traffic to a \textit{synthetic port-based bucket} (e.g., ``HTTPS Traffic'' for port 443). When the UID is eventually resolved on a subsequent packet, the system performs a \textit{retroactive flow migration}: the flow and its accumulated byte count are transferred from the synthetic bucket to the real application's traffic accounting, ensuring accurate per-application statistics.
+
+\subsection{DPI Classification}
+
+The \texttt{DpiClassifier} module categorizes each flow into a traffic class (e.g., VIDEO, GAMING, WEB, BACKGROUND) using a hierarchy of heuristic rules:
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{Port-based classification:} Well-known ports (53=DNS, 80=HTTP, 443=HTTPS, 8080=HTTP Proxy) provide the primary classification signal.
+    \item \textbf{Payload inspection:} For unencrypted traffic, the classifier examines the first few bytes of the payload for protocol signatures (e.g., HTTP methods like ``GET'' or ``POST'', DNS query headers).
+    \item \textbf{IP reputation:} Known CDN IP ranges (e.g., Google, Netflix, Akamai) can be used for coarse classification.
+\end{enumerate}
+
+The classifier's output is used to set default priority levels for applications that do not have explicit user-defined QoS policies.
+
+% ────────────────────────────────────────────────────────────
+\section{The Control Plane: QoS Engine}
+\label{sec:control_plane}
+
+The Control Plane receives packet metadata from the Data Plane and returns an allow/drop verdict. It consists of two tightly integrated components: the Token Bucket rate limiter and the Weighted Fair Queuing scheduler.
+
+\subsection{Token Bucket Rate Limiter}
+
+Each application (identified by UID) is assigned its own Token Bucket instance, managed by the \texttt{BandwidthScheduler}. The Token Bucket implementation uses nanosecond precision via \texttt{System.nanoTime()} to accurately track token accumulation at sub-millisecond granularity.
+
+The core algorithm is implemented using Kotlin's \textbf{\texttt{@Synchronized}} annotation on the \texttt{consume()} method, which provides mutual exclusion via the JVM's intrinsic monitor lock. This design choice was made because:
+
+\begin{itemize}[noitemsep]
+    \item Multiple coroutines may simultaneously attempt to consume tokens for different packets belonging to the same application, requiring thread-safe access to the token count.
+    \item The \texttt{@Synchronized} annotation provides correctness guarantees with minimal code complexity. Since each application has its own Token Bucket instance, contention is limited to packets belonging to the \textit{same} application---different applications are processed concurrently without interference.
+    \item The critical section within \texttt{consume()} is extremely short (a subtraction and comparison), minimizing the time any coroutine holds the lock and ensuring negligible contention at observed packet rates.
+\end{itemize}
+
+The Token Bucket's capacity $b$ (burst size) is set to twice the rate $r$ (in bytes per second), allowing burst tolerance of up to 2 seconds' worth of accumulated tokens. This accommodates the bursty nature of web browsing (where page loads generate brief traffic spikes) while still enforcing the configured average rate over longer time periods.
+
+\subsection{Weighted Fair Queuing (WFQ) Scheduler}
+
+The WFQ scheduler dynamically distributes the total available bandwidth among active applications based on their assigned priority weights. The QoS Scheduler defines three priority classes with the following default weights:
 
 \begin{table}[H]
 \centering
-\caption{Common IPv6 Next Header values}
-\label{tab:nextheader}
-\begin{tabular}{@{}clc@{}}
+\caption{WFQ Priority Classes and Default Weights}
+\label{tab:wfq_weights}
+\begin{tabular}{lcl}
 \toprule
-\textbf{Value} & \textbf{Header Type} & \textbf{Length} \\
+\textbf{Priority Class} & \textbf{Weight ($w_i$)} & \textbf{Typical Applications} \\
 \midrule
-0  & Hop-by-Hop Options    & $(HdrExtLen \times 8) + 8$ bytes \\
-6  & TCP                    & Variable (Data Offset) \\
-17 & UDP                    & 8 bytes (fixed) \\
-43 & Routing Header         & $(HdrExtLen \times 8) + 8$ bytes \\
-44 & Fragment Header        & 8 bytes (fixed) \\
-58 & ICMPv6                 & Variable \\
-60 & Destination Options    & $(HdrExtLen \times 8) + 8$ bytes \\
+HIGH   & 4 & VoIP, Gaming, Video calls \\
+MEDIUM & 2 & Web browsing, Streaming \\
+LOW    & 1 & Background updates, Cloud sync \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The general formula for computing extension header length is:
+The \texttt{rebalanceWithApps()} method is invoked whenever the set of active applications changes (an app starts or stops generating traffic). For each active application, the method computes the allocated rate as:
 
 \begin{equation}
-\text{Extension Length (bytes)} = (\text{HdrExtLen} \times 8) + 8
-\label{eq:ext_header_len}
+r_i = C_{total} \times \frac{w_i}{\sum_{j \in A} w_j}
 \end{equation}
 
-\noindent The Fragment Header is an exception: it always has a fixed length of 8 bytes and does not contain a HdrExtLen field.
+\noindent where $C_{total}$ is the total estimated uplink bandwidth and $A$ is the set of active applications. Each application's Token Bucket rate $r_i$ is then updated to reflect this allocation. If all active applications have HIGH priority, each receives an equal share. If a HIGH and a LOW priority application are active, the HIGH application receives $4/(4+1) = 80\%$ of the bandwidth.
 
-% -----------------------------------------------------------
+The scheduler also supports \textit{manual rate caps}: administrators can override the WFQ-calculated rate with a fixed bandwidth limit for specific applications, regardless of the dynamic allocation. This is useful for enforcing hard limits on bandwidth-intensive applications (e.g., capping cloud backup to 1 Mbps during business hours).
 
-\section{Transmission Control Protocol (TCP) --- RFC 9293}
-\label{sec:tcp}
+\subsection{Policing vs. Shaping: Design Rationale}
 
-TCP \cite{rfc9293} is a connection-oriented, reliable transport protocol that provides ordered, error-checked delivery of a byte stream between applications.
+A critical architectural decision is the choice of \textbf{policing} (immediate packet drop) over \textbf{shaping} (delaying packets in a buffer). This decision has profound implications:
 
-\subsection{TCP Header Structure}
-
-\begin{verbatim}
- 0                   1                   2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|          Source Port          |       Destination Port        |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                        Sequence Number                        |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                    Acknowledgment Number                      |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|  Data |           |U|A|P|R|S|F|                               |
-| Offset| Reserved  |R|C|S|S|Y|I|            Window             |
-|       |           |G|K|H|T|N|N|                               |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|           Checksum            |         Urgent Pointer        |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-\end{verbatim}
-
-The fields used by the QoS Scheduler are:
-
-\begin{itemize}
-    \item \textbf{Source/Destination Port (16 bits each):} Identify the sending and receiving applications. These are read from the first 4 bytes after the IP header.
-    
-    \item \textbf{Sequence Number (32 bits):} The byte offset of the first data byte in this segment. The \texttt{TcpRelayManager} must maintain accurate sequence numbers for each connection to avoid ``TCP Out of Order'' errors.
-    
-    \item \textbf{Acknowledgment Number (32 bits):} The next sequence number the sender expects to receive, confirming receipt of prior data.
-    
-    \item \textbf{Data Offset (4 bits):} The TCP header length in 32-bit words. Extracted as: $(\texttt{byte[12]} >> 4) \times 4$.
-    
-    \item \textbf{Control Flags (6 bits):} Manage the TCP connection lifecycle:
-    \begin{itemize}
-        \item \textbf{SYN} (bit 1): Initiates a new connection.
-        \item \textbf{ACK} (bit 4): Acknowledges received data.
-        \item \textbf{FIN} (bit 0): Requests connection termination.
-        \item \textbf{RST} (bit 2): Abruptly resets the connection.
-        \item \textbf{PSH} (bit 3): Requests immediate delivery to the application layer.
-    \end{itemize}
-    
-    \item \textbf{Window Size (16 bits):} The receive window size. The system reads this field to implement backpressure mechanisms.
+\begin{itemize}[noitemsep]
+    \item \textbf{Shaping would create internal bufferbloat:} Introducing a delay buffer within the VPN would add queuing latency that defeats the system's bufferbloat mitigation goals. The VPN's internal buffer would behave identically to the oversized router buffers described in Section~\ref{subsec:aqm}.
+    \item \textbf{Policing leverages protocol nature:} By dropping packets, the system triggers TCP's congestion control (Section~\ref{sec:networking_fundamentals}), which automatically reduces the sender's rate. This mechanism is far more sophisticated and battle-tested than any shaping algorithm the QoS Scheduler could implement in user-space.
+    \item \textbf{Lower complexity and resource usage:} Policing requires no buffer management, no timer-based scheduling, and no packet reordering logic. Each packet is processed independently with a simple allow/drop decision, making the hot path extremely fast.
 \end{itemize}
 
-\subsection{Three-Way Handshake}
+% ────────────────────────────────────────────────────────────
+\section{The Transport Relay Mechanism}
+\label{sec:relay}
 
-TCP establishes connections through a three-way handshake, which the \texttt{TcpRelayManager} must emulate:
+After the QoS Engine allows a packet, the system must forward it to the actual Internet destination. This requires a relay mechanism that bridges the virtual TUN interface with the physical network, while avoiding the routing loop problem described in Section~\ref{sec:android_stack}.
 
-\begin{enumerate}
-    \item \textbf{SYN:} The client sends a segment with SYN=1 and an Initial Sequence Number (ISN).
-    \item \textbf{SYN-ACK:} The server responds with SYN=1, ACK=1, its own ISN, and Acknowledgment = client ISN + 1.
-    \item \textbf{ACK:} The client sends ACK=1, confirming the connection.
+\subsection{The Routing Loop Problem and protect()}
+
+When the VPN is active, all traffic is routed to the TUN interface---including traffic generated by the QoS Scheduler itself. If the application creates a socket to forward a packet to the Internet, the outgoing packet is immediately captured by TUN and fed back into the application, creating an infinite loop. Figure~\ref{fig:routing_loop} illustrates this problem and its solution.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=1.0\textwidth]{figures/ch3_routing_loop_1780555722870.png}
+\caption{The VPN routing loop problem (left) and the solution using \texttt{protect()} (right). Protected sockets bypass the TUN interface and route directly to the physical network.}
+\label{fig:routing_loop}
+\end{figure}
+
+The solution is the \texttt{VpnService.protect(Socket)} method, which marks a socket as exempt from VPN routing. Every relay socket must be protected immediately after creation and before any data transmission. Failure to protect a socket results in instant application crash due to memory exhaustion from the infinite loop.
+
+\subsection{TCP Split-Handshake Proxy}
+
+TCP is a connection-oriented protocol with stateful flow control. The QoS Scheduler cannot simply forward individual TCP packets to the Internet because each TCP connection requires a complete handshake (SYN/SYN-ACK/ACK) and maintains sequence number state. The relay therefore implements a \textit{split-handshake proxy}:
+
+\begin{enumerate}[noitemsep]
+    \item An application sends a SYN packet, which is intercepted by the TUN interface.
+    \item The \texttt{TcpRelayManager} detects the SYN, creates a new \texttt{SocketChannel} connected to the actual destination server, and calls \texttt{protect()} on this socket.
+    \item The relay constructs a synthetic SYN-ACK packet using the \texttt{PacketComposer} and writes it back to TUN, making the originating application believe a connection has been established.
+    \item The relay enters a bidirectional forwarding loop: data received from the application (via TUN) is forwarded to the real server (via the protected socket), and data received from the server is packaged into synthetic IP packets (via PacketComposer) and written back to TUN.
+    \item When either side initiates connection teardown (FIN), the relay propagates the termination and cleans up resources.
 \end{enumerate}
 
-After step 3, the connection transitions to the ESTABLISHED state and data transmission begins. The relay module intercepts the client's SYN, immediately responds with a synthetic SYN-ACK, and asynchronously opens a real connection to the destination server.
+Each TCP flow runs on its own dedicated coroutine, enabling thousands of concurrent connections. The relay maintains a \texttt{ConcurrentHashMap} of active flows indexed by their 5-tuple.
 
-% -----------------------------------------------------------
+\subsection{UDP Stateless Relay}
 
-\section{User Datagram Protocol (UDP) --- RFC 768}
-\label{sec:udp}
+UDP's connectionless nature allows a simpler relay design:
 
-UDP \cite{rfc768} is a minimal, connectionless transport protocol that provides no guarantees of delivery, ordering, or duplicate protection. Its simplicity results in lower latency compared to TCP, making it the preferred protocol for real-time applications such as VoIP, online gaming, and DNS queries.
-
-\subsection{UDP Header Structure}
-
-The UDP header is a fixed 8 bytes:
-
-\begin{verbatim}
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|          Source Port          |       Destination Port        |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|            Length             |           Checksum            |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-\end{verbatim}
-
-The QoS Scheduler extracts Source Port and Destination Port for flow identification and traffic classification. Unlike TCP, UDP has no connection state, so the relay module handles each datagram independently.
-
-% -----------------------------------------------------------
-
-\section{Internet Checksum Algorithm --- RFC 1071}
-\label{sec:checksum}
-
-The Internet Checksum \cite{rfc1071} is used to verify the integrity of IP headers and TCP/UDP segments. As stated in RFC 1071:
-
-\begin{quote}
-``The checksum algorithm is simply to form the one's complement sum of the data, and then take the one's complement of the result.''
-\end{quote}
-
-\subsection{Computation Steps}
-
-\begin{enumerate}
-    \item Divide the data to be checksummed into 16-bit (2-byte) words.
-    \item Compute the running sum of all words using a 32-bit accumulator.
-    \item Fold any carry bits back into the lower 16 bits:
-    \begin{equation}
-    \text{while } (\text{sum} >> 16 \neq 0): \quad \text{sum} = (\text{sum} \mathbin{\&} \text{0xFFFF}) + (\text{sum} >> 16)
-    \end{equation}
-    \item Take the bitwise NOT (one's complement) of the result.
+\begin{enumerate}[noitemsep]
+    \item A UDP datagram is intercepted from TUN.
+    \item The \texttt{UdpRelayManager} looks up or creates a \texttt{DatagramSocket} for this flow, calls \texttt{protect()}, and forwards the payload.
+    \item When a response arrives on the protected socket, it is packaged into a synthetic UDP/IP packet via PacketComposer and written to TUN.
+    \item Flows that have been idle for more than 60 seconds are cleaned up to prevent resource leaks.
 \end{enumerate}
 
-\subsection{Pseudo-Header for TCP/UDP Checksum}
+\subsection{PacketComposer: Manual Packet Construction}
 
-When computing the checksum for TCP or UDP, a \textit{pseudo-header} is prepended to the calculation. This pseudo-header includes: Source IP (4 bytes), Destination IP (4 bytes), a zero byte, Protocol number (1 byte), and TCP/UDP segment length (2 bytes). The purpose is to ensure that packets cannot be delivered to the wrong destination due to IP header corruption.
+The \texttt{PacketComposer} is responsible for constructing synthetic IP packets for the return path (Internet $\rightarrow$ TUN $\rightarrow$ Application). When data arrives from a remote server on a protected socket, it arrives as raw payload bytes without IP or transport headers. The PacketComposer must manually construct a complete, valid IP packet including:
 
-% -----------------------------------------------------------
-
-\section{Token Bucket Algorithm}
-\label{sec:token_bucket}
-
-The Token Bucket algorithm is a rate-limiting mechanism widely deployed in network routers and firewalls \cite{peterson2011computer}. The core idea is that each packet must ``pay'' tokens to pass through. Tokens are replenished at a fixed rate.
-
-\subsection{Mathematical Formulation}
-
-The number of available tokens at time $t$ is given by:
-
-\begin{equation}
-T(t) = \min\Big(C,\ T(t_{\text{prev}}) + (t - t_{\text{prev}}) \times R\Big)
-\label{eq:token_bucket}
-\end{equation}
-
-\noindent where:
-\begin{itemize}
-    \item $C$: Maximum bucket capacity (burst size) in bytes.
-    \item $R$: Token replenishment rate in bytes per second.
-    \item $T(t_{\text{prev}})$: Remaining tokens at the previous time instant.
+\begin{itemize}[noitemsep]
+    \item \textbf{IP Header:} Version, header length, total length, TTL, protocol, source/destination addresses, and IP header checksum.
+    \item \textbf{Transport Header:} Source/destination ports, sequence/ACK numbers (for TCP), flags, window size, and transport checksum.
+    \item \textbf{Transport Checksum:} Computed over a pseudo-header (source IP, destination IP, protocol, segment length) plus the entire transport segment, as specified in RFC 1071 \cite{rfc1071}.
 \end{itemize}
 
-The admission decision for a packet of size $S$ is:
+The checksum calculation is critical: a single bit error causes the Android kernel to silently discard the packet without any error notification. This makes PacketComposer bugs exceptionally difficult to diagnose---the symptom is simply ``no Internet connectivity'' with no visible error messages.
 
-\begin{equation}
-\text{Decision} = \begin{cases}
-\text{ALLOW}, \quad T(t) \leftarrow T(t) - S & \text{if } T(t) \geq S \\
-\text{DROP} & \text{if } T(t) < S
-\end{cases}
-\label{eq:token_decision}
-\end{equation}
+% ────────────────────────────────────────────────────────────
+\section{Caching Architecture}
+\label{sec:caching}
 
-\subsection{Properties}
+The QoS Scheduler employs a five-tier caching strategy to minimize expensive operations (kernel system calls, PackageManager queries, DNS lookups) on the packet processing hot path. Each cache layer targets a specific bottleneck.
 
-\begin{itemize}
-    \item \textbf{Burst tolerance:} The bucket capacity $C$ allows short bursts of traffic up to $C$ bytes, accommodating the bursty nature of real application traffic.
-    \item \textbf{Long-term rate enforcement:} The replenishment rate $R$ controls the average long-term throughput.
-    \item \textbf{$O(1)$ per-packet complexity:} Each admission decision requires only a subtraction and comparison, making it suitable for real-time packet processing.
+\subsection{Tier 1: Flow Cache (DataPlaneProcessor)}
+
+The Flow Cache maps network flow 5-tuples (\texttt{FlowKey}) to application UIDs. This is the most frequently accessed cache, consulted for every single packet. Once a flow's UID is resolved, all subsequent packets in that flow bypass the UID resolution system call entirely. The cache is implemented as a \texttt{ConcurrentHashMap<FlowKey, Int>} and is cleared when the VPN service restarts, preventing stale mappings from persisting across sessions.
+
+\subsection{Tier 2: UID Resolution Cache (AppResolver)}
+
+The UID resolution layer implements a three-tier sub-cache with a \textit{negative caching} strategy:
+
+\begin{itemize}[noitemsep]
+    \item \textbf{Positive Cache:} Stores successful UID lookups (\texttt{ConcurrentHashMap<String, Int>}). Once a connection tuple is mapped to a UID, the result is cached for the session lifetime.
+    \item \textbf{Negative Cache:} Stores connection tuples that have been confirmed as unresolvable after three consecutive failed attempts (\texttt{ConcurrentHashMap<String, Boolean>}). This prevents the system from repeatedly querying the kernel for flows that genuinely have no owning application (e.g., kernel-originated traffic).
+    \item \textbf{Fail Count Cache:} Tracks the number of consecutive resolution failures for each connection tuple (\texttt{ConcurrentHashMap<String, Int>}). After three failures, the tuple is promoted to the negative cache. The fail count is atomically incremented using \texttt{compute()} to prevent lost updates under concurrent access.
 \end{itemize}
 
-% -----------------------------------------------------------
+This three-tier strategy mirrors the negative caching patterns used by production DNS resolvers (e.g., Cloudflare's 1.1.1.1, Google's 8.8.8.8) to avoid repeatedly querying authoritative servers for non-existent domains.
 
-\section{Weighted Fair Queuing (WFQ)}
-\label{sec:wfq}
+\subsection{Tier 3: Application Info Cache (AppResolver Companion)}
 
-Weighted Fair Queuing \cite{demers1989analysis} allocates bandwidth among competing flows proportionally to their assigned weights. Flows with higher weights receive a larger share of the available bandwidth.
+The AppInfo cache stores the mapping from UID to human-readable application metadata (package name, display name, system/user flag). This cache is placed in the \texttt{companion object} (static scope), meaning it survives VPN service restarts. This is intentional: application names do not change between sessions, so the cache remains valid across the entire application lifecycle, avoiding expensive \texttt{PackageManager.getApplicationInfo()} calls on every restart.
 
-\subsection{Bandwidth Allocation Formula}
+\subsection{Tier 4: Hostname Cache (HostnameResolver)}
 
-The allocated bandwidth for flow $i$ is:
+The Hostname Cache stores reverse DNS resolution results, mapping IP addresses to human-readable hostnames. Reverse DNS lookups can take 50--200 ms (requiring a network round-trip), so caching results is essential for responsive UI rendering in the Web Admin dashboard.
 
-\begin{equation}
-B_i = R_{\text{total}} \times \frac{W_i}{\displaystyle\sum_{j=1}^{n} W_j}
-\label{eq:wfq}
-\end{equation}
+\subsection{Tier 5: Token Bucket Pool (BandwidthScheduler)}
 
-\noindent where $R_{\text{total}}$ is the total available uplink bandwidth and $W_i$ is the weight assigned to flow $i$.
+The \texttt{BandwidthScheduler} maintains a \texttt{ConcurrentHashMap<String, TokenBucket>} mapping application scheduler keys to their Token Bucket instances. Rather than creating and destroying Token Bucket objects for every packet, the pool reuses existing instances, reducing garbage collection pressure and ensuring rate-limiting state is maintained continuously.
 
-In the QoS Scheduler, weight values are defined by priority class:
+% ────────────────────────────────────────────────────────────
+\section{Concurrency Model}
+\label{sec:concurrency}
 
-\begin{itemize}
-    \item \textbf{HIGH} priority (gaming, VoIP): $W = 4$
-    \item \textbf{MEDIUM} priority (web browsing): $W = 2$
-    \item \textbf{LOW} priority (background downloads): $W = 1$
+The QoS Scheduler's packet processing engine is inherently concurrent: multiple network connections generate packets simultaneously, each requiring parsing, classification, scheduling, and relay. The system employs Kotlin Coroutines as its primary concurrency abstraction, combined with lock-free data structures for thread-safe shared state access.
+
+\subsection{Structured Concurrency with Coroutines}
+
+All coroutines are launched within a \texttt{CoroutineScope} tied to the VPN service's lifecycle. When the VPN is stopped, the scope is cancelled, which automatically cancels all child coroutines---including active TCP/UDP relay loops and telemetry push tasks. This structured concurrency model prevents resource leaks (dangling coroutines, unclosed sockets) that are common in traditional thread-based architectures.
+
+The system uses \texttt{Dispatchers.IO} for all blocking I/O operations (TUN read/write, socket read/write). Kotlin's \texttt{Dispatchers.IO} maintains a pool of up to 64 threads. When a coroutine encounters a blocking \texttt{read()} call, it suspends and releases its thread to the pool, allowing other coroutines to execute. This enables the system to manage thousands of concurrent TCP/UDP relay connections using only tens of OS threads.
+
+\subsection{Concurrency Strategy}
+
+Shared mutable state is accessed through a combination of lock-free data structures and fine-grained synchronization, chosen based on the access pattern of each component:
+
+\begin{itemize}[noitemsep]
+    \item \textbf{ConcurrentHashMap:} Used for the flow cache, UID caches, Token Bucket pool, and active relay flow tracking. \texttt{ConcurrentHashMap} provides $O(1)$ amortized access with fine-grained lock striping (individual hash buckets are locked independently, rather than the entire map).
+    \item \textbf{AtomicLong:} Used for per-application traffic counters (bytes in/out, packets allowed/dropped). Atomic operations (CAS, \texttt{incrementAndGet()}) provide thread-safe updates without any locking.
+    \item \textbf{@Synchronized:} Used for the Token Bucket's \texttt{consume()} method, where the refill-then-deduct operation must be performed atomically. Since each application has its own Token Bucket instance, the synchronization scope is narrow and contention is minimal.
+    \item \textbf{compute() for Atomic Read-Modify-Write:} The \texttt{ConcurrentHashMap.compute()} method is used for operations that require atomically reading, modifying, and writing a value (e.g., incrementing the fail count cache). This prevents lost-update anomalies that occur with separate \texttt{get()}/\texttt{put()} calls.
 \end{itemize}
 
-\subsection{Illustrative Example}
+This hybrid strategy minimizes contention on the hot path: lock-free structures handle high-frequency lookups (flow cache, counters), while \texttt{@Synchronized} provides correctness for the Token Bucket's compound refill-and-consume operation with negligible overhead due to per-instance scoping.
 
-Consider a total uplink bandwidth of $R_{\text{total}} = 10$ Mbps with one HIGH-priority application and one LOW-priority application:
+% ────────────────────────────────────────────────────────────
+\section{Telemetry and Remote Management Plane}
+\label{sec:telemetry_plane}
 
-\begin{align}
-B_{\text{HIGH}} &= 10 \times \frac{4}{4 + 1} = 8 \text{ Mbps} \\
-B_{\text{LOW}} &= 10 \times \frac{1}{4 + 1} = 2 \text{ Mbps}
-\end{align}
+The Telemetry Plane provides real-time visibility into the QoS Scheduler's operation and enables remote policy management through a web-based administration interface.
 
-The HIGH-priority application receives four times the bandwidth of the LOW-priority application, reflecting the 4:1 weight ratio.
+\subsection{Android-to-Server Data Pipeline}
 
-% -----------------------------------------------------------
+The Android application periodically pushes telemetry data to the Node.js server via HTTP POST requests. Each telemetry payload contains per-application traffic statistics including:
 
-\section{Android VPN Technology}
-\label{sec:vpn_technology}
-
-\subsection{VpnService API}
-
-Android provides the \texttt{VpnService} class \cite{android_vpnservice} that allows applications to create a virtual network interface (TUN interface) without requiring Root privileges. The TUN interface operates at Layer 3 (IP), enabling the application to:
-
-\begin{itemize}
-    \item Intercept all outbound IP packets from the device.
-    \item Read, parse, and analyze packet contents.
-    \item Make forwarding, modification, or drop decisions for each packet.
+\begin{itemize}[noitemsep]
+    \item Package name and human-readable app name
+    \item Priority class (HIGH/MEDIUM/LOW)
+    \item Bytes transmitted and received (delta since last push)
+    \item Requested bandwidth (BPS) and allowed bandwidth (BPS)
+    \item Dropped packet count
+    \item Active TCP and UDP flow counts
 \end{itemize}
 
-\subsection{Socket Protection}
+The push interval is configured at 5 seconds, balancing real-time visibility with battery and network overhead. The telemetry push is implemented as a fire-and-forget coroutine: failures are logged but do not disrupt QoS operation.
 
-According to the Android Developer Documentation:
+\subsection{Node.js Server Architecture}
 
-\begin{quote}
-``The protect(Socket) method protects a socket from VPN routing. After a socket is protected, its outgoing packets will be sent directly through one of the physical interfaces instead of through the VPN.''
-\end{quote}
+The server is built on Node.js with the Express.js framework, providing a RESTful API for device management, policy configuration, and statistics retrieval. Data is stored in an SQLite database (via the \texttt{sql.js} library, which compiles SQLite to WebAssembly for cross-platform compatibility). The server exposes the following key API endpoints:
 
-This mechanism is essential to prevent an \textbf{Infinite Routing Loop}: when the VPN needs to forward a packet to the Internet, it opens a real socket. If this socket is not protected, outbound packets from the socket would be captured by the VPN again, creating an infinite loop that causes complete network failure. The \texttt{protect()} call instructs the Linux kernel to exempt the socket from VPN routing rules.
-
-\subsection{Application Identification via UID Resolution}
-\label{sec:uid_resolution}
-
-Android provides the API \texttt{ConnectivityManager.getConnectionOwnerUid()} (available from Android 10, API Level 29) \cite{android_connectivity} that identifies the UID (User Identifier) of the application owning a network connection based on 5-tuple information (Protocol, Source IP, Source Port, Destination IP, Destination Port). This is the foundational API that enables per-application QoS enforcement.
-
-% -----------------------------------------------------------
-
-\section{Deep Packet Inspection (DPI)}
-\label{sec:dpi}
-
-Deep Packet Inspection (DPI) is a technique for analyzing packet contents to classify the type of application or service generating the traffic. In the scope of this project, DPI is implemented in a ``DPI-Lite'' form --- classification based on destination port number heuristics:
-
-\begin{itemize}
-    \item Port 53: DNS
-    \item Ports 80, 443: Web/HTTPS
-    \item Ports 5060--5061: VoIP (SIP protocol)
-    \item Ports 27015--27016: Gaming (Steam servers)
-    \item Ports 10000--20000 (UDP): VoIP/Real-time media
+\begin{itemize}[noitemsep]
+    \item \texttt{GET /api/devices} --- List registered devices
+    \item \texttt{POST /api/policies} --- Create or update QoS policies
+    \item \texttt{GET /api/statistics/live} --- Retrieve real-time QoS validation data
+    \item \texttt{POST /api/telemetry} --- Receive telemetry push from Android devices
 \end{itemize}
 
-While this approach is less accurate than full DPI or machine learning classification, it provides adequate accuracy for the primary use cases (distinguishing gaming, VoIP, web browsing, and bulk downloads) with negligible computational overhead --- a critical requirement for real-time processing on mobile devices.
+\subsection{Web Admin Frontend}
 
-% -----------------------------------------------------------
+The Web Admin dashboard is built using vanilla JavaScript (no framework dependencies) with Chart.js for data visualization. The frontend uses \textbf{HTTP Short Polling} (1-second interval) to fetch live statistics, providing near-real-time visualization without the complexity of WebSocket connection management.
 
+Chart.js renders all visualizations on HTML5 \texttt{<canvas>} elements, leveraging GPU-accelerated compositing for smooth 60 FPS animations even during rapid data updates. A custom Neon Glow plugin extends the Canvas 2D rendering context with \texttt{shadowBlur} and \texttt{shadowColor} effects, producing the distinctive Cyberpunk aesthetic of the dashboard.
+
+\subsection{Cloud Synchronization and Device Pairing}
+
+New devices are paired with the management server via a QR code-based registration flow. The QR code encodes the server's URL and API version in JSON format. Once scanned, the Android application registers itself with the server and begins bidirectional synchronization:
+
+\begin{itemize}[noitemsep]
+    \item \textbf{Upward:} Telemetry data (traffic statistics, flow counts) is pushed from device to server.
+    \item \textbf{Downward:} QoS policies (per-app priorities, bandwidth caps) are pulled from server to device. Policies are applied immediately upon receipt.
+\end{itemize}
+
+This architecture enables a single administrator to manage QoS policies across a fleet of devices from a centralized web interface, providing the foundation for Mobile Device Management (MDM) integration.
+
+% ────────────────────────────────────────────────────────────
 \section{Chapter Summary}
-\label{sec:ch3_summary}
 
-This chapter established the theoretical foundations required for the QoS Scheduler system. The key protocols (IPv4, IPv6, TCP, UDP) and their header structures were presented in detail, as they form the basis of the packet parsing module. The Token Bucket and WFQ algorithms provide the mathematical framework for bandwidth scheduling. Finally, the Android VpnService API and associated mechanisms (Socket Protection, UID Resolution) provide the platform-specific capabilities that make the non-Root QoS approach technically feasible.
+This chapter presented the QoS Scheduler's three-plane architecture (Data, Control, Telemetry), the packet processing pipeline from TUN interception through UID resolution and DPI classification to Token Bucket scheduling, the transport relay mechanism with its routing loop solution, the five-tier caching strategy that minimizes hot-path latency, and the Kotlin Coroutine-based concurrency model that enables thousands of concurrent connections with lock-free thread safety. The following chapter details the concrete implementation of these architectural components in Kotlin and JavaScript.

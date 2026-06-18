@@ -1,0 +1,197 @@
+% ============================================================
+% CHAPTER 7: CONCLUSION AND FUTURE WORK
+% (New file replacing old chapter10_new.tex in main.tex)
+% ============================================================
+
+\chapter{CONCLUSION AND FUTURE WORK}
+\label{chap:conclusion}
+
+This final chapter synthesizes the findings of the thesis. It summarizes the contributions of the QoS Scheduler system, provides direct, evidence-based answers to the three research questions posed in Chapter~\ref{chap:intro}, discusses the limitations of the current implementation, outlines a roadmap for future research and development, reflects on lessons learned, and considers the broader societal and environmental implications of this work.
+
+% ────────────────────────────────────────────────────────────
+\section{Summary of Contributions}
+\label{sec:contributions_summary}
+
+This thesis makes five primary contributions to the field of mobile network quality of service management:
+
+\begin{enumerate}
+    \item \textbf{C1: Proof of Feasibility.} This thesis provides the first comprehensive, empirically validated demonstration that user-space VPN-based QoS enforcement is feasible on unrooted Android devices. The Token Bucket rate limiter achieved 99.4\% enforcement accuracy (Section~\ref{sec:results_throttling}), and the Weighted Fair Queuing scheduler achieved a Jain's Fairness Index of 0.9998 (Section~\ref{sec:results_wfq})---both within the range of kernel-space tools that require root access.
+    
+    \item \textbf{C2: Novel Three-Plane Architecture.} The thesis introduces a three-plane architectural decomposition (Data Plane, Control Plane, Telemetry Plane) for mobile QoS systems (Chapter~\ref{chap:architecture}). This separation of concerns enables independent scaling and modification of each plane, and mirrors established SDN design patterns adapted for the mobile edge.
+    
+    \item \textbf{C3: Bufferbloat Mitigation without Kernel Access.} Through proactive user-space packet policing, the system achieved an 84.3\% reduction in mean network latency during congestion (Section~\ref{sec:results_bufferbloat}). The 91.1\% improvement in P99 tail latency demonstrates that the approach effectively eliminates the worst-case latency spikes that make Bufferbloat so destructive to real-time applications.
+    
+    \item \textbf{C4: Open-Source Reference Implementation.} The thesis delivers a complete, production-quality implementation with 71 automated tests achieving 93\% line coverage and 89\% branch coverage (Section~\ref{sec:test_coverage}). The system processes real network traffic on physical Android devices, not simulated environments, providing a practical reference architecture for future research.
+    
+    \item \textbf{C5: Cloud-Managed MDM Architecture.} The Telemetry Plane and Web Admin dashboard (Section~\ref{sec:telemetry_plane}) demonstrate the viability of remote QoS policy management across distributed device fleets, providing the architectural foundation for integration with enterprise Mobile Device Management platforms.
+\end{enumerate}
+
+% ────────────────────────────────────────────────────────────
+\section{Answers to Research Questions}
+\label{sec:answers_rqs}
+
+\subsection{RQ1: Feasibility and Accuracy}
+
+\textit{Can strict bandwidth throttling (Token Bucket) and proportional bandwidth allocation (Weighted Fair Queuing) be accurately enforced entirely within the Android application user-space without Root privileges?}
+
+\textbf{Answer: Yes.} The Token Bucket achieved 99.4\% rate enforcement accuracy with a convergence time of 2.3 seconds (Table~\ref{tab:throttle_results}). The WFQ scheduler distributed bandwidth proportionally with less than 12\% deviation from the theoretical 4:2:1 weight ratio (Table~\ref{tab:wfq_results}), with a Jain's Fairness Index of 0.9998.
+
+The 0.6\% accuracy gap compared to kernel-space tools ($>$99.9\%) is attributable to three factors: (1) user-space context switching latency between the application and the kernel's TUN driver, (2) JVM bytecode execution overhead compared to native C kernel code, and (3) Android's Garbage Collector introducing occasional microsecond-level pauses. Despite these overheads, the accuracy is sufficient for all practical QoS scenarios.
+
+The system operates without any root privileges, kernel modifications, or special firmware. All four tested devices (Samsung, Xiaomi, Google Pixel, OnePlus) achieved 99.1\%--99.6\% accuracy (Table~\ref{tab:device_results}).
+
+\subsection{RQ2: System Overhead}
+
+\textit{What is the quantitative computational cost of routing 100\% of a device's network traffic through a Kotlin-based interception, classification, and relay pipeline?}
+
+\textbf{Answer: Moderate and acceptable.} The QoS Scheduler introduces:
+\begin{itemize}[noitemsep]
+    \item \textbf{CPU:} 12.4\% average utilization during normal use, 24.8\% peak during sustained high throughput (Table~\ref{tab:cpu_results}).
+    \item \textbf{Memory:} 68 MB heap allocation (Table~\ref{tab:memory_results}), reduced from 142 MB after the Flyweight optimization.
+    \item \textbf{Battery:} 4.5\%/hr additional drain, translating to approximately 1 hour of reduced battery life on a 5000 mAh device (Table~\ref{tab:battery_results}).
+\end{itemize}
+
+These overhead levels are comparable to commercial always-on VPN applications and do not cause perceptible device slowdown during normal use. The overhead is dominated by the TUN read/write system calls and socket relay I/O, both of which are inherent to the user-space VPN architecture and cannot be significantly optimized without kernel-level access.
+
+\subsection{RQ3: Latency Mitigation}
+
+\textit{To what extent does preemptive, user-space active queue management mitigate the latency spikes and jitter associated with network Bufferbloat?}
+
+\textbf{Answer: Dramatically.} The QoS Scheduler reduced mean latency by 84.3\% (from 245.3 ms to 38.6 ms) during network congestion (Table~\ref{tab:latency_results}). The P99 tail latency was reduced by 91.1\% (from 587.4 ms to 52.1 ms), and jitter was reduced by 91.3\% (from 89.2 ms to 7.8 ms).
+
+These results were achieved through the ``policing and protocol exploitation'' design philosophy: by dropping low-priority packets before they reach the hardware modem buffer, the system triggers TCP's congestion control to reduce the remote server's sending rate, indirectly preventing the modem buffer from filling. This mechanism is effective against both CUBIC and BBR congestion control algorithms, though BBR requires approximately 15\% more packet drops before converging (Section~\ref{sec:discussion}).
+
+The 38.6 ms mean latency achieved with QoS-enabled is well within the acceptable threshold for real-time applications (VoIP requires $<$150 ms one-way delay, gaming requires $<$100 ms).
+
+% ────────────────────────────────────────────────────────────
+\section{Limitations}
+\label{sec:limitations}
+
+Despite the positive results, the current implementation has several limitations that should be acknowledged:
+
+\subsection{Technical Limitations}
+
+\begin{itemize}
+    \item \textbf{DPI with Encrypted Traffic:} The DPI classifier relies primarily on port-based heuristics because TLS 1.3 encryption (and the emerging Encrypted Client Hello standard) prevents payload inspection. Approximately 95\% of modern web traffic is encrypted, limiting the classifier to coarse-grained categorization. This limitation is shared by all user-space DPI systems.
+    
+    \item \textbf{Uplink Bandwidth Estimation:} The system currently uses a static uplink bandwidth estimate (configured at 100 Mbps by default). In reality, cellular uplink bandwidth varies dynamically with signal strength, network load, and cell handoffs. Without carrier cooperation or kernel-level access to the modem's PHY layer, accurate real-time uplink estimation is extremely challenging.
+    
+    \item \textbf{Inbound UDP Limitation:} While the system can drop inbound UDP packets to free local CPU and memory, it cannot reduce the actual bandwidth consumed on the wireless medium. A remote UDP sender will continue transmitting at full speed regardless of local drops, because UDP has no congestion control feedback mechanism.
+    
+    \item \textbf{Single VPN Slot:} Android allows only one active VPN connection. The QoS Scheduler cannot coexist with other VPN applications (e.g., corporate VPNs, privacy VPNs). This is a fundamental platform limitation.
+    
+    \item \textbf{PacketComposer Fragility:} Manual IP/TCP packet construction is inherently error-prone. Any bug in checksum calculation or header field assignment causes silent packet drops with no error diagnostics, making debugging extremely difficult.
+\end{itemize}
+
+\subsection{Methodological Limitations}
+
+\begin{itemize}
+    \item \textbf{Lab Environment:} All system-level tests were conducted in a controlled lab environment with stable Wi-Fi and cellular connectivity. Real-world conditions (variable signal strength, network congestion, mobility) may produce different results.
+    
+    \item \textbf{Device Coverage:} Testing covered four devices from four OEMs, representing the major Android ecosystem segments. However, there are hundreds of Android device models with varying hardware capabilities and OEM modifications.
+    
+    \item \textbf{Application Diversity:} The test workload consisted primarily of iPerf3 synthetic traffic. Real-world application behavior (multiplayer gaming, video conferencing, web browsing) produces more complex, bursty traffic patterns that may exhibit different scheduling characteristics.
+\end{itemize}
+
+% ────────────────────────────────────────────────────────────
+\section{Future Work}
+\label{sec:future_work}
+
+Based on the findings and limitations identified in this thesis, the following research directions are proposed:
+
+\subsection{Short-Term (6--12 Months)}
+
+\begin{itemize}
+    \item \textbf{Machine Learning Traffic Classification:} Replace the heuristic-based DPI classifier with a machine learning model trained on flow-level features (packet sizes, inter-arrival times, burst patterns) as proposed by Jiang et al. \cite{jiang_2021}. This would enable accurate classification of encrypted TLS 1.3 traffic without payload inspection.
+    
+    \item \textbf{Adaptive Bandwidth Estimation:} Implement RTT-based uplink bandwidth probing, where the system periodically measures round-trip times to estimate available bandwidth. This would replace the static bandwidth estimate with a dynamic measurement, similar to TCP BBR's bandwidth probing mechanism \cite{cardwell_2017}.
+    
+    \item \textbf{QUIC-Aware Scheduling:} Extend the scheduler to recognize QUIC traffic (UDP port 443) and apply QUIC-specific policies, leveraging QUIC's connection ID for flow tracking (since QUIC connections survive IP address changes during mobility).
+    
+    \item \textbf{IPv6 Full Compliance:} Complete IPv6 extension header chain traversal for all known extension types, including Hop-by-Hop Options, Routing, Fragment, and Destination Options headers.
+\end{itemize}
+
+\subsection{Medium-Term (1--2 Years)}
+
+\begin{itemize}
+    \item \textbf{Multi-Device Fleet Synchronization:} Extend the Cloud Management architecture to support fleet-wide QoS policy deployment, with role-based access control, audit logging, and policy versioning.
+    
+    \item \textbf{eBPF Integration for Acceleration:} As Android evolves and potentially opens eBPF APIs to applications, integrate kernel-level eBPF programs for performance-critical packet processing while maintaining the user-space control plane. This hybrid architecture could reduce CPU overhead from 12.4\% to below 3\%.
+    
+    \item \textbf{Enterprise MDM Platform Integration:} Develop integration modules for major MDM platforms (Microsoft Intune, VMware Workspace ONE) to add QoS capabilities to existing enterprise device management workflows.
+    
+    \item \textbf{User Experience Metrics:} Extend the evaluation methodology to include user-perceived quality metrics: Mean Opinion Score (MOS) for VoIP, video startup time and rebuffering rate for streaming, and frame-time consistency for gaming.
+\end{itemize}
+
+\subsection{Long-Term (3--5 Years)}
+
+\begin{itemize}
+    \item \textbf{Edge Computing QoS Orchestration:} Integrate the mobile QoS agent with edge computing nodes (MEC) to enable end-to-end QoS from the mobile device through the edge network to cloud services.
+    
+    \item \textbf{5G Network Slicing Integration:} Leverage 5G network slicing APIs (when available) to coordinate device-level QoS with network-level slicing, providing true end-to-end quality guarantees.
+    
+    \item \textbf{AI-Driven Autonomous QoS:} Develop reinforcement learning agents that continuously optimize QoS parameters based on real-time network conditions and user behavior patterns, eliminating the need for manual policy configuration.
+    
+    \item \textbf{Cross-Platform Expansion:} Port the QoS engine to iOS (using NEPacketTunnelProvider) and desktop platforms (using WFP on Windows, Network Extensions on macOS) to provide a unified, cross-platform QoS solution.
+\end{itemize}
+
+% ────────────────────────────────────────────────────────────
+\section{Lessons Learned}
+\label{sec:lessons}
+
+\subsection{Technical Lessons}
+
+\begin{itemize}
+    \item \textbf{Lock-free concurrency is essential in the hot path.} The initial prototype used Kotlin \texttt{Mutex} for thread safety, which introduced contention under high packet rates. Switching to \texttt{ConcurrentHashMap}, \texttt{AtomicLong}, and \texttt{@Synchronized} methods eliminated the bottleneck without sacrificing safety.
+    
+    \item \textbf{Protocol nature is more powerful than brute-force control.} Rather than attempting to buffer and delay packets (shaping), leveraging TCP's built-in congestion control via packet drops (policing) provided superior results with dramatically less implementation complexity.
+    
+    \item \textbf{Caching transforms performance at scale.} The five-tier caching architecture reduced the per-packet processing cost from $O(n)$ (with system calls) to $O(1)$ (with cache hits), enabling the system to process thousands of packets per second on a mobile device.
+    
+    \item \textbf{Silent failures are the hardest bugs.} The PacketComposer's checksum bugs produced zero error messages---the only symptom was ``no Internet.'' Extensive unit tests with known-good packet captures were essential for validating correctness.
+\end{itemize}
+
+\subsection{Methodological Lessons}
+
+\begin{itemize}
+    \item \textbf{Reproducibility requires extreme control.} Network measurements are notoriously variable. The decision to use airplane mode between trials, force-stop background apps, and conduct 10 repetitions with statistical analysis was critical for producing reliable, publishable results.
+    
+    \item \textbf{OEM fragmentation is a first-class concern.} The Xiaomi \texttt{SecurityException} bug would have been undetectable if testing had been limited to a single device. Cross-OEM testing must be a mandatory part of any Android system-level application validation.
+\end{itemize}
+
+% ────────────────────────────────────────────────────────────
+\section{Broader Impact}
+\label{sec:impact}
+
+\subsection{Societal Impact}
+
+The QoS Scheduler has the potential to democratize network quality management. Currently, QoS tools are exclusively available to network administrators with root access or specialized infrastructure. By operating on stock, unrooted devices, this system enables:
+
+\begin{itemize}[noitemsep]
+    \item \textbf{Digital equity:} Students in bandwidth-constrained environments can prioritize educational applications over entertainment, ensuring access to learning resources.
+    \item \textbf{Parental controls:} Parents can manage children's bandwidth consumption without expensive third-party services or device rooting.
+    \item \textbf{Small business optimization:} Small businesses sharing a single Internet connection can ensure that point-of-sale and communication systems receive priority bandwidth.
+\end{itemize}
+
+\subsection{Environmental Considerations}
+
+By reducing unnecessary bandwidth consumption (dropping low-priority packets before they reach the modem), the QoS Scheduler indirectly reduces the energy consumed by network infrastructure. While the per-device impact is small, fleet-wide deployment across thousands of devices could yield measurable reductions in data center and cellular tower energy consumption.
+
+\subsection{Privacy and Ethics}
+
+The VPN architecture inherently gives the QoS Scheduler access to all network traffic metadata. This raises important privacy considerations:
+
+\begin{itemize}[noitemsep]
+    \item \textbf{Local-only processing:} All QoS scheduling decisions are made locally on the device. The server receives only aggregated per-application statistics, never individual packet metadata or payload content.
+    \item \textbf{Transparency:} The open-source nature of the implementation allows independent security auditing.
+    \item \textbf{Informed consent:} Android requires explicit user consent (a system dialog) before activating any VPN, ensuring users are aware that their traffic is being processed.
+\end{itemize}
+
+% ────────────────────────────────────────────────────────────
+\section{Final Remarks}
+
+This thesis has demonstrated that the ``Root Privilege Wall''---the traditional barrier between consumers and enterprise-grade network QoS tools---can be effectively bypassed through creative use of the Android VpnService API. By combining bit-level packet parsing, nanosecond-precision scheduling algorithms, lock-free concurrent programming, and cloud-based policy management, the QoS Scheduler brings professional-grade network quality management to every Android user.
+
+The system achieves 99.4\% rate enforcement accuracy, near-perfect proportional fairness, and 84.3\% latency reduction during Bufferbloat conditions---all without requiring root access, kernel modifications, or network infrastructure changes. As mobile devices continue to become the primary computing platform for billions of users worldwide, the ability to intelligently manage network quality at the device edge will become increasingly critical.
+
+The future of mobile QoS lies not in more powerful hardware or larger buffers, but in smarter, user-space software that understands application behavior and allocates resources accordingly. This thesis provides both the theoretical foundation and the practical proof-of-concept for that future.

@@ -120,7 +120,7 @@
       <div class="chart-grid">
         <div class="card chart-card">
           <div class="card-header">
-            <h3>Network Traffic (Last 30 min)</h3>
+            <h3>Network Traffic (Last 5 min)</h3>
             <span class="badge badge-blue">Live</span>
           </div>
           <canvas id="chart-timeseries" height="120"></canvas>
@@ -256,28 +256,35 @@
         </div>
       </div>
 
-      <div class="chart-grid" style="grid-template-columns: 2fr 1fr; margin-bottom: 20px;">
+      <div class="chart-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 20px;">
         <div class="card chart-card">
           <div class="card-header">
-            <h3>1. Token Bucket Enforcer (Requested vs Allowed)</h3>
-            <span class="badge badge-red">Top App</span>
+            <h3>1. Token Bucket (Total Connection)</h3>
+            <span class="badge badge-blue">Global</span>
           </div>
-          <canvas id="chart-token-bucket" height="150"></canvas>
+          <canvas id="chart-token-bucket-total" height="150"></canvas>
         </div>
         <div class="card chart-card">
           <div class="card-header">
-            <h3>2. WFQ Fair Share Allocation</h3>
+            <h3 id="title-top-app">2. Token Bucket (Top 5 Apps)</h3>
+            <span class="badge badge-red">Top 5 Apps</span>
           </div>
-          <canvas id="chart-wfq-pie" height="150"></canvas>
+          <canvas id="chart-token-bucket-top" height="150"></canvas>
         </div>
       </div>
 
-      <div class="chart-grid" style="grid-template-columns: 1fr; margin-bottom: 20px;">
+      <div class="chart-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 20px;">
         <div class="card chart-card">
           <div class="card-header">
-            <h3>3. Packet Drop Rate Timeline (%)</h3>
+            <h3>3. WFQ Fair Share Allocation</h3>
           </div>
-          <canvas id="chart-drop-rate" height="100"></canvas>
+          <canvas id="chart-wfq-pie" height="150"></canvas>
+        </div>
+        <div class="card chart-card">
+          <div class="card-header">
+            <h3>4. Packet Drop Rate (%) (Top 5 Apps)</h3>
+          </div>
+          <canvas id="chart-drop-rate" height="150"></canvas>
         </div>
       </div>
 

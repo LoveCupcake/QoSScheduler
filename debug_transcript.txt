@@ -1,0 +1,59 @@
+--- FOUND IN C:\Users\hieum\.gemini\antigravity-ide\brain\551268f7-5916-4b75-bcfe-0fcee55e370a\.system_generated\logs\transcript.jsonl ---
+{
+  "name": "run_command",
+  "args": {
+    "CommandLine": "\"python -c \\\"\\nimport json\\nwith open(r'C:\\\\Users\\\\hieum\\\\.gemini\\\\antigravity-ide\\\\brain\\\\551268f7-5916-4b75-bcfe-0fcee55e370a\\\\.system_generated\\\\logs\\\\transcript.jsonl', 'r', encoding='utf-8') as f:\\n    for line in f:\\n        if 'THEORETICAL_FOUNDATIONS.md' in line or 'WALKTHROUGH.md' in line:\\n            data = json.loads(line)\\n            if 'tool_calls' in data:\\n                for tc in data['tool_calls']:\\n                    args = tc.get('args', {})\\n                    if 'TargetFile' in args and ('THEORETICAL_FOUNDATIONS.md' in args['TargetFile'] or 'WALKTHROUGH.md' in args['TargetFile']):\\n                        print(f\\\\\\\"FOUND WRITE TO: {args['TargetFile']}\\\\\\\")\\n                        if 'CodeContent' in args:\\n                            print(args['CodeContent'][:200] + '...')\\n                        if 'ReplacementChunks' in args:\\n                            print(args['ReplacementChunks'])\\n                        print('---')\\n            elif data.get('type') == 'PLANNER_RESPONSE' and data.get('source') == 'MODEL':\\n                # maybe they generated it via terminal?\\n                pass\\n\\\"\"",
+    "Cwd": "\"c:\\\\Users\\\\hieum\\\\AndroidStudioProjects\\\\QoSScheduler\"",
+    "WaitMsBeforeAsync": "2000",
+    "toolAction": "\"Extracting deleted files from transcript\"",
+    "toolSummary": "\"Extract deleted files\""
+  }
+}
+--- FOUND IN C:\Users\hieum\.gemini\antigravity-ide\brain\551268f7-5916-4b75-bcfe-0fcee55e370a\.system_generated\logs\transcript.jsonl ---
+{
+  "name": "run_command",
+  "args": {
+    "CommandLine": "\"Set-Content -Path \\\"recover_files.py\\\" -Value \\\"\\nimport json\\nimport os\\n\\ntranscript_path = r'C:\\\\Users\\\\hieum\\\\.gemini\\\\antigravity-ide\\\\brain\\\\551268f7-5916-4b75-bcfe-0fcee55e370a\\\\.system_generated\\\\logs\\\\transcript.jsonl'\\n\\nfound_files = {}\\n\\nwith open(transcript_path, 'r', encoding='utf-8') as f:\\n    for line in f:\\n        if 'THEORETICAL_FOUNDATIONS.md' in line or 'WALKTHROUGH.md' in line:\\n            try:\\n                data = json.loads(line)\\n                if 'tool_calls' in data:\\n                    for tc in data['tool_calls']:\\n                        args = tc.get('args', {})\\n                        file_path = args.get('TargetFile', '')\\n                        if 'THEORETICAL_FOUNDATIONS.md' in file_path or 'WALKTHROUGH.md' in file_path:\\n                            if 'CodeContent' in args:\\n                                found_files[file_path] = args['CodeContent']\\n                            elif 'ReplacementChunks' in args:\\n                                # This is a replacement, might not have full content\\n                                pass\\n                elif data.get('type') == 'PLANNER_RESPONSE' and 'tool_calls' in data:\\n                     pass\\n            except Exception as e:\\n                pass\\n\\nfor path, content in found_files.items():\\n    print(f'Recovered {path} (length: {len(content)})')\\n    try:\\n        with open(os.path.basename(path), 'w', encoding='utf-8') as out_f:\\n            out_f.write(content)\\n    except:\\n        pass\\nprint('Done.')\\n\\\"\\npython recover_files.py\\n\"",
+    "Cwd": "\"c:\\\\Users\\\\hieum\\\\AndroidStudioProjects\\\\QoSScheduler\"",
+    "WaitMsBeforeAsync": "2000",
+    "toolAction": "\"Running python script to extract files\"",
+    "toolSummary": "\"Extract files from transcript\""
+  }
+}
+--- FOUND IN C:\Users\hieum\.gemini\antigravity-ide\brain\551268f7-5916-4b75-bcfe-0fcee55e370a\.system_generated\logs\transcript.jsonl ---
+{
+  "name": "run_command",
+  "args": {
+    "CommandLine": "\"python -c \\\"\\nimport json\\nimport glob\\nimport os\\n\\nfound_files = {}\\n\\nfor transcript_path in glob.glob(r'C:\\\\Users\\\\hieum\\\\.gemini\\\\antigravity-ide\\\\brain\\\\*\\\\.system_generated\\\\logs\\\\transcript.jsonl'):\\n    with open(transcript_path, 'r', encoding='utf-8') as f:\\n        for line in f:\\n            if 'THEORETICAL_FOUNDATIONS.md' in line or 'WALKTHROUGH.md' in line:\\n                try:\\n                    data = json.loads(line)\\n                    if 'tool_calls' in data:\\n                        for tc in data['tool_calls']:\\n                            args = tc.get('args', {})\\n                            file_path = args.get('TargetFile', '')\\n                            if 'THEORETICAL_FOUNDATIONS.md' in file_path or 'WALKTHROUGH.md' in file_path:\\n                                if 'CodeContent' in args:\\n                                    found_files[file_path] = args['CodeContent']\\n                except Exception as e:\\n                    pass\\n\\nfor path, content in found_files.items():\\n    print(f'Recovered {path} (length: {len(content)})')\\n    try:\\n        with open(os.path.basename(path), 'w', encoding='utf-8') as out_f:\\n            out_f.write(content)\\n    except:\\n        pass\\nprint('Done.')\\n\\\"\\npython recover_files.py\"",
+    "Cwd": "\"c:\\\\Users\\\\hieum\\\\AndroidStudioProjects\\\\QoSScheduler\"",
+    "WaitMsBeforeAsync": "5000",
+    "toolAction": "\"Extracting from all transcripts\"",
+    "toolSummary": "\"Extract files from all logs\""
+  }
+}
+--- FOUND IN C:\Users\hieum\.gemini\antigravity-ide\brain\551268f7-5916-4b75-bcfe-0fcee55e370a\.system_generated\logs\transcript.jsonl ---
+{
+  "name": "write_to_file",
+  "args": {
+    "CodeContent": "\"# Theoretical Foundations of QoS Scheduler\\n\\nThis document outlines the core computer networking and system architecture concepts that form the foundation of the QoS Scheduler project.\\n\\n---\\n\\n## 1. Quality of Service (QoS)\\nQuality of Service refers to the mechanisms used to manage network traffic and ensure the performance of critical applications, especially under limited bandwidth conditions.\\n*   **Prioritization:** Assigning importance levels (e.g., HIGH, MEDIUM, LOW) to different types of traffic.\\n*   **Traffic Shaping:** Regulating the flow of packets into the network to ensure a smooth, predictable output rate, typically using algorithms like Token Bucket.\\n*   **Policing vs. Shaping:** While shaping queues excess packets, this project primarily relies on *policing* (dropping packets) to force TCP congestion control to slow down the sender.\\n\\n## 2. Token Bucket Algorithm\\nThe Token Bucket is the mathematical engine used for rate-limiting individual applications.\\n*   **Tokens:** Represent permission to send bytes.\\n*   **Fill Rate:** Tokens are added to the bucket at a constant rate (e.g., 5 Mbps).\\n*   **Burst Capacity:** The bucket has a maximum depth. If idle, tokens accumulate up to the burst limit, allowing applications to send sudden spikes of data instantly.\\n*   **Implementation:** In this project, it is implemented using a lock-free, lazy-evaluation strategy with nanosecond precision (`System.nanoTime()`), avoiding the overhead of background timer threads.\\n\\n## 3. Weighted Fair Queuing (WFQ)\\nWFQ is a scheduling algorithm that provides proportional bandwidth sharing.\\n*   **Mechanism:** Instead of equally dividing a 10 Mbps connection among 3 apps ($3.33$ Mbps each), WFQ assigns weights.\\n*   **Example (4:2:1):** Gaming (High=4), Streaming (Med=2), Background Sync (Low=1). Out of 7 total shares, Gaming gets $4/7$ ($\\\\approx 57\\\\%$), Streaming gets $2/7$ ($\\\\approx 28\\\\%$), and Sync gets $1/7$ ($\\\\approx 14\\\\%$).\\n*   **Work-Conserving:** If the Gaming app stops transmitting, its bandwidth\n<truncated 1874 bytes>",
+    "Description": "\"Recreate THEORETICAL_FOUNDATIONS.md\"",
+    "IsArtifact": "false",
+    "Overwrite": "true",
+    "TargetFile": "\"c:\\\\Users\\\\hieum\\\\AndroidStudioProjects\\\\QoSScheduler\\\\THEORETICAL_FOUNDATIONS.md\"",
+    "toolAction": "\"Recreating theoretical foundations\"",
+    "toolSummary": "\"Recreate THEORETICAL_FOUNDATIONS.md\""
+  }
+}
+--- FOUND IN C:\Users\hieum\.gemini\antigravity-ide\brain\551268f7-5916-4b75-bcfe-0fcee55e370a\.system_generated\logs\transcript.jsonl ---
+{
+  "name": "write_to_file",
+  "args": {
+    "CodeContent": "\"# QoS Scheduler Project Walkthrough\\n\\nWelcome to the QoS Scheduler repository. This document serves as a guided tour through the codebase, explaining how the different components fit together to form a complete userspace QoS system.\\n\\n---\\n\\n## 1. Project Structure\\n\\nThe repository is divided into three main pillars:\\n1.  **`app/` (The Data & Control Plane):** The native Android application written in Kotlin. This is where the core packet interception, parsing, and scheduling occur.\\n2.  **`server/` (The Telemetry Plane):** The Node.js Web Admin dashboard. It ingests data from the Android client and provides real-time visualization.\\n3.  **`thesis/` (Documentation):** The LaTeX source files for the final academic thesis, detailing the architecture, implementation, and experimental results.\\n\\n---\\n\\n## 2. Walkthrough of the Android Client (`app/`)\\n\\n### A. The Interception Engine (VpnService)\\n*   **File:** `QosVpnService.kt`\\n*   **Role:** Acts as the entry point for the network pipeline. It configures the virtual TUN interface (`Builder().addRoute(\\\"0.0.0.0\\\", 0)`), capturing all outgoing IPv4 and IPv6 traffic. It runs a continuous coroutine loop (`Dispatchers.IO`) reading raw bytes into a reused `ByteBuffer`.\\n\\n### B. Packet Parsing and DPI\\n*   **File:** `RawPacket.kt` & `DpiClassifier.kt`\\n*   **Role:** Extracts source/destination IPs, ports, and protocol numbers using bitwise operations (`shr`, `and`) without allocating new memory, mitigating Garbage Collection (GC) pauses. It identifies traffic types (e.g., DNS, HTTP, Gaming) using port heuristics.\\n\\n### C. The Brains: Token Bucket & WFQ\\n*   **File:** `BandwidthScheduler.kt` & `TokenBucket.kt`\\n*   **Role:** The heart of the QoS system.\\n    *   `TokenBucket` enforces rate limits using lazy nanosecond refill evaluation.\\n    *   `BandwidthScheduler` distributes available bandwidth dynamically using a Weighted Fair Queuing (WFQ) algorithm with a 4:2:1 ratio for HIGH, MEDIUM, and LOW priority classes.\\n\\n### D. The Relay Proxy\\n*   **File:** `TcpRela\n<truncated 1584 bytes>",
+    "Description": "\"Recreate WALKTHROUGH.md\"",
+    "IsArtifact": "false",
+    "Overwrite": "true",
+    "TargetFile": "\"c:\\\\Users\\\\hieum\\\\AndroidStudioProjects\\\\QoSScheduler\\\\WALKTHROUGH.md\"",
+    "toolAction": "\"Recreating walkthrough\"",
+    "toolSummary": "\"Recreate WALKTHROUGH.md\""
+  }
+}

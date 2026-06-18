@@ -2,7 +2,9 @@
 % REFERENCES (BibTeX)
 % ============================================================
 
-@article{gettys2012bufferbloat,
+% ── Foundational Papers & Books ──────────────────────────────
+
+@article{gettys_2012,
     author  = {Gettys, Jim and Nichols, Kathleen},
     title   = {Bufferbloat: Dark Buffers in the Internet},
     journal = {Communications of the ACM},
@@ -13,7 +15,7 @@
     publisher = {ACM}
 }
 
-@misc{ericsson2024,
+@misc{ericsson_2024,
     author = {{Ericsson}},
     title  = {Ericsson Mobility Report},
     year   = {2024},
@@ -21,13 +23,103 @@
     note   = {Accessed: 2026}
 }
 
-@book{tanenbaum2021,
-    author    = {Tanenbaum, Andrew S. and Feamster, Nick and Wetherall, David J.},
+@book{tanenbaum_2011,
+    author    = {Tanenbaum, Andrew S. and Wetherall, David J.},
     title     = {Computer Networks},
-    edition   = {6th},
+    edition   = {5th},
+    publisher = {Pearson},
+    year      = {2011}
+}
+
+@book{kurose_2021,
+    author    = {Kurose, James F. and Ross, Keith W.},
+    title     = {Computer Networking: A Top-Down Approach},
+    edition   = {8th},
     publisher = {Pearson},
     year      = {2021}
 }
+
+@book{stallings_2014,
+    author    = {Stallings, William},
+    title     = {Data and Computer Communications},
+    edition   = {10th},
+    publisher = {Pearson},
+    year      = {2014}
+}
+
+@book{peterson2011computer,
+    author    = {Peterson, Larry L. and Davie, Bruce S.},
+    title     = {Computer Networks: A Systems Approach},
+    edition   = {5th},
+    publisher = {Morgan Kaufmann},
+    year      = {2011}
+}
+
+% ── Scheduling & Queuing Algorithms ──────────────────────────
+
+@article{demers_1989,
+    author  = {Demers, Alan and Keshav, Srinivasan and Shenker, Scott},
+    title   = {Analysis and Simulation of a Fair Queueing Algorithm},
+    journal = {ACM SIGCOMM Computer Communication Review},
+    volume  = {19},
+    number  = {4},
+    pages   = {1--12},
+    year    = {1989}
+}
+
+@article{parekh_1993,
+    author  = {Parekh, Abhay K. and Gallager, Robert G.},
+    title   = {A Generalized Processor Sharing Approach to Flow Control in Integrated Services Networks: The Single-Node Case},
+    journal = {IEEE/ACM Transactions on Networking},
+    volume  = {1},
+    number  = {3},
+    pages   = {344--357},
+    year    = {1993}
+}
+
+@article{shreedhar_1996,
+    author  = {Shreedhar, Madhavapeddi and Varghese, George},
+    title   = {Efficient Fair Queuing Using Deficit Round-Robin},
+    journal = {IEEE/ACM Transactions on Networking},
+    volume  = {4},
+    number  = {3},
+    pages   = {375--385},
+    year    = {1996}
+}
+
+@article{floyd_1993,
+    author  = {Floyd, Sally and Jacobson, Van},
+    title   = {Random Early Detection Gateways for Congestion Avoidance},
+    journal = {IEEE/ACM Transactions on Networking},
+    volume  = {1},
+    number  = {4},
+    pages   = {397--413},
+    year    = {1993}
+}
+
+% ── Congestion Control ───────────────────────────────────────
+
+@article{ha_2008,
+    author  = {Ha, Sangtae and Rhee, Injong and Xu, Lisong},
+    title   = {CUBIC: A New TCP-Friendly High-Speed TCP Variant},
+    journal = {ACM SIGOPS Operating Systems Review},
+    volume  = {42},
+    number  = {5},
+    pages   = {64--74},
+    year    = {2008}
+}
+
+@article{cardwell_2017,
+    author  = {Cardwell, Neal and Cheng, Yuchung and Gunn, C. Stephen and Yeganeh, Soheil Hassas and Jacobson, Van},
+    title   = {BBR: Congestion-Based Congestion Control},
+    journal = {ACM Queue},
+    volume  = {14},
+    number  = {5},
+    pages   = {20--53},
+    year    = {2017}
+}
+
+% ── RFCs ─────────────────────────────────────────────────────
 
 @techreport{rfc791,
     author      = {Postel, Jon},
@@ -37,26 +129,6 @@
     number      = {791},
     year        = {1981},
     url         = {https://www.rfc-editor.org/rfc/rfc791}
-}
-
-@techreport{rfc8200,
-    author      = {Deering, Steve and Hinden, Robert},
-    title       = {Internet Protocol, Version 6 (IPv6) Specification},
-    institution = {IETF},
-    type        = {RFC},
-    number      = {8200},
-    year        = {2017},
-    url         = {https://www.rfc-editor.org/rfc/rfc8200}
-}
-
-@techreport{rfc9293,
-    author      = {Eddy, Wesley},
-    title       = {Transmission Control Protocol (TCP)},
-    institution = {IETF},
-    type        = {RFC},
-    number      = {9293},
-    year        = {2022},
-    url         = {https://www.rfc-editor.org/rfc/rfc9293}
 }
 
 @techreport{rfc768,
@@ -89,35 +161,87 @@
     url         = {https://www.rfc-editor.org/rfc/rfc2474}
 }
 
-@techreport{rfc2475,
-    author      = {Blake, Steven and Black, David and Carlson, Mark and Davies, Elwyn and Wang, Zheng and Weiss, Walter},
-    title       = {An Architecture for Differentiated Services},
+@techreport{rfc2697,
+    author      = {Heinanen, Juha and Guerin, Roch},
+    title       = {A Single Rate Three Color Marker},
     institution = {IETF},
     type        = {RFC},
-    number      = {2475},
-    year        = {1998},
-    url         = {https://www.rfc-editor.org/rfc/rfc2475}
+    number      = {2697},
+    year        = {1999},
+    url         = {https://www.rfc-editor.org/rfc/rfc2697}
 }
 
-@techreport{rfc2211,
-    author      = {Wroclawski, John},
-    title       = {Specification of the Controlled-Load Network Element Service},
+@techreport{rfc2698,
+    author      = {Heinanen, Juha and Guerin, Roch},
+    title       = {A Two Rate Three Color Marker},
     institution = {IETF},
     type        = {RFC},
-    number      = {2211},
-    year        = {1997},
-    url         = {https://www.rfc-editor.org/rfc/rfc2211}
+    number      = {2698},
+    year        = {1999},
+    url         = {https://www.rfc-editor.org/rfc/rfc2698}
 }
 
-@techreport{rfc5952,
-    author      = {Kawamura, Seiichi and Kawashima, Masanobu},
-    title       = {A Recommendation for IPv6 Address Text Representation},
+@techreport{rfc5681,
+    author      = {Allman, Mark and Paxson, Vern and Blanton, Ethan},
+    title       = {TCP Congestion Control},
     institution = {IETF},
     type        = {RFC},
-    number      = {5952},
-    year        = {2010},
-    url         = {https://www.rfc-editor.org/rfc/rfc5952}
+    number      = {5681},
+    year        = {2009},
+    url         = {https://www.rfc-editor.org/rfc/rfc5681}
 }
+
+@techreport{rfc8200,
+    author      = {Deering, Steve and Hinden, Robert},
+    title       = {Internet Protocol, Version 6 (IPv6) Specification},
+    institution = {IETF},
+    type        = {RFC},
+    number      = {8200},
+    year        = {2017},
+    url         = {https://www.rfc-editor.org/rfc/rfc8200}
+}
+
+@techreport{rfc8289,
+    author      = {Nichols, Kathleen and Jacobson, Van and McGregor, Andrew and Iyengar, Jana},
+    title       = {Controlled Delay Active Queue Management},
+    institution = {IETF},
+    type        = {RFC},
+    number      = {8289},
+    year        = {2018},
+    url         = {https://www.rfc-editor.org/rfc/rfc8289}
+}
+
+@techreport{rfc8290,
+    author      = {Hoeiland-Joergensen, Toke and McKenney, Paul and Taht, Dave and Gettys, Jim and Dumazet, Eric},
+    title       = {The Flow Queue CoDel Packet Scheduler and Active Queue Management Algorithm},
+    institution = {IETF},
+    type        = {RFC},
+    number      = {8290},
+    year        = {2018},
+    url         = {https://www.rfc-editor.org/rfc/rfc8290}
+}
+
+@techreport{rfc9000,
+    author      = {Iyengar, Jana and Thomson, Martin},
+    title       = {QUIC: A UDP-Based Multiplexed and Secure Transport},
+    institution = {IETF},
+    type        = {RFC},
+    number      = {9000},
+    year        = {2021},
+    url         = {https://www.rfc-editor.org/rfc/rfc9000}
+}
+
+@techreport{rfc9293,
+    author      = {Eddy, Wesley},
+    title       = {Transmission Control Protocol (TCP)},
+    institution = {IETF},
+    type        = {RFC},
+    number      = {9293},
+    year        = {2022},
+    url         = {https://www.rfc-editor.org/rfc/rfc9293}
+}
+
+% ── Android & Tools ──────────────────────────────────────────
 
 @misc{android_vpnservice,
     author = {{Google}},
@@ -132,133 +256,6 @@
     title  = {ConnectivityManager -- Android Developers},
     year   = {2024},
     url    = {https://developer.android.com/reference/android/net/ConnectivityManager},
-    note   = {Accessed: 2026}
-}
-
-@misc{netguard,
-    author = {Bokhorst, Marcel},
-    title  = {NetGuard -- no-root firewall},
-    year   = {2023},
-    url    = {https://github.com/M66B/NetGuard},
-    note   = {GitHub Repository}
-}
-
-@misc{glasswire,
-    author = {{GlassWire}},
-    title  = {GlassWire -- Data Usage Monitor},
-    year   = {2024},
-    url    = {https://www.glasswire.com/},
-    note   = {Accessed: 2026}
-}
-
-@misc{iperf3,
-    author = {{ESnet}},
-    title  = {iPerf3 -- The TCP, UDP and SCTP network bandwidth measurement tool},
-    year   = {2024},
-    url    = {https://software.es.net/iperf/},
-    note   = {Accessed: 2026}
-}
-
-@misc{wireshark,
-    author = {{Wireshark Foundation}},
-    title  = {Wireshark -- Go Deep.},
-    year   = {2024},
-    url    = {https://www.wireshark.org/},
-    note   = {Accessed: 2026}
-}
-
-@inproceedings{li2019mobile,
-    author    = {Li, Wei and others},
-    title     = {Mobile Traffic Classification and QoS Enhancement Using Deep Learning},
-    booktitle = {IEEE International Conference on Communications (ICC)},
-    year      = {2019},
-    pages     = {1--6},
-    publisher = {IEEE}
-}
-
-@article{demichelis2002ip,
-    author  = {Demichelis, Carlo and Chimento, Philip},
-    title   = {IP Packet Delay Variation Metric for IP Performance Metrics},
-    journal = {RFC 3393},
-    year    = {2002},
-    publisher = {IETF}
-}
-
-@book{stallings2014data,
-    author    = {Stallings, William},
-    title     = {Data and Computer Communications},
-    edition   = {10th},
-    publisher = {Pearson},
-    year      = {2014}
-}
-
-@book{kurose2021computer,
-    author    = {Kurose, James F. and Ross, Keith W.},
-    title     = {Computer Networking: A Top-Down Approach},
-    edition   = {8th},
-    publisher = {Pearson},
-    year      = {2021}
-}
-
-@inproceedings{wang2017machine,
-    author    = {Wang, Wei and Zhu, Ming and Zeng, Xuewen and Ye, Xiaozhou and Sheng, Yiqiang},
-    title     = {Malware Traffic Classification Using Convolutional Neural Network for Representation Learning},
-    booktitle = {International Conference on Information Networking (ICOIN)},
-    year      = {2017},
-    pages     = {712--717},
-    publisher = {IEEE}
-}
-
-@article{shreedhar1996efficient,
-    author  = {Shreedhar, Madhavapeddi and Varghese, George},
-    title   = {Efficient Fair Queuing Using Deficit Round-Robin},
-    journal = {IEEE/ACM Transactions on Networking},
-    volume  = {4},
-    number  = {3},
-    pages   = {375--385},
-    year    = {1996}
-}
-
-@article{demers1989analysis,
-    author  = {Demers, Alan and Keshav, Srinivasan and Shenker, Scott},
-    title   = {Analysis and Simulation of a Fair Queueing Algorithm},
-    journal = {ACM SIGCOMM Computer Communication Review},
-    volume  = {19},
-    number  = {4},
-    pages   = {1--12},
-    year    = {1989}
-}
-
-@inproceedings{seddiki2015flowqos,
-    author    = {Seddiki, M. Said and Shahbaz, Muhammad and Donovan, Sean and Grover, Sarthak and Park, Miseon and Feamster, Nick and Song, Ye-Qiong},
-    title     = {FlowQoS: QoS for the Rest of Us},
-    booktitle = {ACM Workshop on Hot Topics in Networks (HotNets)},
-    year      = {2015},
-    pages     = {1--7},
-    publisher = {ACM}
-}
-
-@misc{afwall,
-    author = {{AFWall+ Team}},
-    title  = {AFWall+ -- Android Firewall+},
-    year   = {2023},
-    url    = {https://github.com/ukanth/afern},
-    note   = {GitHub Repository}
-}
-
-@misc{nethogs,
-    author = {Hogendoorn, Arnout},
-    title  = {NetHogs -- Linux net top tool},
-    year   = {2023},
-    url    = {https://github.com/raboof/nethogs},
-    note   = {GitHub Repository}
-}
-
-@misc{statcounter2024,
-    author = {{StatCounter}},
-    title  = {Mobile Operating System Market Share Worldwide},
-    year   = {2024},
-    url    = {https://gs.statcounter.com/os-market-share/mobile/worldwide},
     note   = {Accessed: 2026}
 }
 
@@ -278,29 +275,127 @@
     note   = {Accessed: 2026}
 }
 
-@article{parekh1993generalized,
-    author  = {Parekh, Abhay K. and Gallager, Robert G.},
-    title   = {A Generalized Processor Sharing Approach to Flow Control in Integrated Services Networks: The Single-Node Case},
-    journal = {IEEE/ACM Transactions on Networking},
-    volume  = {1},
-    number  = {3},
-    pages   = {344--357},
-    year    = {1993}
+@misc{iperf3,
+    author = {{ESnet}},
+    title  = {iPerf3 -- The TCP, UDP and SCTP network bandwidth measurement tool},
+    year   = {2024},
+    url    = {https://software.es.net/iperf/},
+    note   = {Accessed: 2026}
 }
 
-@book{peterson2011computer,
-    author    = {Peterson, Larry L. and Davie, Bruce S.},
-    title     = {Computer Networks: A Systems Approach},
-    edition   = {5th},
-    publisher = {Morgan Kaufmann},
-    year      = {2011}
+@misc{wireshark,
+    author = {{Wireshark Foundation}},
+    title  = {Wireshark -- Go Deep.},
+    year   = {2024},
+    url    = {https://www.wireshark.org/},
+    note   = {Accessed: 2026}
 }
 
-@inproceedings{jiang2021android,
+% ── Related Work ─────────────────────────────────────────────
+
+@misc{netguard,
+    author = {Bokhorst, Marcel},
+    title  = {NetGuard -- no-root firewall},
+    year   = {2023},
+    url    = {https://github.com/M66B/NetGuard},
+    note   = {GitHub Repository}
+}
+
+@misc{afwall,
+    author = {{AFWall+ Team}},
+    title  = {AFWall+ -- Android Firewall+},
+    year   = {2023},
+    url    = {https://github.com/ukanth/afwall},
+    note   = {GitHub Repository}
+}
+
+@misc{glasswire,
+    author = {{GlassWire}},
+    title  = {GlassWire -- Data Usage Monitor},
+    year   = {2024},
+    url    = {https://www.glasswire.com/},
+    note   = {Accessed: 2026}
+}
+
+@inproceedings{mandalari_2018,
+    author    = {Seddiki, M. Said and Shahbaz, Muhammad and Donovan, Sean and Grover, Sarthak and Park, Miseon and Feamster, Nick and Song, Ye-Qiong},
+    title     = {FlowQoS: QoS for the Rest of Us},
+    booktitle = {ACM Workshop on Hot Topics in Networks (HotNets)},
+    year      = {2015},
+    pages     = {1--7},
+    publisher = {ACM}
+}
+
+@misc{gartner_2024_uem,
+    author = {{Gartner}},
+    title  = {Magic Quadrant for Unified Endpoint Management Tools},
+    year   = {2024},
+    url    = {https://www.gartner.com/reviews/market/unified-endpoint-management},
+    note   = {Accessed: 2026}
+}
+
+@misc{statcounter2024,
+    author = {{StatCounter}},
+    title  = {Mobile Operating System Market Share Worldwide},
+    year   = {2024},
+    url    = {https://gs.statcounter.com/os-market-share/mobile/worldwide},
+    note   = {Accessed: 2026}
+}
+
+% ── Academic Research ────────────────────────────────────────
+
+@inproceedings{jiang_2021,
     author    = {Jiang, Yuhao and others},
     title     = {Understanding Android VPN Ecosystem in the Wild},
     booktitle = {ACM Internet Measurement Conference (IMC)},
     year      = {2021},
     pages     = {1--14},
     publisher = {ACM}
+}
+
+@inproceedings{li_2020,
+    author    = {Li, Wei and Zhang, Mingwei and Zeng, Kun and Gao, Wenchao},
+    title     = {Mobile Encrypted Traffic Classification Using Deep Learning: Experimental Evaluation and Insights},
+    booktitle = {IEEE International Conference on Communications (ICC)},
+    year      = {2020},
+    pages     = {1--6},
+    publisher = {IEEE}
+}
+
+@inproceedings{vieira_2020,
+    author    = {Vieira, Marco Ant{\'o}nio Marques and Castanho, Marcos S. and Pac{\'i}fico, Racyus D. G. and Santos, Elerson R. S. and J{\'u}nior, Eduardo P. M. C{\'a}mara and Coelho, Luiz F. M.},
+    title     = {Fast Packet Processing with eBPF and XDP: Concepts, Code, Challenges, and Applications},
+    booktitle = {ACM Computing Surveys},
+    volume    = {53},
+    number    = {1},
+    year      = {2020},
+    pages     = {1--36},
+    publisher = {ACM}
+}
+
+@inproceedings{wang2017machine,
+    author    = {Wang, Wei and Zhu, Ming and Zeng, Xuewen and Ye, Xiaozhou and Sheng, Yiqiang},
+    title     = {Malware Traffic Classification Using Convolutional Neural Network for Representation Learning},
+    booktitle = {International Conference on Information Networking (ICOIN)},
+    year      = {2017},
+    pages     = {712--717},
+    publisher = {IEEE}
+}
+
+@article{demichelis2002ip,
+    author  = {Demichelis, Carlo and Chimento, Philip},
+    title   = {IP Packet Delay Variation Metric for IP Performance Metrics},
+    journal = {RFC 3393},
+    year    = {2002},
+    publisher = {IETF}
+}
+
+@book{leboudec2001,
+    author    = {Le Boudec, Jean-Yves and Thiran, Patrick},
+    title     = {Network Calculus: A Theory of Deterministic Queuing Systems for the Internet},
+    publisher = {Springer},
+    series    = {Lecture Notes in Computer Science},
+    volume    = {2050},
+    year      = {2001},
+    doi       = {10.1007/3-540-45318-0}
 }

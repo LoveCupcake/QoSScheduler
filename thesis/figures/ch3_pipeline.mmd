@@ -1,0 +1,12 @@
+graph LR
+    A["TUN Read"] --> B["IP Header Parse"]
+    B --> C{"Valid Packet?"}
+    C -->|"No"| D["Drop"]
+    C -->|"Yes"| E["UID Resolution"]
+    E --> F{"UID Found?"}
+    F -->|"No"| G["Synthetic Bucket"]
+    F -->|"Yes"| H["DPI Classify"]
+    H --> I["Token Bucket Check"]
+    I --> J{"Tokens Available?"}
+    J -->|"No"| K["DROP"]
+    J -->|"Yes"| L["ALLOW - Relay"]

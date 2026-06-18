@@ -1,0 +1,207 @@
+% ============================================================
+% GRADUATION THESIS
+% Network Quality of Service (QoS) Scheduling System
+% on the Android Platform
+% ============================================================
+% Compiler: XeLaTeX (Unicode support)
+% ============================================================
+
+\documentclass[a4paper, 11pt, oneside]{report}
+
+% ======================== PACKAGES ========================
+
+% --- Font & Language support ---
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\usepackage{polyglossia}
+\setdefaultlanguage{english}
+
+% --- Page layout ---
+\usepackage[
+    top=3.5cm,
+    bottom=3cm,
+    left=3.5cm,
+    right=2cm,
+    headheight=15pt
+]{geometry}
+
+% --- Typography & Spacing ---
+\usepackage{setspace}
+\setstretch{1.2}
+\setlength{\parindent}{1.27cm}
+\setlength{\parskip}{6pt}
+
+% --- Headers & Footers ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\small\nouppercase{\leftmark}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% --- Chapter & Section styling ---
+\usepackage{titlesec}
+
+\titleformat{\chapter}[display]
+{\normalfont\LARGE\bfseries\centering}
+{\MakeUppercase{\chaptertitlename}\ \thechapter}{20pt}{\LARGE\MakeUppercase}
+\titlespacing*{\chapter}{0pt}{-20pt}{30pt}
+
+\titleformat{\section}
+{\normalfont\large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}
+{\normalfont\normalsize\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}
+{\normalfont\normalsize\itshape}{\thesubsubsection}{1em}{}
+
+% --- Table of Contents depth ---
+\setcounter{tocdepth}{3}
+\setcounter{secnumdepth}{3}
+
+% --- Graphics ---
+\usepackage{graphicx}
+\usepackage{float}
+\graphicspath{{images/}}
+
+% --- Tables ---
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{tabularx}
+
+% --- Code listings ---
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.97,0.97,0.97}
+\definecolor{framecolor}{rgb}{0.8,0.8,0.8}
+
+\lstdefinestyle{kotlinstyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen}\itshape,
+    keywordstyle=\color{blue}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\small,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=8pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=4,
+    frame=single,
+    rulecolor=\color{framecolor},
+    xleftmargin=15pt,
+    framexleftmargin=15pt,
+}
+
+\lstset{style=kotlinstyle}
+
+% --- Math ---
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% --- Algorithms ---
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% --- Hyperlinks ---
+\usepackage[
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=blue,
+    urlcolor=blue,
+    bookmarks=true,
+    bookmarksnumbered=true
+]{hyperref}
+
+% --- Bibliography ---
+\usepackage[numbers,sort&compress]{natbib}
+
+% --- Captions ---
+\usepackage{caption}
+\captionsetup{
+    font=small,
+    labelfont=bf,
+    format=hang,
+    justification=centering
+}
+
+% --- Misc ---
+\usepackage{enumitem}
+\usepackage{pdfpages}
+
+% ======================== CUSTOM COMMANDS ========================
+
+\newcommand{\qosapp}{\textit{QoS Scheduler}}
+\newcommand{\android}{\textit{Android}}
+\newcommand{\TODO}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+
+% ======================== DOCUMENT ========================
+
+\begin{document}
+
+% ---- Front Matter ----
+\pagenumbering{roman}
+
+% --- Title Page ---
+\input{frontmatter/titlepage}
+
+% --- Declaration ---
+\input{frontmatter/declaration}
+
+% --- Acknowledgements ---
+\input{frontmatter/acknowledgements}
+
+% --- Abstract ---
+\input{frontmatter/abstract}
+
+% --- Table of Contents ---
+\tableofcontents
+\newpage
+
+% --- List of Figures ---
+\listoffigures
+\addcontentsline{toc}{chapter}{List of Figures}
+\newpage
+
+% --- List of Tables ---
+\listoftables
+\addcontentsline{toc}{chapter}{List of Tables}
+\newpage
+
+% --- Glossary ---
+\input{frontmatter/glossary}
+\newpage
+
+% ---- Main Matter ----
+\pagenumbering{arabic}
+
+\input{chapters/chapter1}
+\input{chapters/chapter2_short}
+\input{chapters/chapter3}
+\input{chapters/chapter4_short}
+\input{chapters/chapter5_short}
+\input{chapters/chapter6}
+\input{chapters/chapter7_new}
+
+% ---- Back Matter ----
+\bibliographystyle{ieeetr}
+\bibliography{references}
+\addcontentsline{toc}{chapter}{References}
+
+% --- Appendices ---
+\appendix
+\input{appendices/appendix_a}
+\input{appendices/appendix_b}
+
+\end{document}

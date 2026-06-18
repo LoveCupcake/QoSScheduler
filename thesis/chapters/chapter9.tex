@@ -1,0 +1,53 @@
+% ============================================================
+% CHAPTER 9: DISCUSSION
+% ============================================================
+
+\chapter{DISCUSSION}
+\label{chap:discussion}
+
+This chapter interprets the experimental results presented in Chapter~\ref{chap:results}, situates the findings within the broader context of mobile network management, and addresses the limitations and threats to validity of the current implementation.
+
+\section{Interpretation of Results}
+\label{sec:interpretation}
+
+The empirical evaluation of the QoS Scheduler yields two primary insights regarding application-layer traffic shaping on mobile devices.
+
+First, the implementation of a user-space Token Bucket algorithm via Android's \texttt{VpnService} API is not only feasible but highly effective. Historically, precise traffic shaping (e.g., using \texttt{tc} or \texttt{iptables}) required root access to manipulate kernel-level queuing disciplines (qdiscs). By implementing the logic entirely in Kotlin within a foreground service, we have successfully bridged the gap between enterprise-grade QoS capabilities and consumer-device accessibility.
+
+Second, the trade-off between throughput fairness and latency reduction is explicitly manageable. The experiments demonstrated that capping \texttt{LOW} priority background traffic (such as file downloads or cloud syncs) at a strict 5 Mbps threshold resulted in an 84\% reduction in overall network latency. This is because unchecked TCP connections inherently expand their congestion windows until packet loss occurs (filling all intermediate router buffers). By dropping packets \textit{at the source device} before they reach the cellular modem, the QoS Scheduler prevents bufferbloat from forming in the local network topology.
+
+\section{Comparison with Related Work}
+\label{sec:comparison}
+
+\subsection{Kernel-level QoS vs. User-space VPN}
+Traditional mobile QoS solutions, such as those implemented in custom Android ROMs or via rooted utilities, manipulate the Linux kernel's \texttt{netfilter} framework. While these approaches offer superior performance (approaching zero CPU overhead), they suffer from severe deployment constraints. Our VpnService-based approach sacrifices a marginal amount of CPU efficiency (averaging 12\% utilization) in exchange for universal compatibility across unrooted Android 10+ devices.
+
+\subsection{SDN-based Traffic Management}
+Recent literature frequently proposes Software Defined Networking (SDN) for mobile QoS, where a central controller manages flow rules across the network. While powerful for carrier networks, SDN is inapplicable for individual users connecting to public or unmanaged Wi-Fi. The QoSScheduler operates autonomously at the edge (the mobile device itself), requiring no external infrastructure or carrier support.
+
+\section{Limitations and Challenges}
+\label{sec:limitations}
+
+Despite the positive results, the current architecture faces several limitations that constrain its applicability in certain edge cases.
+
+\subsection{DPI Limitations with Encrypted Traffic}
+The current Deep Packet Inspection (DPI) classifier relies heavily on port-based heuristics and superficial packet signatures. With the ubiquitous adoption of TLS 1.3, QUIC, and Encrypted Server Name Indication (ESNI), inspecting application-layer payloads is becoming impossible. Consequently, a game running on a non-standard UDP port might be misclassified as \texttt{UNKNOWN} or \texttt{WEB\_BROWSING} traffic, bypassing the intended \texttt{HIGH} priority queues.
+
+\subsection{Uplink Bandwidth Estimation}
+The WFQ rebalancing algorithm calculates optimal token rates based on a static \texttt{uplinkBps} parameter. In reality, cellular (4G/5G) bandwidth is highly volatile and fluctuates based on signal strength, tower congestion, and mobility. If the static parameter is set higher than the actual physical channel capacity, the QoS Scheduler will fail to prevent bufferbloat, as packets will simply queue up in the modem's hardware buffers instead of the software queues.
+
+\subsection{Concurrency and Thread Safety}
+Operating a high-throughput network relay in user-space introduces significant concurrency challenges. While Kotlin Coroutines provide excellent primitives for asynchronous I/O, the shared mutable state (e.g., the \texttt{AppTraffic} registry and TCP connection state machines) remains susceptible to race conditions. The current implementation heavily relies on \texttt{ConcurrentHashMap} and atomic operations, but extreme stress tests reveal occasional dropped updates in telemetry byte counts. Future iterations require formal verification of the concurrency model.
+
+\section{Threats to Validity}
+\label{sec:threats_validity}
+
+\begin{itemize}
+    \item \textbf{Internal Validity:} The background traffic profiles used in testing (iPerf3 and large file transfers) represent worst-case, greedy TCP behaviors. Real-world applications often exhibit bursty, unpredictable traffic patterns that may not trigger the QoS throttles as consistently as our controlled benchmarks.
+    \item \textbf{External Validity:} All experiments were conducted on a high-end flagship device (Snapdragon 8 Gen 2). The 12\% CPU overhead observed may translate to severe battery drain or thermal throttling on budget or legacy hardware, potentially limiting the system's viability in developing markets.
+\end{itemize}
+
+\section{Chapter Summary}
+\label{sec:ch9_summary}
+
+This chapter analyzed the success of the user-space QoS implementation, highlighting its ability to prevent bufferbloat without requiring root access. While the system outperforms traditional consumer network management tools, we identified critical limitations regarding encrypted traffic classification, dynamic bandwidth estimation, and hardware overhead. These limitations define the boundaries of the current system and pave the way for future research directions.

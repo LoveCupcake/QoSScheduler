@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; padding: 40px; background: white; display: flex; justify-content: center; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#ffffff',
+    primaryBorderColor: '#000000',
+    primaryTextColor: '#000000',
+    lineColor: '#000000',
+    secondaryColor: '#ffffff',
+    tertiaryColor: '#f8f8f8',
+    fontSize: '14px',
+    fontFamily: '"Times New Roman", serif'
+  },
+  flowchart: { curve: 'linear', padding: 15, nodeSpacing: 20, rankSpacing: 35 }
+});
+</script>
+</head>
+<body>
+<div class="mermaid">
+graph LR
+    A["TUN Read"] --> B["IP Header Parse"]
+    B --> C{"Valid<br/>Packet?"}
+    C -->|"No"| D["Drop<br/>(malformed)"]
+    C -->|"Yes"| E["UID Resolution"]
+    E --> F{"UID<br/>Found?"}
+    F -->|"No"| G["Synthetic<br/>Port Bucket"]
+    F -->|"Yes"| H["DPI Classify"]
+    H --> I["Token Bucket<br/>Check"]
+    I --> J{"Tokens<br/>Available?"}
+    J -->|"No"| K["DROP<br/>(triggers TCP congestion)"]
+    J -->|"Yes"| L["ALLOW<br/>Relay to Internet"]
+
+    style A fill:#fff,stroke:#000,stroke-width:2px
+    style B fill:#fff,stroke:#000,stroke-width:1px
+    style C fill:#fff,stroke:#000,stroke-width:1px
+    style D fill:#fff,stroke:#000,stroke-width:1px,stroke-dasharray: 5 5
+    style E fill:#fff,stroke:#000,stroke-width:1px
+    style F fill:#fff,stroke:#000,stroke-width:1px
+    style G fill:#fff,stroke:#000,stroke-width:1px,stroke-dasharray: 5 5
+    style H fill:#fff,stroke:#000,stroke-width:1px
+    style I fill:#fff,stroke:#000,stroke-width:1px
+    style J fill:#fff,stroke:#000,stroke-width:1px
+    style K fill:#fff,stroke:#000,stroke-width:1px,stroke-dasharray: 5 5
+    style L fill:#fff,stroke:#000,stroke-width:2px
+</div>
+</body></html>

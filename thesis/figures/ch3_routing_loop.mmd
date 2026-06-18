@@ -1,0 +1,17 @@
+graph TB
+    subgraph problem["(a) Problem: Infinite Routing Loop"]
+        direction TB
+        APP1["Application"] --> TUN1["TUN Interface"]
+        TUN1 --> QOS1["QoS Scheduler App"]
+        QOS1 --> SOCK1["Relay Socket"]
+        SOCK1 -->|"Recaptured by VPN"| TUN1
+    end
+
+    subgraph solution["(b) Solution: protect Bypass"]
+        direction TB
+        APP2["Application"] --> TUN2["TUN Interface"]
+        TUN2 --> QOS2["QoS Scheduler App"]
+        QOS2 --> SOCK2["protect - socket"]
+        SOCK2 -->|"Bypasses VPN"| NIC["Physical NIC"]
+        NIC --> INT(("Internet"))
+    end

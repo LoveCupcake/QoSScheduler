@@ -12,7 +12,7 @@
   const SWIPE_VEL_THRESH  = 0.022;  // wrist velocity to trigger swipe
   const SWIPE_COOLDOWN_MS = 900;
   const CLICK_COOLDOWN_MS = 650;
-  const ACTION_HOLD_FRAMES= 18;     // frames gesture must hold before bulk actions
+  const ACTION_HOLD_FRAMES= 10;     // reduced frames to make open/fist more responsive
 
   // ─── State ───────────────────────────────────────────────────────────────
   let jarvisActive   = false;
@@ -102,7 +102,7 @@
   // ─── MediaPipe Setup ─────────────────────────────────────────────────────
   function initMediaPipe() {
     if (typeof Hands === 'undefined') {
-      showHUD('MEDIAPIPE NOT LOADED', 'Check internet connection', '');
+      setHUD('MEDIAPIPE NOT LOADED', 'Check internet connection', '');
       return;
     }
     hands = new Hands({
@@ -134,7 +134,7 @@
 
     if (!results.multiHandLandmarks?.length) {
       pushGesture('none');
-      showHUD('SCANNING...', 'Show your hand to the camera', '');
+      setHUD('SCANNING...', 'Show your hand to the camera', '');
       return;
     }
 
@@ -205,11 +205,19 @@
   }
 
   function getFingersUp(lm) {
-    const thumb  = lm[4].x  < lm[3].x;   // mirrored
-    const index  = lm[8].y  < lm[6].y;
-    const middle = lm[12].y < lm[10].y;
-    const ring   = lm[16].y < lm[14].y;
-    const pinky  = lm[20].y < lm[18].y;
+    const w = lm[0]; // wrist
+    // Robust orientation-agnostic finger detection:
+    // Thumb: compare distance from tip (4) to pinky base (17) vs IP (3) to pinky base (17)
+    // When open, thumb tip is far from pinky base. When closed, it touches the palm (closer to pinky base).
+    const thumb  = dist(lm[4], lm[17]) > dist(lm[3], lm[17]);
+    
+    // Other fingers: compare distance from tip to wrist vs PIP to wrist.
+    // When open, tip is furthest. When curled, tip folds inward and PIP knuckle is furthest.
+    const index  = dist(lm[8], w) > dist(lm[6], w);
+    const middle = dist(lm[12], w) > dist(lm[10], w);
+    const ring   = dist(lm[16], w) > dist(lm[14], w);
+    const pinky  = dist(lm[20], w) > dist(lm[18], w);
+    
     return [thumb, index, middle, ring, pinky];
   }
 

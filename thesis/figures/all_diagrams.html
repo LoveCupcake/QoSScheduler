@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chapter 3 - UML Diagrams</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #fff; font-family: "Times New Roman", serif; padding: 30px; }
+.page { 
+  margin-bottom: 80px; 
+  padding: 20px;
+  border-bottom: 1px solid #ccc;
+}
+.page h2 { text-align: center; margin-bottom: 6px; font-size: 16px; font-weight: bold; }
+.page p.caption { text-align: center; margin-bottom: 20px; font-size: 13px; font-style: italic; color: #444; }
+.mermaid { display: flex; justify-content: center; }
+.side-by-side { display: flex; gap: 40px; justify-content: center; align-items: flex-start; }
+.side-by-side > div { flex: 1; max-width: 480px; }
+.side-by-side h3 { text-align: center; font-size: 14px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- CHAPTER 1 DIAGRAM: Conceptual Overview -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="page" id="diagram_ch1">
+<h2>Figure 1.1: Conceptual Overview of QoS Scheduler</h2>
+<p class="caption">High-level flow showing traffic interception, shaping, and telemetry reporting without root access.</p>
+<pre class="mermaid">
+flowchart LR
+    subgraph Device["Android Device (Unrooted)"]
+        direction TB
+        APPS["Client Apps<br/>(Gaming, Web, Background)"]
+        TUN["VPN TUN Interface"]
+        QOS["User-Space QoS Engine<br/>(Token Bucket & WFQ)"]
+        
+        APPS -->|"Raw Network Traffic"| TUN
+        TUN -->|"Intercepted IP Packets"| QOS
+    end
+
+    INTERNET(("Internet"))
+    DASHBOARD["Node.js Web Admin<br/>Dashboard"]
+
+    QOS -->|"Shaped & Policed Traffic"| INTERNET
+    QOS -.->|"Telemetry Data & Policy Sync"| DASHBOARD
+    
+    classDef plain fill:#fff,stroke:#333,stroke-width:1px,color:#000;
+    class Device,APPS,TUN,QOS,INTERNET,DASHBOARD plain;
+</pre>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- DIAGRAM 1: Component Diagram - System Overview -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="page" id="diagram1">
+<h2>Figure 3.1: System Component Diagram</h2>
+<p class="caption">High-level component decomposition showing the three-plane architecture and external interfaces.</p>
+<pre class="mermaid">
+graph TB
+    subgraph Android["Android Application"]
+        direction TB
+        subgraph DP["&#171;subsystem&#187; Data Plane"]
+            direction LR
+            TUN["TUN Interface"]
+            PARSER["RawPacket Parser"]
+            RESOLVER["AppResolver"]
+            DPI["DpiClassifier"]
+            TCP_RELAY["TcpRelayManager"]
+            UDP_RELAY["UdpRelayManager"]
+            COMPOSER["PacketComposer"]
+        end
+
+        subgraph CP["&#171;subsystem&#187; Control Plane"]
+            direction LR
+            SCHED["BandwidthScheduler"]
+            TB_POOL["TokenBucket Pool"]
+            DPP["DataPlaneProcessor"]
+        end
+
+        subgraph TP["&#171;subsystem&#187; Telemetry Plane"]
+            direction LR
+            SYNC["CloudSyncManager"]
+            DIAG["DiagnosticTool"]
+        end
+
+        VPN["QosVpnService"]
+    end
+
+    subgraph Server["Node.js Server"]
+        direction TB
+        API["Express REST API"]
+        DB[("SQLite DB")]
+        WEB["Web Admin Dashboard"]
+    end
+
+    VPN --> DP
+    VPN --> CP
+    VPN --> TP
+    TP <-.->|"HTTP REST"| API
+    API --> DB
+    API --> WEB
+
+    TUN --> PARSER
+    PARSER --> DPP
+    DPP --> SCHED
+    SCHED --> TB_POOL
+    DPP --> TCP_RELAY
+    DPP --> UDP_RELAY
+    TCP_RELAY --> COMPOSER
+    UDP_RELAY --> COMPOSER
+</pre>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- DIAGRAM 2: Class Diagram - Core Domain Model -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="page" id="diagram2">
+<h2>Figure 3.2: Class Diagram — Core Domain Model</h2>
+<p class="caption">Key classes of the QoS Engine showing attributes, methods, and relationships.</p>
+<pre class="mermaid">
+classDiagram
+    class QosVpnService {
+        -tunInterface: ParcelFileDescriptor
+        -scheduler: BandwidthScheduler
+        -dataPlaneProcessor: DataPlaneProcessor
+        -tcpRelayManager: TcpRelayManager
+        -udpRelayManager: UdpRelayManager
+        -scope: CoroutineScope
+        -currentMode: RelayRuntimeMode
+        +onStartCommand(intent, flags, startId)
+        +setRuntimeMode(mode)
+        -startTunnel()
+        -stopTunnel()
+        -runTunReadLoop(tun)
+        -runPacketProcessLoop(tun)
+    }
+
+    class DataPlaneProcessor {
+        -classifier: DpiClassifier
+        -scheduler: BandwidthScheduler
+        -appResolver: AppResolver
+        -flowCache: ConcurrentHashMap
+        +process(bytes, length, isOutbound): Result
+        +clearFlow(flowKey)
+    }
+
+    class BandwidthScheduler {
+        +uplinkBps: Long
+        -buckets: ConcurrentHashMap
+        -manualCaps: ConcurrentHashMap
+        +processPacket(key, size): Boolean
+        +ensureBucket(key, priority)
+        +rebalanceWithApps(apps)
+        +setManualCap(key, rateBps)
+        +updatePriority(key, priority)
+    }
+
+    class TokenBucket {
+        +rateBps: Long
+        +burstBits: Long
+        -tokens: Double
+        -lastRefillTime: Long
+        +consume(bytes): Boolean
+        +setRateAndBurst(rate, burst)
+        -refill()
+    }
+
+    class RawPacket {
+        +ipVersion: Int
+        +srcIp: String
+        +dstIp: String
+        +srcPort: Int
+        +dstPort: Int
+        +protocol: Protocol
+        +length: Int
+        +tcpFlags: TcpControlFlags
+        +rawBuffer: ByteArray
+        +parse(buffer, length)$ RawPacket?
+    }
+
+    class AppTraffic {
+        +uid: Int
+        +appName: String
+        +priorityClass: TrafficClass
+        +activeFlows: ConcurrentHashMap
+        -_bytesIn: AtomicLong
+        -_bytesOut: AtomicLong
+        -_qosAllowedPackets: AtomicLong
+        -_qosDroppedPackets: AtomicLong
+        +addBytesIn(bytes)
+        +addBytesOut(bytes)
+        +incrementAllowed()
+        +incrementDropped()
+    }
+
+    class FlowKey {
+        +srcIp: String
+        +dstIp: String
+        +srcPort: Int
+        +dstPort: Int
+        +protocol: Protocol
+    }
+
+    class TrafficClass {
+        <<enumeration>>
+        HIGH
+        MEDIUM
+        LOW
+    }
+
+    QosVpnService "1" *-- "1" DataPlaneProcessor
+    QosVpnService "1" *-- "1" BandwidthScheduler
+    QosVpnService "1" *-- "0..1" TcpRelayManager
+    QosVpnService "1" *-- "0..1" UdpRelayManager
+    DataPlaneProcessor --> BandwidthScheduler : delegates scheduling
+    DataPlaneProcessor --> RawPacket : parses
+    BandwidthScheduler "1" o-- "*" TokenBucket : manages pool
+    AppTraffic "1" o-- "*" FlowKey : tracks flows
+    AppTraffic --> TrafficClass : classified by
+    DataPlaneProcessor --> AppTraffic : updates
+</pre>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- DIAGRAM 3: Sequence Diagram - Packet Processing -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="page" id="diagram3">
+<h2>Figure 3.3: Sequence Diagram — Outbound Packet Processing</h2>
+<p class="caption">Interaction sequence from TUN read to relay, showing the allow/drop decision path.</p>
+<pre class="mermaid">
+sequenceDiagram
+    participant TUN as TUN Interface
+    participant VPN as QosVpnService
+    participant DPP as DataPlaneProcessor
+    participant RP as RawPacket.parse()
+    participant AR as AppResolver
+    participant DPI as DpiClassifier
+    participant BS as BandwidthScheduler
+    participant TB as TokenBucket
+    participant RELAY as TcpRelayManager
+
+    TUN->>VPN: read(buffer)
+    VPN->>DPP: process(bytes, length, outbound)
+    DPP->>RP: parse(buffer, length)
+    RP-->>DPP: RawPacket or null
+
+    alt Malformed packet
+        DPP-->>VPN: Result(parsed=false)
+    end
+
+    DPP->>DPP: Check flowCache[FlowKey]
+
+    alt Cache miss
+        DPP->>AR: getUidForConnection(5-tuple)
+        AR-->>DPP: UID or null
+        DPP->>DPP: flowCache[flowKey] = UID
+    end
+
+    DPP->>DPI: classify(packet)
+    DPI-->>DPP: TrafficCategory
+
+    DPP->>BS: ensureBucket(appKey, priority)
+    DPP->>BS: processPacket(appKey, size)
+    BS->>TB: consume(bytes)
+    TB-->>BS: allowed: Boolean
+    BS-->>DPP: allowed: Boolean
+
+    alt Packet ALLOWED
+        DPP-->>VPN: Result(dropped=false, packet)
+        VPN->>RELAY: handlePacket(parsedPacket)
+        RELAY->>RELAY: protect(socket)
+        RELAY->>RELAY: Forward to Internet
+    else Packet DROPPED
+        DPP-->>VPN: Result(dropped=true)
+        Note over VPN: TCP sender detects loss,<br/>reduces congestion window
+    end
+</pre>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- DIAGRAM 4: Sequence Diagram - TCP Split-Handshake -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="page" id="diagram4">
+<h2>Figure 3.4: Sequence Diagram — TCP Split-Handshake Proxy</h2>
+<p class="caption">The relay mechanism that bridges VPN TUN with the real Internet via protected sockets.</p>
+<pre class="mermaid">
+sequenceDiagram
+    participant App as Client App
+    participant TUN as TUN Interface
+    participant QoS as TcpRelayManager
+    participant PC as PacketComposer
+    participant SOCK as Protected Socket
+    participant SRV as Remote Server
+
+    App->>TUN: SYN packet
+    TUN->>QoS: Intercepted SYN
+    QoS->>SOCK: Create SocketChannel
+    QoS->>QoS: protect(socket)
+    QoS->>SOCK: connect(destination)
+    SOCK->>SRV: Real TCP SYN
+    SRV-->>SOCK: Real SYN-ACK
+    QoS->>PC: Build synthetic SYN-ACK
+    PC-->>TUN: Synthetic SYN-ACK
+    TUN-->>App: SYN-ACK received
+
+    App->>TUN: ACK + Data
+    TUN->>QoS: Intercepted data
+    QoS->>SOCK: Forward payload
+    SOCK->>SRV: Real data
+
+    SRV-->>SOCK: Response data
+    QoS->>PC: Build IP/TCP packet
+    PC-->>TUN: Synthetic response packet
+    TUN-->>App: Response received
+
+    Note over App,SRV: Bidirectional relay continues...
+
+    App->>TUN: FIN
+    TUN->>QoS: Intercepted FIN
+    QoS->>SOCK: Close connection
+    SOCK->>SRV: FIN
+    QoS->>QoS: Cleanup flow resources
+</pre>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- DIAGRAM 5: Activity Diagram - Packet Pipeline -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="page" id="diagram5">
+<h2>Figure 3.5: Activity Diagram — Packet Processing Pipeline</h2>
+<p class="caption">Decision flow from TUN interception to relay or drop.</p>
+<pre class="mermaid">
+flowchart TD
+    START(["TUN Read"]) --> PARSE["RawPacket.parse(buffer)"]
+    PARSE --> VALID{"Valid IP packet?"}
+    VALID -->|No| DROP1["Discard silently"]
+    VALID -->|Yes| CACHE{"FlowKey in cache?"}
+
+    CACHE -->|Yes| CLASSIFY
+    CACHE -->|No| UID["AppResolver.getUidForConnection()"]
+    UID --> UID_OK{"UID resolved?"}
+    UID_OK -->|Yes| STORE["Cache FlowKey → UID"]
+    STORE --> CLASSIFY
+    UID_OK -->|No| SYNTH["Assign to synthetic port bucket"]
+    SYNTH --> CLASSIFY
+
+    CLASSIFY["DpiClassifier.classify()"] --> ENSURE["BandwidthScheduler.ensureBucket()"]
+    ENSURE --> CONSUME["TokenBucket.consume(packetSize)"]
+    CONSUME --> ALLOWED{"Tokens available?"}
+
+    ALLOWED -->|No| DROP2["DROP packet"]
+    DROP2 --> STATS1["Increment dropped counter"]
+    STATS1 --> END1(["Return to TUN read loop"])
+
+    ALLOWED -->|Yes| MODE{"Runtime mode?"}
+    MODE -->|Monitor| WRITEBACK["Write back to TUN"]
+    WRITEBACK --> END2(["Return to TUN read loop"])
+
+    MODE -->|Relay| PROTO{"Protocol?"}
+    PROTO -->|TCP| TCP_R["TcpRelayManager.handlePacket()"]
+    PROTO -->|UDP| UDP_R["UdpRelayManager.handlePacket()"]
+    PROTO -->|Other| WRITEBACK2["Write back to TUN"]
+    TCP_R --> END3(["Return to TUN read loop"])
+    UDP_R --> END3
+    WRITEBACK2 --> END3
+</pre>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- DIAGRAM 6: Routing Loop Problem/Solution -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="page" id="diagram6">
+<h2>Figure 3.6: VPN Routing Loop — Problem and Solution</h2>
+<p class="caption">(a) Without protect(): infinite loop. (b) With protect(): socket bypasses VPN.</p>
+<div class="side-by-side">
+<div>
+<h3>(a) Problem: Infinite Loop</h3>
+<pre class="mermaid">
+flowchart TB
+    A["Application"] --> B["TUN Interface"]
+    B --> C["QoS Scheduler"]
+    C --> D["Relay Socket"]
+    D -->|"Recaptured ✗"| B
+</pre>
+</div>
+<div>
+<h3>(b) Solution: protect()</h3>
+<pre class="mermaid">
+flowchart TB
+    E["Application"] --> F["TUN Interface"]
+    F --> G["QoS Scheduler"]
+    G --> H["protect(socket)"]
+    H -->|"Bypass ✓"| I["Physical NIC"]
+    I --> J(("Internet"))
+</pre>
+</div>
+</div>
+</div>
+
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#ffffff',
+    primaryBorderColor: '#333333',
+    primaryTextColor: '#000000',
+    lineColor: '#333333',
+    secondaryColor: '#f9f9f9',
+    tertiaryColor: '#f0f0f0',
+    fontSize: '14px',
+    fontFamily: '"Times New Roman", serif',
+    classText: '#000000',
+    actorTextColor: '#000000',
+    signalColor: '#333333',
+    signalTextColor: '#000000',
+    noteBkgColor: '#f5f5f5',
+    noteBorderColor: '#333333',
+    activationBkgColor: '#e8e8e8',
+    activationBorderColor: '#333333',
+    sequenceNumberColor: '#333333'
+  },
+  flowchart: { curve: 'basis', padding: 12 },
+  sequence: { actorMargin: 30, messageMargin: 30, mirrorActors: false }
+});
+</script>
+</body>
+</html>

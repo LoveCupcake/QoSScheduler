@@ -159,7 +159,8 @@ function initCharts() {
           grid: { color: 'rgba(0,243,255,0.06)' },
           ticks: { font: { size: 11 }, color: '#4a5568', callback: v => fmtBytes(v) }
         }
-      }
+      },
+      animation: { duration: 0 }
     }
   });
 
@@ -173,7 +174,8 @@ function initCharts() {
         legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10, color: '#7a8baa' } },
         tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmtBytes(ctx.raw)}` } }
       },
-      cutout: '62%'
+      cutout: '62%',
+      animation: { duration: 0 }
     }
   });
 
@@ -190,8 +192,9 @@ function initCharts() {
     y: { grid: { color: 'rgba(0,243,255,0.06)' }, ticks: { color: '#4a5568', font: { size: 11 } } }
   };
 
-  if (document.getElementById('chart-token-bucket')) {
-    window.tokenBucketChart = new Chart(document.getElementById('chart-token-bucket').getContext('2d'), {
+  const createTbChart = (id) => {
+    if (!document.getElementById(id)) return null;
+    return new Chart(document.getElementById(id).getContext('2d'), {
       type: 'line',
       data: { labels: [], datasets: [
         { label: 'Requested BPS', data: [], borderColor: '#ff2d9b', backgroundColor: (ctx) => gradPink(ctx.chart.ctx), fill: true, tension: 0.3, borderWidth: 2, pointRadius: 0 },
@@ -202,6 +205,23 @@ function initCharts() {
         plugins: { legend: { position: 'bottom', labels: { color: '#7a8baa', font: { size: 11 } } } },
         scales: { ...scalesDark, y: { ...scalesDark.y, beginAtZero: true, ticks: { ...scalesDark.y.ticks, callback: v => fmtBytes(v/8)+'/s' } } },
         animation: { duration: 0 }
+      }
+    });
+  };
+  window.tokenBucketTotalChart = createTbChart('chart-token-bucket-total');
+  
+  if (document.getElementById('chart-token-bucket-top')) {
+    window.tokenBucketTopChart = new Chart(document.getElementById('chart-token-bucket-top').getContext('2d'), {
+      type: 'bar',
+      data: { labels: [], datasets: [
+        { label: 'Requested BPS', data: [], backgroundColor: 'rgba(255,45,155,0.8)', borderWidth: 0 },
+        { label: 'Allowed BPS', data: [], backgroundColor: 'rgba(0,243,255,0.8)', borderWidth: 0 }
+      ]},
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom', labels: { color: '#7a8baa', font: { size: 11 } } } },
+        scales: { ...scalesDark, y: { ...scalesDark.y, beginAtZero: true, ticks: { ...scalesDark.y.ticks, callback: v => fmtBytes(v/8)+'/s' } } },
+        animation: { duration: 500 }
       }
     });
   }
@@ -225,10 +245,10 @@ function initCharts() {
   if (document.getElementById('chart-drop-rate')) {
     window.dropRateChart = new Chart(document.getElementById('chart-drop-rate').getContext('2d'), {
       type: 'line',
-      data: { labels: [], datasets: [{ label: 'Drop Rate (%)', data: [], borderColor: '#ff2d9b', backgroundColor: 'rgba(255,45,155,0.12)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0 }] },
+      data: { labels: [], datasets: [] },
       options: {
         responsive: true,
-        plugins: { legend: { display: false } },
+        plugins: { legend: { position: 'bottom', labels: { color: '#7a8baa', font: { size: 11 } } } },
         scales: { ...scalesDark, y: { ...scalesDark.y, min: 0, max: 100, ticks: { ...scalesDark.y.ticks, callback: v => v+'%' } } },
         animation: { duration: 0 }
       }
@@ -248,8 +268,8 @@ async function loadDashboard() {
   try {
     const [stats, timeseries, summary] = await Promise.all([
       fetch(`${API}/api/stats`).then(r => r.json()),
-      fetch(`${API}/api/telemetry/timeseries?minutes=30`).then(r => r.json()),
-      fetch(`${API}/api/telemetry/summary?minutes=10`).then(r => r.json()),
+      fetch(`${API}/api/telemetry/timeseries?minutes=5`).then(r => r.json()),
+      fetch(`${API}/api/telemetry/summary?minutes=2`).then(r => r.json()),
     ]);
 
     // Stat cards
@@ -270,9 +290,9 @@ async function loadDashboard() {
 
     // Apps doughnut
     if (appsChart && summary.length > 0) {
-      appsChart.data.labels = summary.slice(0,6).map(r => r.app_name || r.package_name);
-      appsChart.data.datasets[0].data  = summary.slice(0,6).map(r => r.total_bytes_in + r.total_bytes_out);
-      appsChart.data.datasets[0].backgroundColor = PALETTE.slice(0, summary.slice(0,6).length);
+      appsChart.data.labels = summary.map(r => r.app_name || r.package_name);
+      appsChart.data.datasets[0].data  = summary.map(r => r.total_bytes_in + r.total_bytes_out);
+      appsChart.data.datasets[0].backgroundColor = summary.map((_, i) => PALETTE[i % PALETTE.length]);
       appsChart.update();
     }
   } catch (err) {
@@ -432,6 +452,7 @@ async function loadStatistics() {
       
       // We will identify the top app to plot on the Token Bucket chart
       const appTotals = new Map();
+      const appSeries = new Map();
 
       history.forEach(row => {
         const t = row.timestamp;
@@ -452,13 +473,29 @@ async function loadStatistics() {
         const at = appTotals.get(appKey);
         at.req += row.requested_bps;
         at.allow += row.allowed_bps;
+
+        if (!appSeries.has(appKey)) appSeries.set(appKey, new Map());
+        const series = appSeries.get(appKey);
+        if (!series.has(t)) series.set(t, { requested: 0, allowed: 0 });
+        series.get(t).requested += row.requested_bps;
+        series.get(t).allowed += row.allowed_bps;
       });
 
-      // Calculate Global Drop Rate (Approx based on packets, assuming 1 pkt ~ 1000 bytes)
-      const approxAllowedPkts = totalAllowed / (1000 * 8);
-      const totalPkts = approxAllowedPkts + totalDropped;
-      const globalDropRate = totalPkts > 0 ? (totalDropped / totalPkts) * 100 : 0;
-      
+      // Find top 5 apps by requested bytes
+      const topApps = Array.from(appTotals.entries())
+        .filter(([key]) => key !== '__host__')
+        .sort((a, b) => b[1].req - a[1].req)
+        .slice(0, 5)
+        .map(x => x[0]);
+
+      // Calculate Global Drop Rate
+      // CORRECT FORMULA: Both requested_bps and allowed_bps are in the same unit (bits/sec)
+      // Drop Rate = (requested - allowed) / requested * 100
+      // This avoids the unit mismatch of comparing dropped_pkts (cumulative count) vs bps (rate)
+      const globalDropRate = totalRequested > 0
+        ? Math.min(Math.max((totalRequested - totalAllowed) / totalRequested * 100, 0), 100)
+        : 0;
+
       const dropRateEl = document.getElementById('stat-drop-rate');
       dropRateEl.textContent = globalDropRate.toFixed(1) + '%';
       if (globalDropRate > 5) dropRateEl.parentElement.parentElement.className = 'stat-card card-red';
@@ -466,14 +503,40 @@ async function loadStatistics() {
 
       // Sort timeline
       const times = Array.from(timeMap.keys()).sort();
-      
-      // 1. Token Bucket Chart (Plot the top app's data if we want, or total data)
-      // Here we plot total requested vs allowed for simplicity, or the top app. Let's plot total.
-      if (window.tokenBucketChart) {
-        window.tokenBucketChart.data.labels = times;
-        window.tokenBucketChart.data.datasets[0].data = times.map(t => timeMap.get(t).requested);
-        window.tokenBucketChart.data.datasets[1].data = times.map(t => timeMap.get(t).allowed);
-        window.tokenBucketChart.update();
+
+      // Format timestamp for X-axis: Unix seconds → HH:MM:SS
+      const fmtTimestamp = (unixSec) => {
+        const d = new Date(unixSec * 1000);
+        return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+      };
+      const timeLabels = times.map(fmtTimestamp);
+
+      // 1. Token Bucket Chart (Total vs Top App)
+      if (window.tokenBucketTotalChart) {
+        window.tokenBucketTotalChart.data.labels = timeLabels;
+        window.tokenBucketTotalChart.data.datasets[0].data = times.map(t => timeMap.get(t).requested);
+        window.tokenBucketTotalChart.data.datasets[1].data = times.map(t => timeMap.get(t).allowed);
+        window.tokenBucketTotalChart.update();
+      }
+
+      if (window.tokenBucketTopChart) {
+        const latestTime = times.length > 0 ? times[times.length - 1] : 0;
+        
+        window.tokenBucketTopChart.data.labels = topApps.map(app => app.split('.').pop());
+        
+        const reqData = topApps.map(appKey => {
+            const series = appSeries.get(appKey);
+            return series.has(latestTime) ? series.get(latestTime).requested : 0;
+        });
+        
+        const allowData = topApps.map(appKey => {
+            const series = appSeries.get(appKey);
+            return series.has(latestTime) ? series.get(latestTime).allowed : 0;
+        });
+
+        window.tokenBucketTopChart.data.datasets[0].data = reqData;
+        window.tokenBucketTopChart.data.datasets[1].data = allowData;
+        window.tokenBucketTopChart.update();
       }
 
       // 2. WFQ Pie Chart
@@ -484,12 +547,20 @@ async function loadStatistics() {
 
       // 3. Drop Rate Timeline
       if (window.dropRateChart) {
-        window.dropRateChart.data.labels = times;
-        window.dropRateChart.data.datasets[0].data = times.map(t => {
-          const d = timeMap.get(t);
-          const pAllow = d.allowed / (1000 * 8);
-          const pTotal = pAllow + d.dropped;
-          return pTotal > 0 ? (d.dropped / pTotal) * 100 : 0;
+        window.dropRateChart.data.labels = timeLabels;
+        window.dropRateChart.data.datasets = topApps.map((appKey, i) => {
+           const topSeries = appSeries.get(appKey);
+           return {
+             label: appKey.split('.').pop(),
+             data: times.map(t => {
+               if (!topSeries.has(t)) return 0;
+               const d = topSeries.get(t);
+               if (d.requested <= 0) return 0;
+               return Math.min(Math.max((d.requested - d.allowed) / d.requested * 100, 0), 100);
+             }),
+             borderColor: PALETTE[i % PALETTE.length],
+             fill: false, tension: 0.3, borderWidth: 2, pointRadius: 0
+           };
         });
         window.dropRateChart.update();
       }
@@ -526,7 +597,7 @@ async function loadStatistics() {
   };
 
   await fetchAndRender();
-  liveStatsInterval = setInterval(fetchAndRender, 2000); // 2s live update
+  liveStatsInterval = setInterval(fetchAndRender, 1000); // 1s live update
 }
 
 // Ensure interval is cleared when leaving page
@@ -593,11 +664,11 @@ document.getElementById('btn-refresh').addEventListener('click', () => {
 initCharts();
 showPage('dashboard');
 
-// Auto-refresh dashboard every 30 seconds
+// Auto-refresh dashboard every 1 second for real-time feel
 setInterval(() => {
   const active = document.querySelector('.nav-item.active');
   if (active?.dataset.page === 'dashboard') loadDashboard();
-}, 30_000);
+}, 1000);
 
 // Expose for inline onclick handlers
 window.deleteDevice = deleteDevice;

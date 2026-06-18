@@ -1,0 +1,173 @@
+% ============================================================
+% CHAPTER 2: LITERATURE REVIEW AND THEORETICAL BACKGROUND
+% ============================================================
+
+\chapter{LITERATURE REVIEW AND THEORETICAL BACKGROUND}
+\label{chap:theory}
+
+This chapter establishes the theoretical foundation for mobile network QoS: from Internet protocols and queueing theory to the Android networking architecture. It concludes with a survey of related work to identify the research gap addressed by this thesis.
+
+% ────────────────────────────────────────────────────────────
+\section{Networking Fundamentals}
+\label{sec:networking_fundamentals}
+
+The QoS Scheduler operates at the intersection of the Network Layer (Layer~3) and the Transport Layer (Layer~4) of the TCP/IP stack \cite{kurose_2021}. This section reviews the protocols relevant to packet interception and traffic scheduling.
+
+\subsection{IPv4 and IPv6}
+
+An IPv4 packet \cite{rfc791} begins with a variable-length header (minimum 20 bytes) containing fields critical to QoS scheduling: \textbf{IHL} (header length in 32-bit words, used to locate the transport header), \textbf{Total Length} (used for bandwidth accounting), \textbf{Protocol} (6=TCP, 17=UDP), and \textbf{Source/Destination IP Addresses} (part of the 5-tuple flow identifier). Together with transport-layer ports, these fields form the \textit{5-tuple} (src~IP, dst~IP, src~port, dst~port, protocol) that uniquely identifies each connection.
+
+IPv6 \cite{rfc8200} uses a fixed 40-byte base header with 128-bit addresses. Optional information is carried via \textit{Extension Headers} chained through a ``Next Header'' field. Modern cellular networks frequently deploy IPv6-only with NAT64/DNS64, requiring the QoS Scheduler to implement dual-stack parsing.
+
+\subsection{TCP and Congestion Control}
+
+TCP \cite{rfc9293} guarantees reliable, in-order delivery via sequence numbers, acknowledgments, and retransmissions. Its \textbf{congestion control} mechanism \cite{rfc5681} is directly exploited by the QoS Scheduler: TCP senders probe available bandwidth by increasing their Congestion Window ($cwnd$) until packet loss occurs, then reduce it (AIMD---Additive Increase / Multiplicative Decrease). The relationship between loss and throughput is captured by the Mathis formula:
+
+\begin{equation}
+T_{max} \approx \frac{MSS}{RTT \cdot \sqrt{p}}
+\label{eq:tcp_throughput}
+\end{equation}
+
+\noindent where $p$ is the packet loss probability. By deliberately increasing $p$ via Token Bucket policing, the QoS Scheduler forces TCP senders to converge to the allowed rate.
+
+The default congestion control on Android is \textbf{CUBIC} \cite{ha_2008}, which uses a cubic polynomial for $cwnd$ growth. Google's \textbf{BBR} \cite{cardwell_2017} takes an alternative approach by estimating bottleneck bandwidth rather than relying on loss signals, requiring a higher sustained drop rate before it perceives congestion. The Token Bucket mechanism is effective against both algorithms.
+
+\subsection{UDP and QUIC}
+
+UDP \cite{rfc768} is connectionless with no congestion control. The QoS Scheduler can enforce rate limits on \textit{outbound} UDP by dropping excess datagrams, but \textit{inbound} UDP drops do not reduce traffic at the wireless antenna---the remote server continues transmitting regardless.
+
+QUIC \cite{rfc9000}, built atop UDP with native TLS~1.3, implements its own congestion control (typically CUBIC/BBR variants). QUIC traffic appears as UDP on port~443; the scheduler's packet-dropping triggers QUIC's internal congestion response similarly to TCP, though encrypted transport headers limit deep inspection capabilities.
+
+% ────────────────────────────────────────────────────────────
+\section{Queueing Theory and Bufferbloat}
+\label{sec:queueing_theory}
+
+When packet arrival rate exceeds a node's transmission rate, excess packets accumulate in a buffer (queue). \textbf{Little's Law} provides the fundamental relationship: $L = \lambda \cdot W$, where $L$ is average queue length, $\lambda$ is arrival rate, and $W$ is average waiting time \cite{stallings_2014}.
+
+For an M/M/1 queue with utilization $\rho = \lambda / \mu$, the average waiting time is $W = 1/(\mu - \lambda)$. As $\rho \rightarrow 1$, both $L$ and $W$ grow unboundedly---establishing the fundamental tension between throughput and latency.
+
+\subsection{The Bufferbloat Phenomenon}
+
+As DRAM costs dropped, network equipment manufacturers deployed massively oversized buffers to prevent packet loss \cite{gettys_2012}. When a bandwidth-hungry TCP connection saturates a link with such a buffer, the buffer fills without dropping packets, so TCP receives no congestion signal and maintains its high rate. The resulting stagnant queue causes catastrophic latency for interactive applications:
+
+\begin{enumerate}[noitemsep]
+    \item A cloud backup saturates a 10~Mbps uplink. The modem buffer holds 2~MB.
+    \item Queue draining time: $2 \text{ MB} / 10 \text{ Mbps} = 1.6$ seconds.
+    \item A VoIP packet entering the queue experiences 1.6~s of delay---far exceeding the 150~ms human perception threshold.
+\end{enumerate}
+
+\subsection{Active Queue Management (AQM)}
+\label{subsec:aqm}
+
+AQM algorithms preemptively manage queue occupancy to maintain low latency. Table~\ref{tab:aqm_comparison} summarizes the major approaches. The QoS Scheduler draws inspiration from FQ-CoDel's philosophy of combining per-flow isolation with active queue management, adapted for user-space Android via per-application Token Buckets.
+
+\begin{table}[H]
+\centering
+\caption{Comparison of Active Queue Management Algorithms}
+\label{tab:aqm_comparison}
+\begin{tabularx}{\textwidth}{l X X X}
+\toprule
+\textbf{Algorithm} & \textbf{Signal} & \textbf{Key Innovation} & \textbf{Limitation} \\
+\midrule
+Tail Drop  & Queue full & None (default) & Causes Bufferbloat \\
+RED \cite{floyd_1993}  & Avg. queue length & Probabilistic early drop & Requires manual tuning \\
+CoDel \cite{rfc8289} & Packet sojourn time & Parameter-free design & Single queue, no fairness \\
+FQ-CoDel \cite{rfc8290} & Per-flow sojourn time & Flow isolation + CoDel & Requires kernel access \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ────────────────────────────────────────────────────────────
+\section{Traffic Shaping Algorithms}
+\label{sec:algorithms}
+
+\subsection{The Token Bucket Algorithm}
+
+The Token Bucket \cite{tanenbaum_2011} is the industry standard for rate limiting with burst tolerance, formalized in RFC~2697 \cite{rfc2697} and RFC~2698 \cite{rfc2698}. It is defined by two parameters: the \textit{committed information rate} $r$ (tokens/second) and the \textit{committed burst size} $b$ (maximum bucket capacity). Tokens accumulate at rate $r$, capped at $b$. When a packet of size $s$ arrives:
+
+\begin{equation}
+T(t) = \min\left(b, \; T(t_{prev}) + r \cdot (t - t_{prev})\right)
+\label{eq:token_refill}
+\end{equation}
+
+\begin{equation}
+\text{Decision} = \begin{cases} \text{CONFORM (allow)} & \text{if } T(t) \geq s \\[4pt] \text{EXCEED (drop)} & \text{if } T(t) < s \end{cases}
+\label{eq:token_decision}
+\end{equation}
+
+The QoS Scheduler uses the \textbf{policing} mode (immediate drop) rather than shaping (delay-then-forward), because introducing a shaping buffer within VpnService would create secondary Bufferbloat. By dropping packets immediately, congestion management is delegated to TCP's built-in AIMD mechanism.
+
+\subsection{Weighted Fair Queuing (WFQ)}
+\label{subsec:wfq}
+
+While the Token Bucket limits individual flows, \textbf{Weighted Fair Queuing} addresses proportional allocation among competing flows. The theoretical ideal is \textbf{Generalized Processor Sharing (GPS)} \cite{parekh_1993}, where each flow $i$ with weight $w_i$ receives a guaranteed minimum rate:
+
+\begin{equation}
+R_i = C \times \frac{w_i}{\sum_{j \in A} w_j}
+\label{eq:gps}
+\end{equation}
+
+\noindent where $C$ is total link capacity and $A$ is the set of active flows. GPS is \textit{work-conserving}: idle flows' bandwidth is redistributed proportionally.
+
+WFQ \cite{demers_1989} approximates GPS for discrete packets by assigning each packet a \textit{virtual finish time} $F_i^k = \max(F_i^{k-1}, V(t)) + L_i^k / w_i$ and serving packets in earliest-finish-time order. The QoS Scheduler simplifies this by implementing WFQ at the \textit{application level}: instead of per-packet virtual finish time computation, it dynamically recalculates Token Bucket rates using Equation~\ref{eq:gps} whenever the active application set changes.
+
+% ────────────────────────────────────────────────────────────
+\section{The Android Network Stack}
+\label{sec:android_stack}
+
+\subsection{Security Architecture and UID Isolation}
+
+Android assigns each application a unique Linux UID, providing strict process and file system isolation \cite{android_vpnservice}. Standard applications cannot intercept traffic from other applications---the kernel routes packets directly from application sockets to the physical network interface.
+
+\subsection{VpnService and TUN Interface}
+
+To bypass this restriction without Root, the QoS Scheduler uses the \texttt{VpnService} API, which creates a \texttt{TUN} (Network TUNnel) virtual interface operating at Layer~3. When activated, the OS redirects all outbound IP packets to the TUN interface. The application reads raw packets via a file descriptor, processes them in user-space, and forwards conforming packets using \textbf{protected sockets}---sockets marked via \texttt{VpnService.protect()} to bypass TUN routing and prevent infinite routing loops.
+
+\subsection{UID Resolution}
+
+IP packets contain no application identity. Starting in Android~10 (API~29), \texttt{ConnectivityManager.getConnectionOwnerUid()} maps a 5-tuple to the owning process UID. This system call queries kernel socket tables and is computationally expensive; the QoS Scheduler mitigates this through multi-tier caching (Chapter~\ref{chap:architecture}).
+
+\subsection{Deep Packet Inspection Limitations}
+
+TLS~1.3 and DNS-over-HTTPS have severely limited payload-based DPI. The QoS Scheduler relies on heuristic classification: well-known ports (80, 443, 53), destination IP reputation, and packet timing patterns---providing reasonable accuracy while acknowledging encryption-imposed constraints.
+
+% ────────────────────────────────────────────────────────────
+\section{Related Work}
+\label{sec:related_work}
+
+\subsection{Kernel-Space Tools}
+
+Linux \texttt{tc} \cite{stallings_2014} provides sophisticated qdiscs (TBF, HTB, SFQ) but requires root access, which Android's SELinux policy blocks. eBPF/XDP \cite{vieira_2020} offers programmable packet processing at wire speed, but Android restricts eBPF program loading to system processes, eliminating it for user-installable applications.
+
+\subsection{Android User-Space Firewalls}
+
+\textbf{NetGuard} \cite{netguard} is the closest architectural relative---a VpnService-based firewall providing per-app allow/block rules. However, it implements only \textit{binary} filtering without queuing disciplines or bandwidth proportioning. \textbf{AFWall+} \cite{afwall} provides granular firewall rules via \texttt{iptables} but requires root and lacks scheduling capabilities.
+
+\subsection{Other Approaches}
+
+Desktop tools (NetLimiter, Little Snitch, GlassWire \cite{glasswire}) leverage OS-level APIs unavailable on Android. SDN-based approaches like FlowQoS \cite{mandalari_2018} require specialized network infrastructure. Enterprise MDM solutions (VMware Workspace ONE, Microsoft Intune) \cite{gartner_2024_uem} focus on device management but lack per-application bandwidth scheduling.
+
+\subsection{Comparative Analysis and Research Gap}
+
+\begin{table}[H]
+\centering
+\caption{Feature Comparison of the QoS Scheduler with Related Work}
+\label{tab:related_work_comparison}
+\small
+\begin{tabularx}{\textwidth}{l c c c c c c}
+\toprule
+\textbf{Feature} & \textbf{This} & \textbf{Net-} & \textbf{AF-} & \textbf{tc/} & \textbf{eBPF/} & \textbf{SDN/} \\
+ & \textbf{Work} & \textbf{Guard} & \textbf{Wall+} & \textbf{iptables} & \textbf{XDP} & \textbf{FlowQoS} \\
+\midrule
+No Root Required      & \checkmark & \checkmark & $\times$ & $\times$ & $\times$ & --- \\
+Per-App Granularity   & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+Bandwidth Scheduling  & \checkmark & $\times$ & $\times$ & \checkmark & \checkmark & \checkmark \\
+Priority Queuing      & \checkmark & $\times$ & $\times$ & \checkmark & \checkmark & \checkmark \\
+Remote Management     & \checkmark & $\times$ & $\times$ & $\times$ & $\times$ & \checkmark \\
+No Infra. Changes     & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & $\times$ \\
+Android Compatible    & \checkmark & \checkmark & \checkmark & Partial & $\times$ & $\times$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The survey reveals a clear research gap: \textbf{no existing solution provides per-application bandwidth scheduling with proportional fairness on unrooted Android devices with remote management}. The QoS Scheduler fills this gap by combining VpnService interception (from NetGuard), industrial-grade scheduling (Token Bucket + WFQ, from tc), and cloud-based policy management (from MDM) into a single, rootless, remotely manageable system.
