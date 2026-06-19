@@ -18,6 +18,7 @@ graph TB
 
     subgraph TP["Management Plane"]
         direction LR
+        LUI["Local UI (Compose)"]
         PUSH["HTTP Telemetry Push"]
         POLL["HTTP Polling"]
         PSYNC["Policy Sync"]
