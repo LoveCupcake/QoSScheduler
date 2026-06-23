@@ -28,25 +28,7 @@ The following sections present the detailed results for each evaluation scenario
 
 \subsection{Token Bucket Rate Enforcement}
 
-Table~\ref{tab:throttle_results} presents the measured throughput when a 5 Mbps cap is applied to an iPerf3 TCP stream generating 10 Mbps of traffic.
-
-\begin{table}[H]
-\centering
-\caption{Bandwidth Throttling Results (5 Mbps Cap, 10 Repetitions)}
-\label{tab:throttle_results}
-\begin{tabular}{lccc}
-\toprule
-\textbf{Metric} & \textbf{Baseline (No QoS)} & \textbf{With QoS (5 Mbps cap)} & \textbf{$\Delta$} \\
-\midrule
-Mean Throughput (Mbps)   & 9.87 $\pm$ 0.21 & 4.97 $\pm$ 0.12 & $-49.7\%$ \\
-Convergence Time (s)     & ---              & 2.3 $\pm$ 0.4   & --- \\
-Accuracy (\%)            & ---              & 99.4\%           & --- \\
-Std. Deviation (Mbps)    & 0.21             & 0.12             & --- \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The Token Bucket achieved 99.4\% accuracy ($4.97 / 5.00 = 0.994$), with a standard deviation of only 0.12 Mbps across 10 trials. The 2.3-second convergence time reflects the period during which TCP's congestion control algorithm detects the packet drops induced by the Token Bucket and reduces its sending rate. This convergence behavior is consistent with CUBIC's slow-start phase followed by congestion avoidance.
+The Token Bucket algorithm's accuracy was verified by monitoring live application traffic under controlled conditions.
 
 Figure~\ref{fig:token_bucket_realtime} provides real-time visual evidence of the Token Bucket's per-application enforcement behavior, captured from the Web Admin monitoring dashboard.
 
@@ -56,48 +38,6 @@ Figure~\ref{fig:token_bucket_realtime} provides real-time visual evidence of the
 \caption{Per-application Token Bucket enforcement captured from the Web Admin dashboard: the \texttt{android} system process requests 110 KB/s but is capped to 65 KB/s (40\% drop), while foreground apps (\texttt{katana}, \texttt{orca}) receive their full requested bandwidth with zero drops.}
 \label{fig:token_bucket_realtime}
 \end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.9\textwidth]{figures/wireshark_convergence.png}
-\caption{Throughput graph showing TCP CUBIC converging from an initial 10 Mbps burst to the 5 Mbps Token Bucket cap over approximately 2.3 seconds.}
-\label{fig:wireshark_convergence}
-\end{figure}
-
-\subsection{Burst Handling Validation}
-
-Table~\ref{tab:burst_results} validates the Token Bucket's burst tolerance at different capacity configurations.
-
-\begin{table}[H]
-\centering
-\caption{Burst Handling Results at Various Bucket Capacities}
-\label{tab:burst_results}
-\begin{tabular}{cccc}
-\toprule
-\textbf{Bucket Rate} & \textbf{Burst Capacity} & \textbf{Max Burst Observed} & \textbf{Within Spec?} \\
-\midrule
-1 Mbps & 0.5 Mb  & 0.48 Mb  & \checkmark \\
-1 Mbps & 1.0 Mb  & 0.97 Mb  & \checkmark \\
-5 Mbps & 2.5 Mb  & 2.41 Mb  & \checkmark \\
-5 Mbps & 10.0 Mb & 9.82 Mb  & \checkmark \\
-10 Mbps & 20.0 Mb & 19.6 Mb & \checkmark \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-All burst sizes fell within 3\% of the configured capacity, confirming that the Token Bucket correctly permits accumulated token bursts up to the bucket capacity before reverting to steady-state rate enforcement.
-
-\subsection{Statistical Analysis}
-
-A paired two-sample t-test was conducted to verify the statistical significance of the throughput difference between baseline and QoS-enabled conditions:
-
-\begin{itemize}[noitemsep]
-    \item \textbf{t-statistic:} $t(9) = 72.4$, $p < 0.0001$
-    \item \textbf{95\% CI for difference:} $[4.78, 5.02]$ Mbps
-    \item \textbf{Cohen's $d$:} $d = 28.9$ (extremely large effect)
-\end{itemize}
-
-The extremely large effect size ($d = 28.9$) confirms that the throughput reduction is not due to random variation but is a direct, deterministic consequence of the Token Bucket algorithm.
 
 % ────────────────────────────────────────────────────────────
 \section{Weighted Fair Queuing Results}
