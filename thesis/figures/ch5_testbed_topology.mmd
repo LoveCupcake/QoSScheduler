@@ -1,0 +1,33 @@
+graph LR
+    subgraph DUT["Device Under Test (DUT)"]
+        direction TB
+        APP["Real Apps\n(YouTube, TikTok,\nFacebook, Games)"]
+        QOS["QoS Scheduler\n(VpnService)"]
+        TUN["TUN Interface\n(tun0)"]
+        APP --> QOS --> TUN
+    end
+
+    subgraph NET["Network Infrastructure"]
+        direction TB
+        AP["Wi-Fi 6 AP\n(802.11ax)"]
+        ROUTER["Home Router\n(100 Mbps Fiber)"]
+        AP --> ROUTER
+    end
+
+    subgraph SRV["Measurement Server"]
+        direction TB
+        IPERF["iPerf3 Server\n(Ubuntu 22.04)"]
+        PING["ping Target\n(8.8.8.8)"]
+    end
+
+    subgraph MON["Monitoring"]
+        direction TB
+        WEB["Web Admin\n(Node.js Dashboard)"]
+        PROF["Android Studio\nProfiler"]
+    end
+
+    TUN <-->|"Wi-Fi 6"| AP
+    ROUTER <-->|"Internet"| IPERF
+    ROUTER <-->|"Internet"| PING
+    QOS -->|"Telemetry\n(HTTP)"| WEB
+    DUT -.->|"ADB/USB"| PROF

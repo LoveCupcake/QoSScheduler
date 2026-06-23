@@ -86,26 +86,30 @@ Statistical Method & Paired two-sample t-test, $\alpha = 0.05$, Cohen's $d$ effe
 \end{tabularx}
 \end{table}
 
+Figure~\ref{fig:testbed_topology} illustrates the physical testbed topology used for all system-level experiments.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/ch5_testbed_topology.png}
+\caption{Experimental testbed topology: the Device Under Test runs real applications through the QoS Scheduler VPN, communicating with measurement endpoints via a Wi-Fi 6 access point and 100 Mbps fiber uplink. Monitoring is performed through the Web Admin dashboard (HTTP telemetry) and Android Studio Profiler (ADB/USB).}
+\label{fig:testbed_topology}
+\end{figure}
+
 \textbf{Variable Control:} The independent variable is the QoS Scheduler state (enabled/disabled). Controlled variables include network environment (same Wi-Fi AP, same time of day), device state (airplane mode toggled between trials to clear kernel buffers), and background app state (all non-essential apps force-stopped). Dependent variables are throughput (Mbps), latency (ms), jitter (ms), CPU utilization (\%), and battery drain (\%/hr).
 
 % ────────────────────────────────────────────────────────────
 \section{Experimental Scenarios}
 \label{sec:scenarios}
 
-Three scenarios were designed to validate the system's core capabilities:
+Three scenarios were designed to validate the system's core capabilities. Quantitative results and visual evidence are presented in Chapter~\ref{chap:results}.
 
 \subsection{Scenario 1: Per-Application Bandwidth Enforcement}
 
 \textbf{Objective:} Verify that the Token Bucket selectively enforces bandwidth caps based on application priority, throttling greedy background processes while preserving foreground app throughput.
 
-\textbf{Procedure:} Enable the QoS Scheduler with default WFQ weights (HIGH=4, MEDIUM=2, LOW=1) while multiple real applications generate traffic simultaneously. Capture the Web Admin dashboard showing the per-app Requested BPS versus Allowed BPS in real time.
+\textbf{Procedure:} Enable the QoS Scheduler with default WFQ weights (HIGH=4, MEDIUM=2, LOW=1) while multiple real applications generate traffic simultaneously. Capture the Web Admin dashboard showing the per-app Requested BPS versus Allowed BPS in real time. Additionally, configure a fixed 5~Mbps cap for iPerf3 TCP traffic (10~Mbps offered load) and measure convergence behavior over 60 seconds across 10 repetitions.
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.8\textwidth]{figures/real_token_bucket.png}
-\caption{Per-application Token Bucket enforcement: the \texttt{android} system process requests 110 KB/s but is capped to 65 KB/s, while foreground apps (\texttt{katana}, \texttt{orca}) receive their full requested bandwidth.}
-\label{fig:iperf_output}
-\end{figure}
+\textbf{Expected Outcome:} Low-priority background processes should be aggressively throttled (Allowed $\ll$ Requested), while foreground apps receive their full requested bandwidth (Allowed $\approx$ Requested).
 
 \subsection{Scenario 2: Proportional Fairness (WFQ)}
 
@@ -113,25 +117,15 @@ Three scenarios were designed to validate the system's core capabilities:
 
 \textbf{Procedure:} Configure three applications with HIGH (weight 4), MEDIUM (weight 2), and LOW (weight 1) priority. Simultaneously generate saturating traffic from all three. Measure achieved throughput and compute actual ratio. Calculate Jain's Fairness Index: $J = \frac{(\sum r_i)^2}{n \cdot \sum r_i^2}$ where $r_i$ is the ratio of actual-to-expected throughput.
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.8\textwidth]{figures/real_wfq_pie.png}
-\caption{WFQ proportional bandwidth allocation across HIGH (Weight 4), MEDIUM (Weight 2), and LOW (Weight 1) priority classes.}
-\label{fig:wfq_chart}
-\end{figure}
+\textbf{Expected Outcome:} Bandwidth distribution should match the 4:2:1 weight ratio within $\pm$12.5\% tolerance, with a Jain's Fairness Index approaching 1.0.
 
-\subsection{Scenario 3: Dynamic Packet Drop Rate Under Congestion}
+\subsection{Scenario 3: Bufferbloat Mitigation and Dynamic Drop Rate}
 
-\textbf{Objective:} Observe the real-time packet drop rate behavior when multiple applications compete for limited bandwidth, and verify that the Token Bucket dynamically suppresses greedy flows.
+\textbf{Objective:} (a) Measure the latency reduction achieved during network congestion by prioritizing latency-sensitive traffic, and (b) observe the real-time packet drop rate behavior when multiple applications compete for limited bandwidth.
 
-\textbf{Procedure:} Enable QoS with bandwidth caps while simultaneously running bandwidth-intensive apps (TikTok streaming, Facebook browsing). Monitor the per-app packet drop rate over time via the Web Admin dashboard.
+\textbf{Procedure:} \textit{Latency test:} Generate saturating background traffic while measuring round-trip latency with \texttt{ping -c 100 8.8.8.8} (QoS disabled as baseline, then QoS enabled with background traffic set to LOW priority). \textit{Drop rate test:} Enable QoS with bandwidth caps while simultaneously running bandwidth-intensive apps (TikTok streaming, Facebook browsing). Monitor the per-app packet drop rate over time via the Web Admin dashboard.
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.8\textwidth]{figures/real_drop_rate.png}
-\caption{Packet Drop Rate dynamics during bandwidth contention. The characteristic X-shaped cross-over between \texttt{trill} (TikTok, $\sim$50\%) and \texttt{katana} (Facebook, $\sim$60\%) demonstrates the Token Bucket dynamically redistributing bandwidth as TCP/QUIC congestion control reacts to packet drops.}
-\label{fig:drop_rate_timeline}
-\end{figure}
+\textbf{Expected Outcome:} Significant latency reduction (target $>$50\%) when QoS is enabled. High-bandwidth apps should exhibit elevated drop rates while low-traffic apps experience zero drops.
 
 % ────────────────────────────────────────────────────────────
 \section{Performance and Compatibility}

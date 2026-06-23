@@ -48,6 +48,15 @@ Std. Deviation (Mbps)    & 0.21             & 0.12             & --- \\
 
 The Token Bucket achieved 99.4\% accuracy ($4.97 / 5.00 = 0.994$), with a standard deviation of only 0.12 Mbps across 10 trials. The 2.3-second convergence time reflects the period during which TCP's congestion control algorithm detects the packet drops induced by the Token Bucket and reduces its sending rate. This convergence behavior is consistent with CUBIC's slow-start phase followed by congestion avoidance.
 
+Figure~\ref{fig:token_bucket_realtime} provides real-time visual evidence of the Token Bucket's per-application enforcement behavior, captured from the Web Admin monitoring dashboard.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{figures/real_token_bucket.png}
+\caption{Per-application Token Bucket enforcement captured from the Web Admin dashboard: the \texttt{android} system process requests 110 KB/s but is capped to 65 KB/s (40\% drop), while foreground apps (\texttt{katana}, \texttt{orca}) receive their full requested bandwidth with zero drops.}
+\label{fig:token_bucket_realtime}
+\end{figure}
+
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.9\textwidth]{figures/wireshark_convergence.png}
@@ -119,6 +128,15 @@ Cloud Sync   & LOW    & 1 & 1.00 & 0.98 $\pm$ 0.05 \\
 
 The measured ratios closely match the theoretical 4:2:1 weights. The actual ratio observed was $4.38 : 2.19 : 0.98 \approx 4.47 : 2.23 : 1.00$, deviating from the ideal 4:2:1 by less than 12\%.
 
+Figure~\ref{fig:wfq_realtime} shows the real-time WFQ allocation captured from the Web Admin dashboard, visually confirming the proportional bandwidth distribution.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/real_wfq_pie.png}
+\caption{WFQ Fair Share Allocation captured from the Web Admin dashboard. The doughnut chart confirms that HIGH priority (Weight 4) dominates bandwidth allocation, with MEDIUM (Weight 2) and LOW (Weight 1) receiving proportionally smaller shares consistent with the 4:2:1 configuration.}
+\label{fig:wfq_realtime}
+\end{figure}
+
 The LOW priority application was additionally subject to the ``RUTHLESS MODE'' cap of 1 Mbps, which was correctly enforced (measured 0.98 Mbps).
 
 \subsection{Dynamic Rebalancing}
@@ -186,6 +204,15 @@ The results demonstrate that the QoS Scheduler effectively eliminated Bufferbloa
     \item Jitter was reduced by 91.3\% (from 89.2 ms to 7.8 ms), providing the stable, predictable timing required for real-time applications.
     \item Packet loss was completely eliminated (2.1\% $\rightarrow$ 0.0\%), as the QoS Scheduler prevented the modem buffer from reaching capacity.
 \end{itemize}
+
+Figure~\ref{fig:drop_rate_realtime} provides real-time visual evidence of the packet drop dynamics during bandwidth contention, captured from the Web Admin dashboard.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/real_drop_rate.png}
+\caption{Packet Drop Rate dynamics during bandwidth contention. The characteristic X-shaped cross-over between \texttt{trill} (TikTok, $\sim$50\%) and \texttt{katana} (Facebook, $\sim$60\%) demonstrates the Token Bucket dynamically suppressing greedy flows. As TCP/QUIC congestion control reacts to packet drops, the suppressed flow reduces its rate, causing the competing flow to increase---and subsequently be throttled in turn.}
+\label{fig:drop_rate_realtime}
+\end{figure}
 
 \textbf{Statistical significance:}
 \begin{itemize}[noitemsep]
