@@ -102,8 +102,8 @@ Three scenarios were designed to validate the system's core capabilities:
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.8\textwidth]{figures/result1_token_bucket.png}
-\caption{TCP throughput convergence to the 5 Mbps cap.}
+\includegraphics[width=0.8\textwidth]{figures/real_token_bucket.png}
+\caption{Token Bucket enforcement in action: aggressive throttling of low-priority background processes versus full allocation for foreground apps.}
 \label{fig:iperf_output}
 \end{figure}
 
@@ -115,8 +115,8 @@ Three scenarios were designed to validate the system's core capabilities:
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.8\textwidth]{figures/result2_wfq.png}
-\caption{WFQ proportional bandwidth allocation across three applications.}
+\includegraphics[width=0.8\textwidth]{figures/real_wfq_pie.png}
+\caption{WFQ proportional bandwidth allocation across HIGH (Weight 4), MEDIUM (Weight 2), and LOW (Weight 1) priority classes.}
 \label{fig:wfq_chart}
 \end{figure}
 
@@ -128,8 +128,8 @@ Three scenarios were designed to validate the system's core capabilities:
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.8\textwidth]{figures/result3_latency.png}
-\caption{Latency comparison: baseline Bufferbloat vs. QoS-enabled.}
+\includegraphics[width=0.8\textwidth]{figures/real_drop_rate.png}
+\caption{Packet Drop Rate dynamics during network congestion. The X-shape cross-over demonstrates Token Bucket effectively suppressing greedy flows to relieve Bufferbloat.}
 \label{fig:bufferbloat_ping}
 \end{figure}
 
