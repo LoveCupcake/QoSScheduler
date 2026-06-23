@@ -94,16 +94,16 @@ Statistical Method & Paired two-sample t-test, $\alpha = 0.05$, Cohen's $d$ effe
 
 Three scenarios were designed to validate the system's core capabilities:
 
-\subsection{Scenario 1: Bandwidth Throttling Precision}
+\subsection{Scenario 1: Per-Application Bandwidth Enforcement}
 
-\textbf{Objective:} Verify that the Token Bucket accurately enforces a configured bandwidth cap.
+\textbf{Objective:} Verify that the Token Bucket selectively enforces bandwidth caps based on application priority, throttling greedy background processes while preserving foreground app throughput.
 
-\textbf{Procedure:} Configure a 5~Mbps cap for the iPerf3 application. Generate 10~Mbps TCP traffic (client on Android, server on Ubuntu). Measure actual throughput over 60 seconds. Repeat 10 times and compute mean, standard deviation, and 95\% confidence interval.
+\textbf{Procedure:} Enable the QoS Scheduler with default WFQ weights (HIGH=4, MEDIUM=2, LOW=1) while multiple real applications generate traffic simultaneously. Capture the Web Admin dashboard showing the per-app Requested BPS versus Allowed BPS in real time.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\textwidth]{figures/real_token_bucket.png}
-\caption{Token Bucket enforcement in action: aggressive throttling of low-priority background processes versus full allocation for foreground apps.}
+\caption{Per-application Token Bucket enforcement: the \texttt{android} system process requests 110 KB/s but is capped to 65 KB/s, while foreground apps (\texttt{katana}, \texttt{orca}) receive their full requested bandwidth.}
 \label{fig:iperf_output}
 \end{figure}
 
@@ -120,17 +120,17 @@ Three scenarios were designed to validate the system's core capabilities:
 \label{fig:wfq_chart}
 \end{figure}
 
-\subsection{Scenario 3: Bufferbloat Mitigation}
+\subsection{Scenario 3: Dynamic Packet Drop Rate Under Congestion}
 
-\textbf{Objective:} Measure the latency reduction achieved during network congestion.
+\textbf{Objective:} Observe the real-time packet drop rate behavior when multiple applications compete for limited bandwidth, and verify that the Token Bucket dynamically suppresses greedy flows.
 
-\textbf{Procedure:} \textit{Baseline:} Generate saturating background traffic while measuring round-trip latency with \texttt{ping -c 100 8.8.8.8} (QoS disabled). \textit{Treatment:} Repeat with QoS enabled, background traffic set to LOW priority. Compare latencies and compute statistical significance.
+\textbf{Procedure:} Enable QoS with bandwidth caps while simultaneously running bandwidth-intensive apps (TikTok streaming, Facebook browsing). Monitor the per-app packet drop rate over time via the Web Admin dashboard.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\textwidth]{figures/real_drop_rate.png}
-\caption{Packet Drop Rate dynamics during network congestion. The X-shape cross-over demonstrates Token Bucket effectively suppressing greedy flows to relieve Bufferbloat.}
-\label{fig:bufferbloat_ping}
+\caption{Packet Drop Rate dynamics during bandwidth contention. The characteristic X-shaped cross-over between \texttt{trill} (TikTok, $\sim$50\%) and \texttt{katana} (Facebook, $\sim$60\%) demonstrates the Token Bucket dynamically redistributing bandwidth as TCP/QUIC congestion control reacts to packet drops.}
+\label{fig:drop_rate_timeline}
 \end{figure}
 
 % ────────────────────────────────────────────────────────────
