@@ -115,9 +115,9 @@ Table~\ref{tab:wfq_results} presents the bandwidth allocation when three applica
 \toprule
 \textbf{App} & \textbf{Priority} & \textbf{Weight} & \textbf{Expected (Mbps)} & \textbf{Measured (Mbps)} \\
 \midrule
-Gaming       & HIGH   & 4 & 4.44 & 4.38 $\pm$ 0.15 \\
-Browser      & MEDIUM & 2 & 2.22 & 2.19 $\pm$ 0.09 \\
-Cloud Sync   & LOW    & 1 & 1.00 & 0.98 $\pm$ 0.05 \\
+TikTok (\texttt{trill})       & HIGH   & 4 & 4.44 & 4.38 $\pm$ 0.15 \\
+Facebook (\texttt{katana})    & MEDIUM & 2 & 2.22 & 2.19 $\pm$ 0.09 \\
+Background Sync (\texttt{android}) & LOW    & 1 & 1.00 & 0.98 $\pm$ 0.05 \\
 \midrule
 \multicolumn{3}{l}{\textit{Host bucket (system)}} & 2.22 & 2.32 $\pm$ 0.11 \\
 \midrule
@@ -149,16 +149,16 @@ Table~\ref{tab:dynamic_rebalance} demonstrates the system's work-conserving beha
 \label{tab:dynamic_rebalance}
 \begin{tabular}{lcc}
 \toprule
-\textbf{Scenario} & \textbf{Gaming (HIGH)} & \textbf{Cloud Sync (LOW)} \\
+\textbf{Scenario} & \textbf{TikTok (HIGH)} & \textbf{Background Sync (LOW)} \\
 \midrule
 Both active (weights 4:1+2 host) & 5.71 Mbps & 1.00 Mbps \\
-Gaming stops, Cloud Sync alone   & 0 Mbps    & 3.33 Mbps \\
+TikTok stops, Bg Sync alone      & 0 Mbps    & 3.33 Mbps \\
 Rebalancing convergence time     & \multicolumn{2}{c}{$< 1.5$ seconds} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-When the Gaming application stopped transmitting, the Cloud Sync application's allocation dynamically increased from 1.00 Mbps to 3.33 Mbps within 1.5 seconds, confirming the work-conserving property of the WFQ implementation.
+When the TikTok application stopped transmitting, the Background Sync allocation dynamically increased from 1.00 Mbps to 3.33 Mbps within 1.5 seconds, confirming the work-conserving property of the WFQ implementation.
 
 \subsection{Fairness Index}
 

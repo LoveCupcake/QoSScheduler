@@ -115,7 +115,7 @@ Three scenarios were designed to validate the system's core capabilities. Quanti
 
 \textbf{Objective:} Verify that WFQ correctly distributes bandwidth according to priority weights (4:2:1).
 
-\textbf{Procedure:} Configure three applications with HIGH (weight 4), MEDIUM (weight 2), and LOW (weight 1) priority. Simultaneously generate saturating traffic from all three. Measure achieved throughput and compute actual ratio. Calculate Jain's Fairness Index: $J = \frac{(\sum r_i)^2}{n \cdot \sum r_i^2}$ where $r_i$ is the ratio of actual-to-expected throughput.
+\textbf{Procedure:} Configure three application categories with HIGH (weight 4, e.g., Video Streaming / \texttt{trill}), MEDIUM (weight 2, e.g., Social Media / \texttt{katana}), and LOW (weight 1, e.g., Background Sync / \texttt{android}) priority. Simultaneously generate saturating traffic from all three. Measure achieved throughput and compute actual ratio. Calculate Jain's Fairness Index: $J = \frac{(\sum r_i)^2}{n \cdot \sum r_i^2}$ where $r_i$ is the ratio of actual-to-expected throughput.
 
 \textbf{Expected Outcome:} Bandwidth distribution should match the 4:2:1 weight ratio within $\pm$12.5\% tolerance, with a Jain's Fairness Index approaching 1.0.
 
